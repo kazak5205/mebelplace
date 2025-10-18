@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Cache directory for temporary files -->
+    <cache-path name="cache" path="." />
+    
+    <!-- External cache for video/image processing -->
+    <external-cache-path name="external_cache" path="." />
+    
+    <!-- External files for media uploads -->
+    <external-files-path name="external_files" path="." />
+    
+    <!-- External media for gallery access -->
+    <external-media-path name="external_media" path="." />
+    
+    <!-- Pictures directory for profile images -->
+    <external-files-path name="pictures" path="Pictures/" />
+    
+    <!-- Movies directory for video uploads -->
+    <external-files-path name="movies" path="Movies/" />
+    
+    <!-- Documents for file sharing -->
+    <external-files-path name="documents" path="Documents/" />
+</paths>

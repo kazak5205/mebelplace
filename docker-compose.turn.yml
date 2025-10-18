@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  turnserver:
+    image: coturn/coturn:latest
+    container_name: mebelplace-turnserver
+    restart: unless-stopped
+    ports:
+      - "3478:3478"
+      - "3478:3478/udp"
+      - "5349:5349"
+      - "5349:5349/udp"
+      - "49152-65535:49152-65535/udp"  # TURN relay port range
+    volumes:
+      - ./turnserver.conf:/etc/turnserver.conf:ro
+      - ./logs:/var/log
+    command: ["-c", "/etc/turnserver.conf"]
+    environment:
+      - TURN_USERNAME=mebelplace_user
+      - TURN_PASSWORD=mebelplace_turn_password_2024
+      - TURN_REALM=mebelplace.com.kz
+    networks:
+      - mebelplace_streaming-network
+    healthcheck:
+      test: ["CMD", "turnutils_stunclient", "127.0.0.1", "-p", "3478"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  turnserver-test:
+    image: alpine:latest
+    container_name: mebelplace-turnserver-test
+    depends_on:
+      - turnserver
+    command: |
+      sh -c "
+        apk add --no-cache curl &&
+        echo 'Testing TURN server...' &&
+        curl -v telnet://turnserver:3478 &&
+        echo 'TURN server test completed'
+      "
+    networks:
+      - mebelplace_streaming-network
+
+networks:
+  mebelplace_streaming-network:
+    external: true

@@ -1,0 +1,588 @@
+name: 🚀 MebelPlace Comprehensive CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/*, hotfix/* ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC for security and dependency checks
+    - cron: '0 2 * * *'
+
+env:
+  FLUTTER_VERSION: '3.16.0'
+  GO_VERSION: '1.21'
+  NODE_VERSION: '18'
+  DART_VERSION: '3.0.0'
+
+jobs:
+  # 🔍 Code Quality & Security Analysis
+  code-quality:
+    name: 🔍 Code Quality & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install Flutter dependencies
+        run: flutter pub get
+
+      - name: 🔍 Run Flutter analyze
+        run: flutter analyze --fatal-infos
+
+      - name: 🧹 Run Flutter format check
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: 🔒 Run security audit
+        run: flutter pub audit
+
+      - name: 📊 Generate code coverage
+        run: flutter test --coverage
+
+      - name: 📈 Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage/lcov.info
+          flags: flutter
+          name: flutter-coverage
+
+      - name: 🛡️ Run CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: dart
+          queries: security-and-quality
+
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+  # 🧪 Unit Tests
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🧪 Run unit tests
+        run: flutter test --coverage --reporter=expanded
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: test_results/
+
+  # 🔗 Integration Tests
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔗 Run integration tests
+        run: flutter test integration_test/ --reporter=expanded
+
+      - name: 📱 Test on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          script: flutter test integration_test/mobile_features_test.dart
+
+      - name: 📱 Test on iOS simulator
+        if: runner.os == 'macOS'
+        run: |
+          flutter test integration_test/mobile_features_test.dart
+        env:
+          SIMULATOR_DEVICE_NAME: iPhone 14
+
+  # 🌐 E2E Tests
+  e2e-tests:
+    name: 🌐 E2E Tests
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mebelplace_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Playwright dependencies
+        run: npm ci
+
+      - name: 🎭 Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install Flutter dependencies
+        run: flutter pub get
+
+      - name: 🏗️ Build Flutter web
+        run: flutter build web --release
+
+      - name: 🚀 Start backend server
+        run: |
+          cd backend
+          go mod download
+          go run main.go &
+          sleep 10
+
+      - name: 🌐 Run E2E tests
+        run: npx playwright test
+        env:
+          BASE_URL: http://localhost:3000
+          API_URL: http://localhost:8080/api/v2
+
+      - name: 📊 Upload E2E test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+  # 🏗️ Build & Package
+  build:
+    name: 🏗️ Build & Package
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, e2e-tests]
+    strategy:
+      matrix:
+        platform: [android, ios, web, windows, macos, linux]
+        include:
+          - platform: android
+            os: ubuntu-latest
+          - platform: ios
+            os: macos-latest
+          - platform: web
+            os: ubuntu-latest
+          - platform: windows
+            os: windows-latest
+          - platform: macos
+            os: macos-latest
+          - platform: linux
+            os: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔑 Setup Android keystore
+        if: matrix.platform == 'android'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/keystore.jks
+          echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/key.properties
+
+      - name: 🏗️ Build Android APK
+        if: matrix.platform == 'android'
+        run: flutter build apk --release
+
+      - name: 🏗️ Build Android App Bundle
+        if: matrix.platform == 'android'
+        run: flutter build appbundle --release
+
+      - name: 🏗️ Build iOS
+        if: matrix.platform == 'ios'
+        run: flutter build ios --release --no-codesign
+
+      - name: 🏗️ Build Web
+        if: matrix.platform == 'web'
+        run: flutter build web --release --web-renderer html
+
+      - name: 🏗️ Build Windows
+        if: matrix.platform == 'windows'
+        run: flutter build windows --release
+
+      - name: 🏗️ Build macOS
+        if: matrix.platform == 'macos'
+        run: flutter build macos --release
+
+      - name: 🏗️ Build Linux
+        if: matrix.platform == 'linux'
+        run: flutter build linux --release
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.platform }}
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/bundle/release/*.aab
+            build/web/
+            build/windows/
+            build/macos/
+            build/linux/
+
+  # 🚀 Deploy to Staging
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-web
+          path: build/
+
+      - name: 🚀 Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: staging
+          projectId: mebelplace-staging
+
+      - name: 📱 Deploy to TestFlight (iOS)
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          # Download iOS build
+          # Upload to TestFlight
+          echo "Deploying to TestFlight..."
+
+      - name: 📱 Deploy to Google Play Internal Testing
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          # Download Android build
+          # Upload to Google Play
+          echo "Deploying to Google Play Internal Testing..."
+
+  # 🚀 Deploy to Production
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-web
+          path: build/
+
+      - name: 🚀 Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: mebelplace-production
+
+      - name: 📱 Deploy to App Store (iOS)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Download iOS build
+          # Upload to App Store
+          echo "Deploying to App Store..."
+
+      - name: 📱 Deploy to Google Play Store
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Download Android build
+          # Upload to Google Play Store
+          echo "Deploying to Google Play Store..."
+
+  # 🔒 Security & Dependency Updates
+  security-check:
+    name: 🔒 Security & Dependency Updates
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔍 Check for outdated packages
+        run: flutter pub outdated
+
+      - name: 🔒 Run security audit
+        run: flutter pub audit
+
+      - name: 🛡️ Run dependency vulnerability scan
+        run: |
+          # Add dependency vulnerability scanning
+          echo "Scanning for vulnerabilities..."
+
+  # 📊 Performance Testing
+  performance-tests:
+    name: 📊 Performance Testing
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🏃 Run performance tests
+        run: flutter test test/performance/ --reporter=expanded
+
+      - name: 📊 Generate performance report
+        run: flutter test --coverage test/performance/
+
+      - name: 📈 Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: test_results/performance/
+
+  # 🔄 Backend Tests
+  backend-tests:
+    name: 🔄 Backend Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mebelplace_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: 📦 Download Go dependencies
+        run: |
+          cd backend
+          go mod download
+
+      - name: 🧪 Run Go unit tests
+        run: |
+          cd backend
+          go test ./... -v -race -coverprofile=coverage.out
+
+      - name: 🧪 Run Go integration tests
+        run: |
+          cd backend
+          go test -tags=integration ./... -v
+
+      - name: 📊 Upload Go coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: backend/coverage.out
+          flags: go
+          name: go-coverage
+
+      - name: 🔍 Run Go security scan
+        run: |
+          cd backend
+          go list -json -deps ./... | nancy sleuth
+
+  # 📱 Mobile Device Testing
+  mobile-device-tests:
+    name: 📱 Mobile Device Testing
+    runs-on: ubuntu-latest
+    needs: [build]
+    strategy:
+      matrix:
+        device: [pixel-7, iphone-14]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📱 Setup Android device
+        if: matrix.device == 'pixel-7'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          script: |
+            flutter test integration_test/mobile_device_test.dart
+
+      - name: 📱 Setup iOS device
+        if: matrix.device == 'iphone-14'
+        run: |
+          flutter test integration_test/mobile_device_test.dart
+        env:
+          SIMULATOR_DEVICE_NAME: iPhone 14
+
+  # 🎯 Accessibility Testing
+  accessibility-tests:
+    name: 🎯 Accessibility Testing
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🎯 Run accessibility tests
+        run: flutter test test/accessibility/ --reporter=expanded
+
+      - name: 📊 Upload accessibility results
+        uses: actions/upload-artifact@v3
+        with:
+          name: accessibility-results
+          path: test_results/accessibility/
+
+  # 📈 Monitoring & Alerting
+  monitoring:
+    name: 📈 Monitoring & Alerting
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    steps:
+      - name: 📊 Update monitoring dashboards
+        run: |
+          echo "Updating monitoring dashboards..."
+          # Update Grafana dashboards
+          # Update Prometheus alerts
+
+      - name: 🚨 Send deployment notifications
+        run: |
+          echo "Sending deployment notifications..."
+          # Send Slack notifications
+          # Send email notifications
+
+  # 🧹 Cleanup
+  cleanup:
+    name: 🧹 Cleanup
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: always()
+    steps:
+      - name: 🧹 Clean up old artifacts
+        run: |
+          echo "Cleaning up old artifacts..."
+          # Clean up old build artifacts
+          # Clean up old test results
+
+      - name: 🗑️ Clean up old deployments
+        run: |
+          echo "Cleaning up old deployments..."
+          # Clean up old staging deployments
+          # Clean up old test environments

@@ -1,0 +1,2932 @@
+openapi: 3.0.3
+info:
+  title: MebelPlace Frontend API Specification
+  description: |
+    MebelPlace Frontend API Specification - полная спецификация фронтенда Next.js 15 приложения.
+    
+    ## Архитектура фронтенда:
+    - Next.js 15 с App Router
+    - TypeScript 5.6 с строгой типизацией
+    - Tailwind CSS 3.4 с Glass Design System
+    - Redux Toolkit 2.9 для глобального состояния
+    - React Query 5.59 для кэширования API
+    - Framer Motion 11.11 для анимаций
+    - Socket.io-client для WebSocket соединений
+    - HLS.js для видео стриминга
+    - Simple-peer для WebRTC
+    - Sentry для мониторинга ошибок
+    - PWA поддержка
+    - i18n интернационализация
+    
+    ## Компоненты и структура:
+    - Модульная архитектура компонентов
+    - API-ready компоненты для интеграции
+    - Централизованная система логирования
+    - Обработка ошибок API
+    - Виртуализация списков
+    - Lazy loading изображений и видео
+    - Intersection Observer для оптимизации
+    - Glass Design System UI компоненты
+    
+    ## Тестирование:
+    - Jest для unit тестов
+    - Playwright для E2E тестов
+    - Testing Library для компонентов
+    - Cypress для интеграционных тестов
+    - Accessibility тестирование
+    
+    ## Производительность:
+    - Code splitting и lazy loading
+    - Image optimization
+    - Bundle optimization
+    - PWA кэширование
+    - Service Worker
+    
+  version: 1.0.0
+  contact:
+    name: MebelPlace Frontend Team
+    email: frontend@mebelplace.com.kz
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://mebelplace.com.kz
+    description: Production frontend
+  - url: http://localhost:3000
+    description: Development frontend
+
+tags:
+  - name: Components
+    description: React компоненты и UI элементы
+  - name: Hooks
+    description: Custom React hooks
+  - name: API Integration
+    description: API интеграция и клиенты
+  - name: State Management
+    description: Управление состоянием (Redux, React Query)
+  - name: Routing
+    description: Next.js маршрутизация
+  - name: Styling
+    description: CSS и стилизация
+  - name: Performance
+    description: Оптимизация производительности
+  - name: Testing
+    description: Тестирование компонентов
+  - name: PWA
+    description: Progressive Web App функции
+  - name: Internationalization
+    description: Интернационализация (i18n)
+  - name: Error Handling
+    description: Обработка ошибок
+  - name: Logging
+    description: Система логирования
+  - name: WebSocket
+    description: WebSocket соединения
+  - name: Video Streaming
+    description: Видео стриминг и HLS
+  - name: WebRTC
+    description: WebRTC коммуникация
+  - name: Authentication
+    description: Аутентификация и авторизация
+  - name: Forms
+    description: Формы и валидация
+  - name: Navigation
+    description: Навигация и меню
+  - name: Modals
+    description: Модальные окна
+  - name: Notifications
+    description: Уведомления и toast
+  - name: Analytics
+    description: Аналитика и метрики
+  - name: Animations
+    description: Анимации и переходы с Framer Motion
+  - name: Pages
+    description: Структура страниц приложения
+  - name: Design System
+    description: Glass Design System и стилизация
+
+paths:
+  /components/ui:
+    get:
+      tags:
+        - Components
+      summary: UI компоненты
+      description: |
+        Базовые UI компоненты Glass Design System:
+        - Button - кнопки с различными вариантами
+        - Input - поля ввода с валидацией
+        - Modal - модальные окна
+        - Toast - уведомления
+        - Spinner - индикаторы загрузки
+        - Card - карточки контента
+        - Avatar - аватары пользователей
+        - Badge - бейджи и метки
+        - Dropdown - выпадающие меню
+        - Tabs - вкладки
+        - Accordion - аккордеоны
+        - Tooltip - подсказки
+        - Progress - прогресс бары
+        - Skeleton - скелетоны загрузки
+      responses:
+        '200':
+          description: Список доступных UI компонентов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  components:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UIComponent'
+
+  /components/layout:
+    get:
+      tags:
+        - Components
+      summary: Layout компоненты
+      description: |
+        Компоненты макета и структуры:
+        - Header - шапка сайта
+        - Footer - подвал сайта
+        - Sidebar - боковая панель
+        - Navigation - навигационное меню
+        - Breadcrumbs - хлебные крошки
+        - Container - контейнеры контента
+        - Grid - сетка макета
+        - Stack - вертикальное расположение
+        - Flex - гибкое расположение
+      responses:
+        '200':
+          description: Список layout компонентов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  layouts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LayoutComponent'
+
+  /components/features:
+    get:
+      tags:
+        - Components
+      summary: Feature компоненты
+      description: |
+        Специализированные компоненты функций:
+        - VideoPlayer - видеоплеер с HLS
+        - VideoThumbnail - превью видео
+        - ChatMessage - сообщения чата
+        - UserCard - карточка пользователя
+        - RequestCard - карточка заявки
+        - SearchBar - поисковая строка
+        - FilterPanel - панель фильтров
+        - Pagination - пагинация
+        - InfiniteScroll - бесконечная прокрутка
+        - VirtualizedList - виртуализированный список
+        - LazyImage - ленивая загрузка изображений
+        - OptimizedVideo - оптимизированное видео
+        - ErrorBoundary - границы ошибок
+      responses:
+        '200':
+          description: Список feature компонентов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  features:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FeatureComponent'
+
+  /hooks:
+    get:
+      tags:
+        - Hooks
+      summary: Custom React hooks
+      description: |
+        Пользовательские React hooks:
+        - useAuth - аутентификация
+        - useApi - API вызовы
+        - useWebSocket - WebSocket соединения
+        - useOffline - офлайн режим
+        - useIntersectionObserver - intersection observer
+        - useVideoInView - видео в области видимости
+        - usePreloadInView - предзагрузка в области видимости
+        - useLocalStorage - локальное хранилище
+        - useDebounce - дебаунс
+        - useThrottle - троттлинг
+        - useMediaQuery - медиа запросы
+        - useClickOutside - клик вне элемента
+        - useKeyboard - обработка клавиатуры
+        - useScroll - обработка скролла
+        - useWindowSize - размер окна
+        - usePrevious - предыдущее значение
+        - useToggle - переключение состояния
+        - useCounter - счетчик
+        - useAsync - асинхронные операции
+        - useFetch - HTTP запросы
+        - useMutation - мутации данных
+        - useQuery - запросы данных
+        - useInfiniteQuery - бесконечные запросы
+        - usePaginatedQuery - пагинированные запросы
+      responses:
+        '200':
+          description: Список доступных hooks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hooks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomHook'
+
+  /api/client:
+    get:
+      tags:
+        - API Integration
+      summary: API клиент
+      description: |
+        Централизованный API клиент:
+        - Axios instance с базовой конфигурацией
+        - Автоматическое добавление токенов
+        - Обработка ошибок
+        - Retry логика
+        - Request/Response interceptors
+        - Timeout настройки
+        - Base URL конфигурация
+        - Content-Type headers
+        - CORS настройки
+      responses:
+        '200':
+          description: Конфигурация API клиента
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIClient'
+
+  /api/endpoints:
+    get:
+      tags:
+        - API Integration
+      summary: API endpoints
+      description: |
+        Определения API endpoints:
+        - Типизированные endpoints
+        - Request/Response типы
+        - Параметры запросов
+        - Query параметры
+        - Path параметры
+        - Body параметры
+        - Headers
+        - Middleware
+        - Валидация
+      responses:
+        '200':
+          description: Список API endpoints
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endpoints:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/APIEndpoint'
+
+  /api/hooks:
+    get:
+      tags:
+        - API Integration
+      summary: API hooks
+      description: |
+        React Query hooks для API:
+        - useLogin - авторизация
+        - useRegister - регистрация
+        - useLogout - выход
+        - useCurrentUser - текущий пользователь
+        - useVideos - видео контент
+        - useVideo - конкретное видео
+        - useRequests - заявки
+        - useRequest - конкретная заявка
+        - useChats - чаты
+        - useChat - конкретный чат
+        - useMessages - сообщения
+        - useNotifications - уведомления
+        - useSearch - поиск
+        - useUsers - пользователи
+        - useUser - конкретный пользователь
+        - useSubscriptions - подписки
+        - useAnalytics - аналитика
+      responses:
+        '200':
+          description: Список API hooks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiHooks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/APIHook'
+
+  /store:
+    get:
+      tags:
+        - State Management
+      summary: Redux store
+      description: |
+        Redux Toolkit store конфигурация:
+        - authSlice - состояние аутентификации
+        - uiSlice - UI состояние
+        - videoSlice - состояние видео
+        - chatSlice - состояние чатов
+        - requestSlice - состояние заявок
+        - userSlice - состояние пользователей
+        - notificationSlice - состояние уведомлений
+        - Middleware конфигурация
+        - DevTools интеграция
+        - Persist конфигурация
+      responses:
+        '200':
+          description: Конфигурация Redux store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReduxStore'
+
+  /react-query:
+    get:
+      tags:
+        - State Management
+      summary: React Query конфигурация
+      description: |
+        React Query настройки:
+        - QueryClient конфигурация
+        - Default options
+        - Cache настройки
+        - Retry логика
+        - Stale time
+        - Garbage collection
+        - Background refetch
+        - Window focus refetch
+        - Network reconnect refetch
+        - DevTools интеграция
+      responses:
+        '200':
+          description: Конфигурация React Query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReactQueryConfig'
+
+  /routing:
+    get:
+      tags:
+        - Routing
+      summary: Next.js маршрутизация
+      description: |
+        App Router структура:
+        - [locale] - интернационализация
+        - (app) - основное приложение
+        - (auth) - аутентификация
+        - (public) - публичные страницы
+        - feed - лента видео
+        - search - поиск
+        - profile - профиль
+        - chat - чаты
+        - requests - заявки
+        - videos - видео
+        - users - пользователи
+        - settings - настройки
+        - Dynamic routes
+        - Catch-all routes
+        - Route groups
+        - Parallel routes
+        - Intercepting routes
+      responses:
+        '200':
+          description: Структура маршрутов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutingStructure'
+
+  /styling:
+    get:
+      tags:
+        - Styling
+      summary: Стилизация и CSS
+      description: |
+        Tailwind CSS и Glass Design System:
+        - Custom CSS переменные
+        - Glass morphism эффекты
+        - Responsive breakpoints
+        - Color palette
+        - Typography
+        - Spacing system
+        - Border radius
+        - Shadows
+        - Animations
+        - Transitions
+        - Dark mode
+        - Light mode
+        - Component variants
+        - Utility classes
+        - Custom components
+      responses:
+        '200':
+          description: Конфигурация стилей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StylingConfig'
+
+  /performance:
+    get:
+      tags:
+        - Performance
+      summary: Оптимизация производительности
+      description: |
+        Оптимизации производительности:
+        - Code splitting
+        - Lazy loading
+        - Image optimization
+        - Bundle optimization
+        - Tree shaking
+        - Dead code elimination
+        - Minification
+        - Compression
+        - Caching strategies
+        - Service Worker
+        - PWA optimization
+        - Virtual scrolling
+        - Intersection Observer
+        - Debouncing
+        - Throttling
+        - Memoization
+        - React.memo
+        - useMemo
+        - useCallback
+      responses:
+        '200':
+          description: Оптимизации производительности
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceOptimizations'
+
+  /testing:
+    get:
+      tags:
+        - Testing
+      summary: Тестирование
+      description: |
+        Стратегия тестирования:
+        - Unit тесты (Jest)
+        - Component тесты (Testing Library)
+        - E2E тесты (Playwright)
+        - Integration тесты (Cypress)
+        - Accessibility тесты
+        - Performance тесты
+        - Visual regression тесты
+        - API тесты
+        - Mock данные
+        - Test utilities
+        - Coverage reports
+        - CI/CD интеграция
+      responses:
+        '200':
+          description: Конфигурация тестирования
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestingConfig'
+
+  /pwa:
+    get:
+      tags:
+        - PWA
+      summary: Progressive Web App
+      description: |
+        PWA функциональность:
+        - Service Worker
+        - Web App Manifest
+        - Offline поддержка
+        - Push уведомления
+        - Install prompt
+        - Background sync
+        - Cache strategies
+        - Update notifications
+        - App shell
+        - Splash screen
+        - Icon sets
+        - Theme colors
+        - Display modes
+      responses:
+        '200':
+          description: PWA конфигурация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PWAConfig'
+
+  /i18n:
+    get:
+      tags:
+        - Internationalization
+      summary: Интернационализация
+      description: |
+        i18n настройки:
+        - next-intl интеграция
+        - Локализация (ru, en, kz)
+        - Переводы компонентов
+        - Переводы сообщений
+        - Форматирование дат
+        - Форматирование чисел
+        - Форматирование валют
+        - RTL поддержка
+        - Локализация URL
+        - Fallback языки
+        - Namespace организация
+      responses:
+        '200':
+          description: i18n конфигурация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/I18nConfig'
+
+  /error-handling:
+    get:
+      tags:
+        - Error Handling
+      summary: Обработка ошибок
+      description: |
+        Система обработки ошибок:
+        - Error Boundaries
+        - API error handling
+        - Network error handling
+        - Validation error handling
+        - User-friendly messages
+        - Error logging
+        - Sentry интеграция
+        - Retry mechanisms
+        - Fallback UI
+        - Error reporting
+        - Debug information
+      responses:
+        '200':
+          description: Конфигурация обработки ошибок
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorHandlingConfig'
+
+  /logging:
+    get:
+      tags:
+        - Logging
+      summary: Система логирования
+      description: |
+        Централизованное логирование:
+        - Logger класс
+        - Уровни логирования (debug, info, warn, error)
+        - Структурированные логи
+        - Context информация
+        - Timestamp
+        - User ID tracking
+        - Performance logging
+        - API request/response logging
+        - User action logging
+        - Error logging
+        - Development vs Production
+        - Sentry интеграция
+      responses:
+        '200':
+          description: Конфигурация логирования
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingConfig'
+
+  /websocket:
+    get:
+      tags:
+        - WebSocket
+      summary: WebSocket соединения
+      description: |
+        WebSocket интеграция:
+        - Socket.io-client
+        - Connection management
+        - Reconnection logic
+        - Event handling
+        - Message types
+        - Authentication
+        - Error handling
+        - Heartbeat
+        - Room management
+        - Real-time updates
+        - Chat messages
+        - Notifications
+        - Live streaming
+      responses:
+        '200':
+          description: WebSocket конфигурация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebSocketConfig'
+
+  /video-streaming:
+    get:
+      tags:
+        - Video Streaming
+      summary: Видео стриминг
+      description: |
+        Видео стриминг функциональность:
+        - HLS.js интеграция
+        - Adaptive bitrate
+        - Multiple quality levels
+        - Thumbnail generation
+        - Autoplay on scroll
+        - Lazy loading
+        - Preloading
+        - Buffering optimization
+        - Error handling
+        - Fallback mechanisms
+        - Mobile optimization
+        - Bandwidth detection
+        - Quality switching
+      responses:
+        '200':
+          description: Конфигурация видео стриминга
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoStreamingConfig'
+
+  /webrtc:
+    get:
+      tags:
+        - WebRTC
+      summary: WebRTC коммуникация
+      description: |
+        WebRTC функциональность:
+        - Simple-peer интеграция
+        - Peer-to-peer соединения
+        - Video calls
+        - Audio calls
+        - Screen sharing
+        - Data channels
+        - ICE candidates
+        - STUN/TURN servers
+        - Connection management
+        - Error handling
+        - Fallback mechanisms
+        - Mobile support
+        - Bandwidth optimization
+      responses:
+        '200':
+          description: WebRTC конфигурация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebRTCConfig'
+
+  /authentication:
+    get:
+      tags:
+        - Authentication
+      summary: Аутентификация
+      description: |
+        Система аутентификации:
+        - JWT токены
+        - Access/Refresh токены
+        - Token storage
+        - Auto refresh
+        - Logout handling
+        - Route protection
+        - Role-based access
+        - Permission system
+        - Session management
+        - Security headers
+        - CSRF protection
+        - XSS protection
+      responses:
+        '200':
+          description: Конфигурация аутентификации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationConfig'
+
+  /forms:
+    get:
+      tags:
+        - Forms
+      summary: Формы и валидация
+      description: |
+        Система форм:
+        - React Hook Form
+        - Zod валидация
+        - Form schemas
+        - Field validation
+        - Error messages
+        - Success states
+        - Loading states
+        - Auto-save
+        - Draft functionality
+        - File uploads
+        - Multi-step forms
+        - Dynamic forms
+        - Conditional fields
+      responses:
+        '200':
+          description: Конфигурация форм
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FormsConfig'
+
+  /navigation:
+    get:
+      tags:
+        - Navigation
+      summary: Навигация и меню
+      description: |
+        Навигационная система:
+        - Header navigation
+        - Sidebar menu
+        - Mobile menu
+        - Breadcrumbs
+        - Tab navigation
+        - Pagination
+        - Search navigation
+        - Filter navigation
+        - Sort navigation
+        - Back button
+        - History management
+        - Deep linking
+        - URL synchronization
+      responses:
+        '200':
+          description: Конфигурация навигации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NavigationConfig'
+
+  /modals:
+    get:
+      tags:
+        - Modals
+      summary: Модальные окна
+      description: |
+        Система модальных окон:
+        - Modal компонент
+        - Dialog компонент
+        - Popover компонент
+        - Tooltip компонент
+        - Drawer компонент
+        - Sheet компонент
+        - Alert dialog
+        - Confirm dialog
+        - Form modals
+        - Image viewer
+        - Video player modal
+        - User profile modal
+        - Settings modal
+        - Accessibility
+        - Keyboard navigation
+        - Focus management
+        - Escape handling
+        - Backdrop handling
+      responses:
+        '200':
+          description: Конфигурация модальных окон
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModalsConfig'
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Уведомления и toast
+      description: |
+        Система уведомлений:
+        - React Hot Toast
+        - Toast variants
+        - Success notifications
+        - Error notifications
+        - Warning notifications
+        - Info notifications
+        - Loading notifications
+        - Custom notifications
+        - Position options
+        - Duration settings
+        - Dismissible
+        - Action buttons
+        - Progress indicators
+        - Sound notifications
+        - Push notifications
+        - In-app notifications
+      responses:
+        '200':
+          description: Конфигурация уведомлений
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationsConfig'
+
+  /analytics:
+    get:
+      tags:
+        - Analytics
+      summary: Аналитика и метрики
+      description: |
+        Система аналитики:
+        - User tracking
+        - Event tracking
+        - Page views
+        - User interactions
+        - Performance metrics
+        - Error tracking
+        - Custom events
+        - Conversion tracking
+        - Funnel analysis
+        - A/B testing
+        - Heatmaps
+        - Session recording
+        - Real-time analytics
+        - Reports
+        - Dashboards
+      responses:
+        '200':
+          description: Конфигурация аналитики
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsConfig'
+
+  /animations:
+    get:
+      tags:
+        - Animations
+      summary: Анимации и переходы
+      description: |
+        Система анимаций с Framer Motion:
+        - Page transitions (fade, slide, scale)
+        - Component animations (enter, exit, hover)
+        - Glass morphism effects (shimmer, pulse, float)
+        - Loading animations (spinner, skeleton, progress)
+        - Micro-interactions (button hover, card flip)
+        - Scroll animations (reveal, parallax)
+        - Gesture animations (drag, swipe, pinch)
+        - Layout animations (reorder, resize)
+        - Stagger animations (list items)
+        - Spring physics animations
+        - Custom keyframes
+        - Animation presets
+        - Performance optimized animations
+        - Reduced motion support
+        - Mobile optimized animations
+      responses:
+        '200':
+          description: Конфигурация анимаций
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimationsConfig'
+
+  /pages:
+    get:
+      tags:
+        - Pages
+      summary: Структура страниц
+      description: |
+        Полная структура страниц приложения:
+        - Feed (лента видео) - GlassVideoFeedTab, FeedContent
+        - Search (поиск) - GlassSearchScreen с фильтрами
+        - Profile (профиль) - пользовательские профили
+        - Video (видео) - детальный просмотр видео
+        - Chat (чаты) - мессенджер с WebSocket
+        - Requests (заявки) - система заявок и предложений
+        - Upload (загрузка) - загрузка видео и контента
+        - Settings (настройки) - пользовательские настройки
+        - Admin (админка) - административная панель
+        - Auth (авторизация) - логин, регистрация
+        - About (о нас) - информация о компании
+        - Contact (контакты) - форма обратной связи
+        - Help (помощь) - FAQ и поддержка
+        - Legal (правовая) - условия использования
+        - Marketplace (маркетплейс) - торговля
+        - Live Streaming (стримы) - прямые трансляции
+        - AR/3D (дополненная реальность) - ARViewer
+        - Audio Rooms (голосовые комнаты) - VoiceControl
+        - Video Conferences (видеоконференции)
+        - Stories (истории) - временный контент
+        - Channels (каналы) - подписки и контент
+        - Notifications (уведомления) - система уведомлений
+        - Wallet (кошелек) - платежи и баланс
+        - Orders (заказы) - управление заказами
+        - Reviews (отзывы) - система отзывов
+        - Subscriptions (подписки) - платные подписки
+        - Learning (обучение) - образовательный контент
+        - Events (события) - календарь событий
+        - Blog (блог) - статьи и новости
+        - Careers (карьера) - вакансии
+        - Gallery (галерея) - медиа галерея
+        - Configurator (конфигуратор) - 3D конфигуратор
+        - Collaboration (сотрудничество) - совместная работа
+        - Awards (награды) - система достижений
+        - Invoices (счета) - финансовые документы
+        - Payment Methods (способы оплаты)
+        - Order Tracking (отслеживание заказов)
+        - Request Analytics (аналитика заявок)
+        - Video Analytics (аналитика видео)
+        - My Channel (мой канал)
+        - My Proposals (мои предложения)
+        - My Requests (мои заявки)
+        - My Videos (мои видео)
+        - Support (поддержка) - техподдержка
+        - FAQ (часто задаваемые вопросы)
+        - Privacy Policy (политика конфиденциальности)
+        - Terms (условия использования)
+        - Sitemap (карта сайта)
+      responses:
+        '200':
+          description: Структура страниц
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagesStructure'
+
+  /design-system:
+    get:
+      tags:
+        - Design System
+      summary: Дизайн-система Glass
+      description: |
+        Glass Design System - уникальная дизайн-система:
+        - Glass Morphism эффекты (backdrop-blur, transparency)
+        - Цветовая палитра (primary orange #FF6600, glass colors)
+        - Типографика (Inter, система размеров)
+        - Spacing система (4px grid)
+        - Border radius (rounded-lg, rounded-xl, rounded-2xl)
+        - Shadows (glass-sm, glass-base, glass-md, glass-lg, glass-xl)
+        - Gradients (glass-gradient-primary, glass-gradient-accent)
+        - Animations (glass-shimmer, glass-pulse, glass-float)
+        - Breakpoints (mobile, tablet, desktop)
+        - Dark/Light mode поддержка
+        - Accessibility (WCAG 2.1 AA)
+        - Component variants (primary, secondary, ghost, danger)
+        - Size variants (sm, md, lg, xl)
+        - State variants (default, hover, active, disabled, loading)
+        - Glass components (GlassCard, GlassButton, GlassForm)
+        - Glass navigation (GlassNavbar, GlassSidebar)
+        - Glass feedback (GlassToast, GlassModal)
+        - Responsive design (mobile-first)
+        - Touch-friendly (44px minimum touch targets)
+        - High contrast support
+        - Reduced motion support
+        - Custom CSS переменные
+        - Tailwind CSS интеграция
+        - Component composition
+        - Design tokens
+        - Style guide
+      responses:
+        '200':
+          description: Конфигурация дизайн-системы
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DesignSystemConfig'
+
+components:
+  schemas:
+    UIComponent:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Button"
+        description:
+          type: string
+          example: "Кнопка с различными вариантами стилизации"
+        props:
+          type: object
+          properties:
+            variant:
+              type: string
+              enum: ["primary", "secondary", "outline", "ghost", "destructive"]
+            size:
+              type: string
+              enum: ["sm", "md", "lg", "xl"]
+            disabled:
+              type: boolean
+            loading:
+              type: boolean
+        examples:
+          type: array
+          items:
+            type: string
+        accessibility:
+          type: object
+          properties:
+            ariaLabel:
+              type: string
+            keyboardNavigation:
+              type: boolean
+            screenReaderSupport:
+              type: boolean
+
+    LayoutComponent:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Header"
+        description:
+          type: string
+          example: "Шапка сайта с навигацией"
+        responsive:
+          type: boolean
+        mobileOptimized:
+          type: boolean
+        features:
+          type: array
+          items:
+            type: string
+          example: ["navigation", "search", "user-menu", "notifications"]
+
+    FeatureComponent:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "VideoPlayer"
+        description:
+          type: string
+          example: "Видеоплеер с HLS поддержкой"
+        dependencies:
+          type: array
+          items:
+            type: string
+          example: ["hls.js", "framer-motion"]
+        performance:
+          type: object
+          properties:
+            lazyLoading:
+              type: boolean
+            virtualization:
+              type: boolean
+            memoization:
+              type: boolean
+
+    CustomHook:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "useAuth"
+        description:
+          type: string
+          example: "Хук для управления аутентификацией"
+        parameters:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+              required:
+                type: boolean
+        returnValue:
+          type: object
+          properties:
+            type:
+              type: string
+            properties:
+              type: object
+
+    APIClient:
+      type: object
+      properties:
+        baseURL:
+          type: string
+          example: "https://mebelplace.com.kz/api/v2"
+        timeout:
+          type: number
+          example: 10000
+        headers:
+          type: object
+          properties:
+            "Content-Type":
+              type: string
+              example: "application/json"
+            "Accept":
+              type: string
+              example: "application/json"
+        interceptors:
+          type: object
+          properties:
+            request:
+              type: array
+              items:
+                type: string
+            response:
+              type: array
+              items:
+                type: string
+        retryConfig:
+          type: object
+          properties:
+            retries:
+              type: number
+            retryDelay:
+              type: number
+
+    APIEndpoint:
+      type: object
+      properties:
+        path:
+          type: string
+          example: "/videos"
+        method:
+          type: string
+          enum: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        description:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/APIParameter'
+        requestBody:
+          $ref: '#/components/schemas/APIRequestBody'
+        responses:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/APIResponse'
+
+    APIParameter:
+      type: object
+      properties:
+        name:
+          type: string
+        in:
+          type: string
+          enum: ["query", "path", "header", "cookie"]
+        required:
+          type: boolean
+        schema:
+          type: object
+        description:
+          type: string
+
+    APIRequestBody:
+      type: object
+      properties:
+        required:
+          type: boolean
+        content:
+          type: object
+          properties:
+            "application/json":
+              type: object
+              properties:
+                schema:
+                  type: object
+
+    APIResponse:
+      type: object
+      properties:
+        description:
+          type: string
+        content:
+          type: object
+          properties:
+            "application/json":
+              type: object
+              properties:
+                schema:
+                  type: object
+
+    APIHook:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "useVideos"
+        description:
+          type: string
+          example: "Хук для получения списка видео"
+        endpoint:
+          type: string
+          example: "/videos"
+        method:
+          type: string
+          example: "GET"
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/APIParameter'
+        returnType:
+          type: string
+          example: "UseQueryResult<Video[]>"
+        features:
+          type: array
+          items:
+            type: string
+          example: ["caching", "refetch", "loading", "error"]
+
+    ReduxStore:
+      type: object
+      properties:
+        slices:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              state:
+                type: object
+              actions:
+                type: array
+                items:
+                  type: string
+              reducers:
+                type: array
+                items:
+                  type: string
+        middleware:
+          type: array
+          items:
+            type: string
+        devTools:
+          type: boolean
+        persist:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            whitelist:
+              type: array
+              items:
+                type: string
+
+    ReactQueryConfig:
+      type: object
+      properties:
+        defaultOptions:
+          type: object
+          properties:
+            queries:
+              type: object
+              properties:
+                staleTime:
+                  type: number
+                gcTime:
+                  type: number
+                retry:
+                  type: number
+                refetchOnWindowFocus:
+                  type: boolean
+                refetchOnReconnect:
+                  type: boolean
+            mutations:
+              type: object
+              properties:
+                retry:
+                  type: number
+        devtools:
+          type: boolean
+
+    RoutingStructure:
+      type: object
+      properties:
+        app:
+          type: object
+          properties:
+            "[locale]":
+              type: object
+              properties:
+                "(app)":
+                  type: object
+                  properties:
+                    feed:
+                      type: string
+                    search:
+                      type: string
+                    profile:
+                      type: string
+                    chat:
+                      type: string
+                    requests:
+                      type: string
+                "(auth)":
+                  type: object
+                  properties:
+                    login:
+                      type: string
+                    register:
+                      type: string
+                "(public)":
+                  type: object
+                  properties:
+                    about:
+                      type: string
+                    contact:
+                      type: string
+        dynamicRoutes:
+          type: array
+          items:
+            type: string
+        catchAllRoutes:
+          type: array
+          items:
+            type: string
+
+    StylingConfig:
+      type: object
+      properties:
+        designSystem:
+          type: string
+          example: "Glass Design System"
+        cssFramework:
+          type: string
+          example: "Tailwind CSS 3.4"
+        customVariables:
+          type: object
+          properties:
+            colors:
+              type: object
+            spacing:
+              type: object
+            typography:
+              type: object
+            breakpoints:
+              type: object
+        glassEffects:
+          type: object
+          properties:
+            backdropBlur:
+              type: string
+            backgroundOpacity:
+              type: string
+            borderOpacity:
+              type: string
+        responsive:
+          type: object
+          properties:
+            mobile:
+              type: string
+            tablet:
+              type: string
+            desktop:
+              type: string
+        darkMode:
+          type: boolean
+        animations:
+          type: object
+          properties:
+            transitions:
+              type: array
+              items:
+                type: string
+            keyframes:
+              type: array
+              items:
+                type: string
+
+    PerformanceOptimizations:
+      type: object
+      properties:
+        codeSplitting:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            strategy:
+              type: string
+              example: "route-based"
+        lazyLoading:
+          type: object
+          properties:
+            components:
+              type: boolean
+            images:
+              type: boolean
+            videos:
+              type: boolean
+        imageOptimization:
+          type: object
+          properties:
+            nextImage:
+              type: boolean
+            webp:
+              type: boolean
+            responsive:
+              type: boolean
+        bundleOptimization:
+          type: object
+          properties:
+            treeShaking:
+              type: boolean
+            minification:
+              type: boolean
+            compression:
+              type: boolean
+        caching:
+          type: object
+          properties:
+            serviceWorker:
+              type: boolean
+            httpCache:
+              type: boolean
+            memoryCache:
+              type: boolean
+        virtualization:
+          type: object
+          properties:
+            lists:
+              type: boolean
+            grids:
+              type: boolean
+            tables:
+              type: boolean
+
+    TestingConfig:
+      type: object
+      properties:
+        unitTests:
+          type: object
+          properties:
+            framework:
+              type: string
+              example: "Jest"
+            coverage:
+              type: number
+            files:
+              type: array
+              items:
+                type: string
+        componentTests:
+          type: object
+          properties:
+            framework:
+              type: string
+              example: "Testing Library"
+            utilities:
+              type: array
+              items:
+                type: string
+        e2eTests:
+          type: object
+          properties:
+            framework:
+              type: string
+              example: "Playwright"
+            browsers:
+              type: array
+              items:
+                type: string
+        integrationTests:
+          type: object
+          properties:
+            framework:
+              type: string
+              example: "Cypress"
+            scenarios:
+              type: array
+              items:
+                type: string
+        accessibilityTests:
+          type: object
+          properties:
+            framework:
+              type: string
+              example: "@axe-core/playwright"
+            standards:
+              type: array
+              items:
+                type: string
+        performanceTests:
+          type: object
+          properties:
+            lighthouse:
+              type: boolean
+            webVitals:
+              type: boolean
+            bundleAnalysis:
+              type: boolean
+
+    PWAConfig:
+      type: object
+      properties:
+        manifest:
+          type: object
+          properties:
+            name:
+              type: string
+            shortName:
+              type: string
+            description:
+              type: string
+            startUrl:
+              type: string
+            display:
+              type: string
+            themeColor:
+              type: string
+            backgroundColor:
+              type: string
+            icons:
+              type: array
+              items:
+                type: object
+        serviceWorker:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            strategies:
+              type: object
+              properties:
+                cacheFirst:
+                  type: array
+                  items:
+                    type: string
+                networkFirst:
+                  type: array
+                  items:
+                    type: string
+                staleWhileRevalidate:
+                  type: array
+                  items:
+                    type: string
+        offline:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            fallback:
+              type: string
+        pushNotifications:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            vapidKey:
+              type: string
+
+    I18nConfig:
+      type: object
+      properties:
+        framework:
+          type: string
+          example: "next-intl"
+        locales:
+          type: array
+          items:
+            type: string
+          example: ["ru", "en", "kz"]
+        defaultLocale:
+          type: string
+          example: "ru"
+        routing:
+          type: object
+          properties:
+            strategy:
+              type: string
+              example: "prefix"
+            prefixDefault:
+              type: boolean
+        namespaces:
+          type: array
+          items:
+            type: string
+          example: ["common", "auth", "navigation", "errors"]
+        fallback:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            locale:
+              type: string
+        formatting:
+          type: object
+          properties:
+            dates:
+              type: boolean
+            numbers:
+              type: boolean
+            currency:
+              type: boolean
+
+    ErrorHandlingConfig:
+      type: object
+      properties:
+        errorBoundaries:
+          type: object
+          properties:
+            global:
+              type: boolean
+            component:
+              type: boolean
+            route:
+              type: boolean
+        apiErrors:
+          type: object
+          properties:
+            retry:
+              type: boolean
+            fallback:
+              type: boolean
+            userFriendly:
+              type: boolean
+        networkErrors:
+          type: object
+          properties:
+            offline:
+              type: boolean
+            timeout:
+              type: boolean
+            retry:
+              type: boolean
+        validationErrors:
+          type: object
+          properties:
+            fieldLevel:
+              type: boolean
+            formLevel:
+              type: boolean
+        logging:
+          type: object
+          properties:
+            sentry:
+              type: boolean
+            console:
+              type: boolean
+            api:
+              type: boolean
+
+    LoggingConfig:
+      type: object
+      properties:
+        levels:
+          type: array
+          items:
+            type: string
+          example: ["debug", "info", "warn", "error"]
+        structured:
+          type: boolean
+        context:
+          type: object
+          properties:
+            userId:
+              type: boolean
+            sessionId:
+              type: boolean
+            timestamp:
+              type: boolean
+            environment:
+              type: boolean
+        categories:
+          type: object
+          properties:
+            api:
+              type: boolean
+            user:
+              type: boolean
+            performance:
+              type: boolean
+            error:
+              type: boolean
+        output:
+          type: object
+          properties:
+            console:
+              type: boolean
+            file:
+              type: boolean
+            remote:
+              type: boolean
+        filtering:
+          type: object
+          properties:
+            production:
+              type: array
+              items:
+                type: string
+            development:
+              type: array
+              items:
+                type: string
+
+    WebSocketConfig:
+      type: object
+      properties:
+        library:
+          type: string
+          example: "socket.io-client"
+        connection:
+          type: object
+          properties:
+            url:
+              type: string
+            options:
+              type: object
+              properties:
+                transports:
+                  type: array
+                  items:
+                    type: string
+                timeout:
+                  type: number
+                reconnection:
+                  type: boolean
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              handler:
+                type: string
+        rooms:
+          type: array
+          items:
+            type: string
+        authentication:
+          type: object
+          properties:
+            token:
+              type: boolean
+            refresh:
+              type: boolean
+
+    VideoStreamingConfig:
+      type: object
+      properties:
+        library:
+          type: string
+          example: "hls.js"
+        formats:
+          type: array
+          items:
+            type: string
+          example: ["hls", "mp4", "webm"]
+        qualities:
+          type: array
+          items:
+            type: string
+          example: ["360p", "720p", "1080p"]
+        adaptive:
+          type: boolean
+        autoplay:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            muted:
+              type: boolean
+            intersection:
+              type: boolean
+        preloading:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            strategy:
+              type: string
+        thumbnails:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            lazy:
+              type: boolean
+        mobile:
+          type: object
+          properties:
+            optimized:
+              type: boolean
+            touch:
+              type: boolean
+
+    WebRTCConfig:
+      type: object
+      properties:
+        library:
+          type: string
+          example: "simple-peer"
+        features:
+          type: array
+          items:
+            type: string
+          example: ["video", "audio", "screen", "data"]
+        servers:
+          type: object
+          properties:
+            stun:
+              type: array
+              items:
+                type: string
+            turn:
+              type: array
+              items:
+                type: string
+        constraints:
+          type: object
+          properties:
+            video:
+              type: object
+            audio:
+              type: object
+        fallback:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            strategy:
+              type: string
+
+    AuthenticationConfig:
+      type: object
+      properties:
+        tokens:
+          type: object
+          properties:
+            access:
+              type: string
+              example: "JWT"
+            refresh:
+              type: string
+              example: "JWT"
+        storage:
+          type: object
+          properties:
+            access:
+              type: string
+              example: "localStorage"
+            refresh:
+              type: string
+              example: "localStorage"
+        autoRefresh:
+          type: boolean
+        routeProtection:
+          type: boolean
+        roles:
+          type: array
+          items:
+            type: string
+          example: ["client", "master", "admin"]
+        permissions:
+          type: object
+          properties:
+            granular:
+              type: boolean
+            inheritance:
+              type: boolean
+        security:
+          type: object
+          properties:
+            csrf:
+              type: boolean
+            xss:
+              type: boolean
+            headers:
+              type: boolean
+
+    FormsConfig:
+      type: object
+      properties:
+        library:
+          type: string
+          example: "react-hook-form"
+        validation:
+          type: string
+          example: "zod"
+        features:
+          type: array
+          items:
+            type: string
+          example: ["validation", "auto-save", "draft", "file-upload"]
+        schemas:
+          type: array
+          items:
+            type: string
+          example: ["login", "register", "profile", "request"]
+        errorHandling:
+          type: object
+          properties:
+            fieldLevel:
+              type: boolean
+            formLevel:
+              type: boolean
+            serverSide:
+              type: boolean
+        accessibility:
+          type: object
+          properties:
+            ariaLabels:
+              type: boolean
+            errorAnnouncement:
+              type: boolean
+            keyboardNavigation:
+              type: boolean
+
+    NavigationConfig:
+      type: object
+      properties:
+        structure:
+          type: object
+          properties:
+            header:
+              type: array
+              items:
+                type: string
+            sidebar:
+              type: array
+              items:
+                type: string
+            mobile:
+              type: array
+              items:
+                type: string
+        features:
+          type: array
+          items:
+            type: string
+          example: ["breadcrumbs", "search", "filters", "pagination"]
+        accessibility:
+          type: object
+          properties:
+            keyboard:
+              type: boolean
+            screenReader:
+              type: boolean
+            focus:
+              type: boolean
+        responsive:
+          type: object
+          properties:
+            mobile:
+              type: boolean
+            tablet:
+              type: boolean
+            desktop:
+              type: boolean
+
+    ModalsConfig:
+      type: object
+      properties:
+        types:
+          type: array
+          items:
+            type: string
+          example: ["modal", "dialog", "popover", "tooltip", "drawer"]
+        features:
+          type: array
+          items:
+            type: string
+          example: ["backdrop", "escape", "focus", "scroll-lock"]
+        accessibility:
+          type: object
+          properties:
+            aria:
+              type: boolean
+            keyboard:
+              type: boolean
+            focus:
+              type: boolean
+        animations:
+          type: object
+          properties:
+            enter:
+              type: string
+            exit:
+              type: string
+        positioning:
+          type: object
+          properties:
+            center:
+              type: boolean
+            top:
+              type: boolean
+            bottom:
+              type: boolean
+
+    NotificationsConfig:
+      type: object
+      properties:
+        library:
+          type: string
+          example: "react-hot-toast"
+        types:
+          type: array
+          items:
+            type: string
+          example: ["success", "error", "warning", "info", "loading"]
+        positions:
+          type: array
+          items:
+            type: string
+          example: ["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"]
+        features:
+          type: array
+          items:
+            type: string
+          example: ["dismissible", "action", "progress", "sound"]
+        duration:
+          type: object
+          properties:
+            default:
+              type: number
+            success:
+              type: number
+            error:
+              type: number
+        push:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            permissions:
+              type: boolean
+
+    AnalyticsConfig:
+      type: object
+      properties:
+        tracking:
+          type: object
+          properties:
+            user:
+              type: boolean
+            events:
+              type: boolean
+            pageViews:
+              type: boolean
+            performance:
+              type: boolean
+        events:
+          type: array
+          items:
+            type: string
+          example: ["click", "scroll", "form-submit", "video-play"]
+        metrics:
+          type: array
+          items:
+            type: string
+          example: ["load-time", "interaction", "conversion"]
+        privacy:
+          type: object
+          properties:
+            anonymize:
+              type: boolean
+            consent:
+              type: boolean
+            optOut:
+              type: boolean
+        integration:
+          type: object
+          properties:
+            google:
+              type: boolean
+            sentry:
+              type: boolean
+            custom:
+              type: boolean
+
+    AnimationsConfig:
+      type: object
+      properties:
+        library:
+          type: string
+          example: "framer-motion"
+        pageTransitions:
+          type: object
+          properties:
+            fade:
+              type: object
+              properties:
+                initial:
+                  type: object
+                animate:
+                  type: object
+                exit:
+                  type: object
+            slide:
+              type: object
+              properties:
+                direction:
+                  type: string
+                  enum: ["left", "right", "up", "down"]
+                duration:
+                  type: number
+            scale:
+              type: object
+              properties:
+                initial:
+                  type: number
+                animate:
+                  type: number
+        componentAnimations:
+          type: object
+          properties:
+            enter:
+              type: object
+              properties:
+                opacity:
+                  type: array
+                  items:
+                    type: number
+                scale:
+                  type: array
+                  items:
+                    type: number
+                y:
+                  type: array
+                  items:
+                    type: number
+            exit:
+              type: object
+            hover:
+              type: object
+              properties:
+                scale:
+                  type: number
+                rotate:
+                  type: number
+        glassEffects:
+          type: object
+          properties:
+            shimmer:
+              type: object
+              properties:
+                duration:
+                  type: number
+                gradient:
+                  type: string
+            pulse:
+              type: object
+              properties:
+                duration:
+                  type: number
+                scale:
+                  type: array
+                  items:
+                    type: number
+            float:
+              type: object
+              properties:
+                duration:
+                  type: number
+                y:
+                  type: array
+                  items:
+                    type: number
+        loadingAnimations:
+          type: object
+          properties:
+            spinner:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: ["rotate", "pulse", "bounce"]
+                duration:
+                  type: number
+            skeleton:
+              type: object
+              properties:
+                shimmer:
+                  type: boolean
+                duration:
+                  type: number
+            progress:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: ["linear", "circular", "dots"]
+        microInteractions:
+          type: object
+          properties:
+            buttonHover:
+              type: object
+              properties:
+                scale:
+                  type: number
+                duration:
+                  type: number
+            cardFlip:
+              type: object
+              properties:
+                axis:
+                  type: string
+                  enum: ["x", "y"]
+                duration:
+                  type: number
+        scrollAnimations:
+          type: object
+          properties:
+            reveal:
+              type: object
+              properties:
+                threshold:
+                  type: number
+                duration:
+                  type: number
+            parallax:
+              type: object
+              properties:
+                speed:
+                  type: number
+                direction:
+                  type: string
+        gestureAnimations:
+          type: object
+          properties:
+            drag:
+              type: object
+              properties:
+                constraints:
+                  type: object
+            swipe:
+              type: object
+              properties:
+                threshold:
+                  type: number
+            pinch:
+              type: object
+              properties:
+                scale:
+                  type: object
+        layoutAnimations:
+          type: object
+          properties:
+            reorder:
+              type: object
+              properties:
+                duration:
+                  type: number
+            resize:
+              type: object
+              properties:
+                duration:
+                  type: number
+        staggerAnimations:
+          type: object
+          properties:
+            delay:
+              type: number
+            duration:
+              type: number
+        springPhysics:
+          type: object
+          properties:
+            stiffness:
+              type: number
+            damping:
+              type: number
+            mass:
+              type: number
+        customKeyframes:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              keyframes:
+                type: object
+        animationPresets:
+          type: array
+          items:
+            type: string
+          example: ["fadeIn", "slideUp", "scaleIn", "bounceIn"]
+        performance:
+          type: object
+          properties:
+            willChange:
+              type: boolean
+            transform3d:
+              type: boolean
+            gpuAcceleration:
+              type: boolean
+        reducedMotion:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            fallback:
+              type: string
+        mobileOptimized:
+          type: object
+          properties:
+            touchFriendly:
+              type: boolean
+            reducedComplexity:
+              type: boolean
+            batteryOptimized:
+              type: boolean
+
+    PagesStructure:
+      type: object
+      properties:
+        mainPages:
+          type: object
+          properties:
+            feed:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/feed"
+                component:
+                  type: string
+                  example: "GlassVideoFeedTab"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["video-streaming", "infinite-scroll", "glass-morphism"]
+            search:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/search"
+                component:
+                  type: string
+                  example: "GlassSearchScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["filters", "autocomplete", "glass-morphism"]
+            profile:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/profile"
+                component:
+                  type: string
+                  example: "ProfileScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["user-info", "videos", "requests", "glass-morphism"]
+            video:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/video/[id]"
+                component:
+                  type: string
+                  example: "GlassVideoDetailScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["hls-player", "comments", "related-videos", "glass-morphism"]
+            chat:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/chat"
+                component:
+                  type: string
+                  example: "ChatScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["websocket", "real-time", "file-sharing", "glass-morphism"]
+            requests:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/requests"
+                component:
+                  type: string
+                  example: "RequestsScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["create-request", "proposals", "glass-morphism"]
+            upload:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/upload"
+                component:
+                  type: string
+                  example: "GlassUploadVideoScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["drag-drop", "progress", "preview", "glass-morphism"]
+        authPages:
+          type: object
+          properties:
+            login:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/auth/login"
+                component:
+                  type: string
+                  example: "LoginScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["form-validation", "social-auth", "glass-morphism"]
+            register:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/auth/register"
+                component:
+                  type: string
+                  example: "RegisterScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["multi-step", "validation", "glass-morphism"]
+        adminPages:
+          type: object
+          properties:
+            dashboard:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/admin"
+                component:
+                  type: string
+                  example: "AdminDashboard"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["analytics", "user-management", "glass-morphism"]
+        specialPages:
+          type: object
+          properties:
+            ar:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/ar"
+                component:
+                  type: string
+                  example: "ARViewer"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["webxr", "3d-models", "glass-morphism"]
+            liveStreaming:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/live-streaming"
+                component:
+                  type: string
+                  example: "LiveStreamingScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["webrtc", "real-time", "glass-morphism"]
+            audioRooms:
+              type: object
+              properties:
+                path:
+                  type: string
+                  example: "/audio-rooms"
+                component:
+                  type: string
+                  example: "AudioRoomsScreen"
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["voice-chat", "rooms", "glass-morphism"]
+        totalPages:
+          type: number
+          example: 50
+        glassMorphismPages:
+          type: number
+          example: 45
+        responsivePages:
+          type: number
+          example: 50
+        animatedPages:
+          type: number
+          example: 40
+
+    DesignSystemConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Glass Design System"
+        version:
+          type: string
+          example: "1.0.0"
+        glassMorphism:
+          type: object
+          properties:
+            backdropBlur:
+              type: object
+              properties:
+                xs:
+                  type: string
+                  example: "2px"
+                sm:
+                  type: string
+                  example: "4px"
+                md:
+                  type: string
+                  example: "8px"
+                lg:
+                  type: string
+                  example: "12px"
+                xl:
+                  type: string
+                  example: "16px"
+            transparency:
+              type: object
+              properties:
+                primary:
+                  type: string
+                  example: "rgba(255, 255, 255, 0.1)"
+                secondary:
+                  type: string
+                  example: "rgba(255, 255, 255, 0.05)"
+                accent:
+                  type: string
+                  example: "rgba(255, 102, 0, 0.2)"
+        colorPalette:
+          type: object
+          properties:
+            primary:
+              type: object
+              properties:
+                orange:
+                  type: string
+                  example: "#FF6600"
+                orangeLight:
+                  type: string
+                  example: "#FF8533"
+                orangeDark:
+                  type: string
+                  example: "#FF4500"
+            glass:
+              type: object
+              properties:
+                bgPrimary:
+                  type: string
+                  example: "rgba(255, 255, 255, 0.1)"
+                bgSecondary:
+                  type: string
+                  example: "rgba(255, 255, 255, 0.05)"
+                border:
+                  type: string
+                  example: "rgba(255, 255, 255, 0.2)"
+                textPrimary:
+                  type: string
+                  example: "rgba(255, 255, 255, 0.9)"
+        typography:
+          type: object
+          properties:
+            fontFamily:
+              type: string
+              example: "Inter"
+            sizes:
+              type: object
+              properties:
+                xs:
+                  type: string
+                  example: "0.75rem"
+                sm:
+                  type: string
+                  example: "0.875rem"
+                base:
+                  type: string
+                  example: "1rem"
+                lg:
+                  type: string
+                  example: "1.125rem"
+                xl:
+                  type: string
+                  example: "1.25rem"
+                "2xl":
+                  type: string
+                  example: "1.5rem"
+        spacing:
+          type: object
+          properties:
+            grid:
+              type: number
+              example: 4
+            scale:
+              type: array
+              items:
+                type: number
+              example: [4, 8, 12, 16, 20, 24, 32, 40, 48, 64]
+        borderRadius:
+          type: object
+          properties:
+            sm:
+              type: string
+              example: "0.25rem"
+            base:
+              type: string
+              example: "0.5rem"
+            lg:
+              type: string
+              example: "0.75rem"
+            xl:
+              type: string
+              example: "1rem"
+            "2xl":
+              type: string
+              example: "1.5rem"
+        shadows:
+          type: object
+          properties:
+            glassSm:
+              type: string
+              example: "0 2px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)"
+            glassBase:
+              type: string
+              example: "0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)"
+            glassMd:
+              type: string
+              example: "0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.15)"
+            glassLg:
+              type: string
+              example: "0 12px 32px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.2)"
+            glassXl:
+              type: string
+              example: "0 16px 48px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.25)"
+        gradients:
+          type: object
+          properties:
+            glassPrimary:
+              type: string
+              example: "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)"
+            glassAccent:
+              type: string
+              example: "linear-gradient(135deg, rgba(255, 102, 0, 0.2) 0%, rgba(255, 102, 0, 0.1) 100%)"
+        animations:
+          type: object
+          properties:
+            glassShimmer:
+              type: object
+              properties:
+                duration:
+                  type: string
+                  example: "2s"
+                timing:
+                  type: string
+                  example: "ease-in-out"
+            glassPulse:
+              type: object
+              properties:
+                duration:
+                  type: string
+                  example: "2s"
+                timing:
+                  type: string
+                  example: "cubic-bezier(0.4, 0, 0.6, 1)"
+            glassFloat:
+              type: object
+              properties:
+                duration:
+                  type: string
+                  example: "3s"
+                timing:
+                  type: string
+                  example: "ease-in-out"
+        breakpoints:
+          type: object
+          properties:
+            mobile:
+              type: string
+              example: "640px"
+            tablet:
+              type: string
+              example: "768px"
+            desktop:
+              type: string
+              example: "1024px"
+            wide:
+              type: string
+              example: "1280px"
+        darkMode:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            strategy:
+              type: string
+              example: "class"
+        accessibility:
+          type: object
+          properties:
+            wcag:
+              type: string
+              example: "2.1 AA"
+            contrast:
+              type: object
+              properties:
+                minimum:
+                  type: number
+                  example: 4.5
+                enhanced:
+                  type: number
+                  example: 7
+            touchTargets:
+              type: object
+              properties:
+                minimum:
+                  type: string
+                  example: "44px"
+        componentVariants:
+          type: object
+          properties:
+            button:
+              type: array
+              items:
+                type: string
+              example: ["primary", "secondary", "ghost", "danger", "outline"]
+            card:
+              type: array
+              items:
+                type: string
+              example: ["default", "elevated", "outlined", "glass"]
+            input:
+              type: array
+              items:
+                type: string
+              example: ["default", "filled", "outlined", "glass"]
+        sizeVariants:
+          type: object
+          properties:
+            sm:
+              type: string
+              example: "0.75rem"
+            md:
+              type: string
+              example: "1rem"
+            lg:
+              type: string
+              example: "1.25rem"
+            xl:
+              type: string
+              example: "1.5rem"
+        stateVariants:
+          type: object
+          properties:
+            default:
+              type: object
+            hover:
+              type: object
+            active:
+              type: object
+            disabled:
+              type: object
+            loading:
+              type: object
+        glassComponents:
+          type: array
+          items:
+            type: string
+          example: ["GlassCard", "GlassButton", "GlassForm", "GlassModal", "GlassNavigation"]
+        responsiveDesign:
+          type: object
+          properties:
+            mobileFirst:
+              type: boolean
+            breakpoints:
+              type: array
+              items:
+                type: string
+        touchFriendly:
+          type: object
+          properties:
+            minimumTouchTarget:
+              type: string
+              example: "44px"
+            spacing:
+              type: string
+              example: "8px"
+        highContrast:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            fallback:
+              type: string
+        reducedMotion:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            fallback:
+              type: string
+        customVariables:
+          type: object
+          properties:
+            css:
+              type: boolean
+            scss:
+              type: boolean
+            tailwind:
+              type: boolean
+        tailwindIntegration:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            customClasses:
+              type: boolean
+            utilities:
+              type: boolean
+        componentComposition:
+          type: object
+          properties:
+            slots:
+              type: boolean
+            variants:
+              type: boolean
+            compoundVariants:
+              type: boolean
+        designTokens:
+          type: object
+          properties:
+            colors:
+              type: boolean
+            spacing:
+              type: boolean
+            typography:
+              type: boolean
+            shadows:
+              type: boolean
+        styleGuide:
+          type: object
+          properties:
+            documentation:
+              type: boolean
+            examples:
+              type: boolean
+            playground:
+              type: boolean
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+securitySchemes:
+  BearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+  ApiKeyAuth:
+    type: apiKey
+    in: header
+    name: X-API-Key

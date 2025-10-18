@@ -1,0 +1,462 @@
+[0;34m🔍 ЧЕСТНАЯ ДИАГНОСТИКА ВСЕХ ENDPOINTS[0m
+==============================================
+[1;33m👤 Создаем тестового пользователя...[0m
+[0;32m✅ Пользователь создан, токен получен[0m
+[0;34m🔐 AUTH ENDPOINTS:[0m
+[0;31m💥 POST /auth/register - 500 (ошибка сервера) - Регистрация[0m
+[1;33m🔐 POST /auth/login - 401 (нужна авторизация) - Вход[0m
+[1;33m⚠️  POST /auth/verify-sms - 400 (валидация) - Верификация SMS[0m
+[1;33m⚠️  POST /auth/verify-email - 400 (валидация) - Верификация Email[0m
+[1;33m🔐 POST /auth/refresh - 401 (нужна авторизация) - Обновление токена[0m
+[1;33m❓ POST /auth/logout - 000000{"message":"Logged out"}200 - Выход[0m
+[0;34m👤 USER ENDPOINTS:[0m
+[1;33m❓ GET /users/me - 000000{"error":"Authorization header required"}401 - Получить профиль[0m
+[0;32m✅ GET /users/1 - 200 (работает) - Получить пользователя по ID[0m
+[1;33m❓ PUT /users/me - 000000{"error":"Authorization header required"}401 - Обновить профиль[0m
+[1;33m❓ POST /users/me/avatar - 000000{"error":"Authorization header required"}401 - Загрузить аватар[0m
+[1;33m❓ POST /users/1/block - 000000{"error":"Authorization header required"}401 - Заблокировать пользователя[0m
+[1;33m❓ DELETE /users/1/block - 000000{"error":"Authorization header required"}401 - Разблокировать пользователя[0m
+[1;33m❓ GET /users/blocked - 000000{"error":"Authorization header required"}401 - Получить заблокированных[0m
+[0;34m🎥 VIDEO ENDPOINTS:[0m
+[0;32m✅ GET /videos/feed - 200 (работает) - Лента видео[0m
+[1;33m❓ POST /videos/upload - 000000{"error":"Authorization header required"}401 - Загрузить видео[0m
+[1;33m❓ POST /videos/1/like - 000000{"error":"Authorization header required"}401 - Лайкнуть видео[0m
+[1;33m❓ POST /videos/1/unlike - 000000{"error":"Authorization header required"}401 - Убрать лайк[0m
+[0;32m✅ GET /videos/1/comments - 200 (работает) - Получить комментарии[0m
+[1;33m❓ POST /videos/1/comments - 000000{"error":"Authorization header required"}401 - Добавить комментарий[0m
+[1;33m❓ POST /videos/1/analyze - 000000{"error":"Authorization header required"}401 - Анализ видео[0m
+[0;34m💬 CHAT ENDPOINTS:[0m
+[1;33m❓ GET /chats - 000000{"error":"Authorization header required"}401 - Получить чаты[0m
+[1;33m❓ POST /chats - 000000{"error":"Authorization header required"}401 - Создать чат[0m
+[1;33m❓ GET /chats/1/messages - 000000{"error":"Authorization header required"}401 - Получить сообщения[0m
+[1;33m❓ POST /chats/1/messages - 000000{"error":"Authorization header required"}401 - Отправить сообщение[0m
+[0;34m📋 REQUEST ENDPOINTS:[0m
+[0;32m✅ GET /requests - 200 (работает) - Получить запросы[0m
+[0;32m✅ GET /requests/1 - 200 (работает) - Получить запрос по ID[0m
+[1;33m❓ POST /requests - 000000{"error":"Authorization header required"}401 - Создать запрос[0m
+[0;32m✅ GET /requests/1/proposals - 200 (работает) - Получить предложения[0m
+[1;33m❓ POST /requests/1/proposals - 000000{"error":"Authorization header required"}401 - Создать предложение[0m
+[1;33m❓ POST /requests/1/proposals/1/accept - 000000{"error":"Authorization header required"}401 - Принять предложение[0m
+[0;34m📺 CHANNEL ENDPOINTS:[0m
+[0;32m✅ GET /channels - 200 (работает) - Получить каналы[0m
+[0;32m✅ GET /channels/1/posts - 200 (работает) - Получить посты канала[0m
+[1;33m❓ POST /channels/1/subscribe - 000000{"error":"Authorization header required"}401 - Подписаться на канал[0m
+[1;33m❓ POST /channels/1/unsubscribe - 000000{"error":"Authorization header required"}401 - Отписаться от канала[0m
+[1;33m❓ POST /channels/1/posts - 000000{"error":"Authorization header required"}401 - Создать пост[0m
+[0;34m👥 GROUP CHAT ENDPOINTS:[0m
+[1;33m❓ GET /group-chats - 000000{"error":"Authorization header required"}401 - Получить групповые чаты[0m
+[1;33m❓ POST /group-chats - 000000{"error":"Authorization header required"}401 - Создать групповой чат[0m
+[1;33m❓ GET /group-chats/1 - 000000{"error":"Authorization header required"}401 - Получить групповой чат[0m
+[1;33m❓ POST /group-chats/1/members - 000000{"error":"Authorization header required"}401 - Добавить участника[0m
+[1;33m❓ GET /group-chats/1/members - 000000{"error":"Authorization header required"}401 - Получить участников[0m
+[1;33m❓ POST /group-chats/1/messages - 000000{"error":"Authorization header required"}401 - Отправить сообщение[0m
+[1;33m❓ GET /group-chats/1/messages - 000000{"error":"Authorization header required"}401 - Получить сообщения[0m
+[1;33m❓ POST /group-chats/1/leave - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Покинуть группу[0m
+[0;34m📝 WRITTEN CHANNEL ENDPOINTS:[0m
+[0;31m💥 GET /written-channels - 500 (ошибка сервера) - Получить письменные каналы[0m
+[1;33m❓ POST /written-channels - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Создать письменный канал[0m
+[1;33m❓ POST /written-channels/1/subscribe - 000000{"error":"Authorization header required"}401 - Подписаться на письменный канал[0m
+[1;33m❓ POST /written-channels/1/unsubscribe - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Отписаться от письменного канала[0m
+[0;31m💥 GET /written-channels/1/posts - 500 (ошибка сервера) - Получить посты письменного канала[0m
+[1;33m❓ POST /written-channels/1/posts - 000000{"error":"Authorization header required"}401 - Создать пост в письменном канале[0m
+[0;34m📖 STORY ENDPOINTS:[0m
+[1;33m❓ GET /stories - 503 - Получить истории[0m
+[1;33m❓ POST /stories - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Создать историю[0m
+[1;33m❓ POST /stories/1/view - 000000{"error":"Authorization header required"}401 - Просмотреть историю[0m
+[1;33m❓ POST /stories/1/like - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Лайкнуть историю[0m
+[0;34m🔍 SEARCH ENDPOINTS:[0m
+[0;32m✅ GET /search - 200 (работает) - Универсальный поиск[0m
+[1;33m❓ GET /search/users - 503 - Поиск пользователей[0m
+[1;33m❓ GET /search/masters - 503 - Поиск мастеров[0m
+[0;34m🎮 GAMIFICATION ENDPOINTS:[0m
+[1;33m❓ GET /gamification/level - 000000{"error":"Authorization header required"}401 - Получить уровень[0m
+[1;33m❓ GET /gamification/achievements - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить достижения[0m
+[1;33m❓ GET /gamification/leaderboard - 000000{"error":"Authorization header required"}401 - Получить таблицу лидеров[0m
+[1;33m❓ POST /gamification/award-points - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Начислить очки[0m
+[1;33m❓ GET /gamification/leaderboard/advanced - 000000{"error":"Authorization header required"}401 - Расширенная таблица лидеров[0m
+[1;33m❓ GET /gamification/levels - 000000{"error":"Authorization header required"}401 - Получить уровни[0m
+[1;33m❓ GET /gamification/achievements/user/1 - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить достижения пользователя[0m
+[1;33m❓ GET /gamification/rules - 000000{"error":"Authorization header required"}401 - Получить правила[0m
+[1;33m❓ POST /gamification/rules - 000000{"error":"Authorization header required"}401 - Создать правило[0m
+[1;33m❓ GET /gamification/rules/1 - 000000{"error":"Authorization header required"}401 - Получить правило[0m
+[1;33m❓ PUT /gamification/rules/1 - 000000{"error":"Authorization header required"}401 - Обновить правило[0m
+[1;33m❓ DELETE /gamification/rules/1 - 000000{"error":"Authorization header required"}401 - Удалить правило[0m
+[0;34m📞 CALL ENDPOINTS:[0m
+[1;33m❓ GET /calls - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить звонки[0m
+[1;33m❓ POST /calls/initiate - 000000{"error":"Authorization header required"}401 - Инициировать звонок[0m
+[1;33m❓ POST /calls/initiate-secure - 000000{"error":"Authorization header required"}401 - Инициировать защищенный звонок[0m
+[1;33m❓ POST /calls/1/answer - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Ответить на звонок[0m
+[1;33m❓ POST /calls/1/end - 000000{"error":"Authorization header required"}401 - Завершить звонок[0m
+[1;33m❓ POST /calls/1/cancel - 000000{"error":"Authorization header required"}401 - Отменить звонок[0m
+[1;33m❓ GET /calls/history - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - История звонков[0m
+[1;33m❓ GET /calls/active - 000000{"error":"Authorization header required"}401 - Активные звонки[0m
+[1;33m❓ GET /calls/1/webrtc-token - 000000{"error":"Authorization header required"}401 - Получить WebRTC токен[0m
+[1;33m❓ GET /calls/1/webrtc-token-enhanced - 000000{"error":"Authorization header required"}401 - Получить улучшенный WebRTC токен[0m
+[1;33m❓ POST /calls/validate-token - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Валидировать токен[0m
+[1;33m❓ POST /calls/1/notify - 000000{"error":"Authorization header required"}401 - Уведомить о звонке[0m
+[1;33m❓ GET /calls/statistics - 000000{"error":"Authorization header required"}401 - Статистика звонков[0m
+[1;33m❓ POST /calls/1/webrtc-signal - 000000{"error":"Authorization header required"}401 - WebRTC сигнал[0m
+[0;34m🎯 AR/3D MODEL ENDPOINTS:[0m
+[1;33m❓ POST /ar3d/models - 000000{"error":"Authorization header required"}401 - Создать 3D модель[0m
+[1;33m❓ GET /ar3d/models/product/1 - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить модели продукта[0m
+[1;33m❓ GET /ar3d/models/search - 000000{"error":"Authorization header required"}401 - Поиск 3D моделей[0m
+[1;33m❓ POST /ar3d/models/upload - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Загрузить 3D модель[0m
+[1;33m❓ POST /ar3d/models/validate - 000000{"error":"Authorization header required"}401 - Валидировать 3D модель[0m
+[1;33m❓ GET /ar3d/models/1/preview - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Предпросмотр 3D модели[0m
+[1;33m❓ GET /ar3d/models/1/render - 000000{"error":"Authorization header required"}401 - Рендер 3D модели[0m
+[1;33m❓ GET /ar3d/models/1/versions - 000000{"error":"Authorization header required"}401 - Версии 3D модели[0m
+[1;33m❓ POST /ar3d/models/1/versions - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Создать версию 3D модели[0m
+[1;33m❓ POST /ar3d/models/1/versions/1/activate - 000000{"error":"Authorization header required"}401 - Активировать версию 3D модели[0m
+[0;34m🗺️ MAP ENDPOINTS:[0m
+[1;33m❓ POST /maps/location - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Установить локацию[0m
+[1;33m❓ GET /maps/geo-objects - 000000{"error":"Invalid latitude"}400 - Получить геообъекты[0m
+[1;33m❓ POST /maps/geo-objects - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Создать геообъект[0m
+[1;33m❓ POST /maps/geo-objects/1/verify - 000000{"error":"Authorization header required"}401 - Верифицировать геообъект[0m
+[0;34m🛡️ MODERATION ENDPOINTS:[0m
+[1;33m❓ POST /moderation/videos/1/approve - 000000{"error":"Authorization header required"}401 - Одобрить видео[0m
+[1;33m❓ POST /moderation/videos/1/reject - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Отклонить видео[0m
+[1;33m❓ GET /moderation/comments - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить комментарии для модерации[0m
+[1;33m❓ POST /moderation/comments/1/approve - 000000{"error":"Authorization header required"}401 - Одобрить комментарий[0m
+[1;33m❓ POST /moderation/comments/1/reject - 000000{"error":"Authorization header required"}401 - Отклонить комментарий[0m
+[1;33m❓ GET /moderation/streams - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить стримы для модерации[0m
+[1;33m❓ GET /moderation/reports - 000000404 page not found404 - Получить жалобы[0m
+[1;33m❓ POST /moderation/reports - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Создать жалобу[0m
+[1;33m❓ POST /moderation/reports/1/resolve - 000000404 page not found404 - Разрешить жалобу[0m
+[0;34m📊 ANALYTICS ENDPOINTS:[0m
+[1;33m❓ GET /analytics/user - 000000{"error":"Authorization header required"}401 - Получить аналитику пользователя[0m
+[1;33m❓ GET /analytics/platform - 000000{"error":"Authorization header required"}401 - Получить аналитику платформы[0m
+[1;33m❓ GET /analytics/engagement - 000000{"error":"Authorization header required"}401 - Получить аналитику вовлеченности[0m
+[1;33m❓ GET /analytics/videos/1/heatmap - 000000{"error":"Authorization header required"}401 - Получить тепловую карту видео[0m
+[1;33m❓ GET /analytics/videos/1/engagement - 000000404 page not found404 - Получить вовлеченность видео[0m
+[1;33m❓ GET /analytics/users/1/behavior - 000000404 page not found404 - Получить поведение пользователя[0m
+[0;34m🔧 INTEGRATION ENDPOINTS:[0m
+[1;33m❓ POST /integrations/payments/connect - 000000{"error":"Authorization header required"}401 - Подключить платежи[0m
+[1;33m❓ GET /integrations/payments/providers - 000000{"error":"Authorization header required"}401 - Получить провайдеров платежей[0m
+[1;33m❓ POST /integrations/messengers/whatsapp/send - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Отправить WhatsApp[0m
+[1;33m❓ POST /integrations/messengers/telegram/send - 000000{"error":"Authorization header required"}401 - Отправить Telegram[0m
+[1;33m❓ POST /integrations/crm/sync - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Синхронизировать CRM[0m
+[0;34m🎁 REFERRAL ENDPOINTS:[0m
+[1;33m❓ POST /referrals/apply - 000000{"error":"Key: 'ReferralCode' Error:Field validation for 'ReferralCode' failed on the 'required' tag
+Key: 'Email' Error:Field validation for 'Email' failed on the 'required' tag"}400 - Применить реферальный код[0m
+[1;33m❓ POST /referrals/generate - 000000{"error":"Authorization header required"}401 - Сгенерировать реферальный код[0m
+[0;34m📺 LIVESTREAM ENDPOINTS:[0m
+[1;33m❓ POST /livestreams/start - 000000{"error":"Authorization header required"}401 - Начать стрим[0m
+[1;33m❓ POST /livestreams/1/end - 000000{"error":"Authorization header required"}401 - Завершить стрим[0m
+[1;33m❓ POST /livestreams/1/donate - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Донат на стрим[0m
+[1;33m❓ GET /livestreams/1/viewers - 000000404 page not found404 - Получить зрителей[0m
+[1;33m❓ POST /livestreams/1/join - 000000404 page not found404 - Присоединиться к стриму[0m
+[1;33m❓ POST /livestreams/1/leave - 000000404 page not found404 - Покинуть стрим[0m
+[0;34m🎵 VOICE ROOM ENDPOINTS:[0m
+[1;33m❓ POST /voicerooms/create - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Создать голосовую комнату[0m
+[1;33m❓ GET /voicerooms/1 - 000000404 page not found404 - Получить голосовую комнату[0m
+[1;33m❓ POST /voicerooms/1/join - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Присоединиться к комнате[0m
+[1;33m❓ POST /voicerooms/1/leave - 000000404 page not found404 - Покинуть комнату[0m
+[1;33m❓ POST /voicerooms/1/record - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Начать запись[0m
+[1;33m❓ POST /voicerooms/1/stop-record - 000000404 page not found404 - Остановить запись[0m
+[1;33m❓ GET /voicerooms/1/participants - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить участников[0m
+[1;33m❓ GET /voicerooms/1/recordings - 000000404 page not found404 - Получить записи[0m
+[0;34m🔔 NOTIFICATION ENDPOINTS:[0m
+[1;33m❓ GET /notifications - 000000{"error":"Authorization header required"}401 - Получить уведомления[0m
+[1;33m❓ POST /notifications/1/read - 000000{"error":"Authorization header required"}401 - Отметить уведомление как прочитанное[0m
+[1;33m❓ POST /notifications/read-all - 000000{"error":"Authorization header required"}401 - Отметить все уведомления как прочитанные[0m
+[1;33m❓ GET /notifications/settings - 000000{"error":"Authorization header required"}401 - Получить настройки уведомлений[0m
+[1;33m❓ POST /notifications/settings - 000000{"error":"Authorization header required"}401 - Обновить настройки уведомлений[0m
+[1;33m❓ POST /notifications/push-token - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Обновить push токен[0m
+[0;34m💬 COMMENT ENDPOINTS:[0m
+[1;33m❓ POST /comments/1/like - 000000{"error":"Authorization header required"}401 - Лайкнуть комментарий[0m
+[1;33m❓ POST /comments/1/reply - 000000{"error":"Authorization header required"}401 - Ответить на комментарий[0m
+[1;33m❓ GET /comments/1/replies - 000000{"error":"Authorization header required"}401 - Получить ответы на комментарий[0m
+[1;33m❓ DELETE /comments/1 - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Удалить комментарий[0m
+[0;34m📞 SUBSCRIPTION ENDPOINTS:[0m
+[1;33m❓ POST /subscriptions/1 - 000000{"message":"Subscribed","user_id":"1"}200 - Подписаться на пользователя[0m
+[1;33m❓ DELETE /subscriptions/1 - 000000{"message":"Unsubscribed","user_id":"1"}200 - Отписаться от пользователя[0m
+[1;33m❓ GET /subscriptions/my - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить мои подписки[0m
+[0;34m🎫 SUPPORT ENDPOINTS:[0m
+[1;33m❓ GET /support/tickets - 000000{"error":"Authorization header required"}401 - Получить тикеты поддержки[0m
+[1;33m❓ POST /support/tickets - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Создать тикет поддержки[0m
+[1;33m❓ POST /support/tickets/1/replies - 000000{"error":"Authorization header required"}401 - Ответить на тикет[0m
+[0;34m👑 ADMIN ENDPOINTS:[0m
+[1;33m❓ GET /admin/support/tickets - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Получить все тикеты поддержки[0m
+[1;33m❓ PATCH /admin/support/tickets/1 - 000000<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx/1.27.5</center>
+</body>
+</html>
+503 - Обновить статус тикета[0m
+[1;33m❓ POST /admin/support/tickets/1/replies - 000000{"error":"Authorization header required"}401 - Ответить на тикет от имени админа[0m
+[1;33m❓ GET /admin/users - 000000{"error":"Authorization header required"}401 - Получить всех пользователей[0m
+[1;33m❓ POST /admin/users/1/ban - 000000{"error":"Authorization header required"}401 - Забанить пользователя[0m
+[1;33m❓ POST /admin/users/1/unban - 000000{"error":"Authorization header required"}401 - Разбанить пользователя[0m
+[1;33m❓ PUT /admin/users/1/role - 000000{"error":"Authorization header required"}401 - Изменить роль пользователя[0m
+[1;33m❓ POST /admin/users/1/suspend - 000000{"error":"Authorization header required"}401 - Приостановить пользователя[0m
+[0;34m🔧 SYSTEM ENDPOINTS:[0m
+[0;32m✅ GET /ratelimit/status - 200 (работает) - Статус rate limiting[0m
+[0;32m✅ GET /metrics - 200 (работает) - Prometheus метрики[0m
+[1;33m❓ GET /health - 503 - Health check[0m
+[0;32m✅ GET /live - 200 (работает) - Liveness check[0m
+[1;33m❓ GET /ready - 503 - Readiness check[0m
+[0;34m🔐 OAUTH ENDPOINTS:[0m
+[1;33m⚠️  GET /auth/oauth/authorize - 400 (валидация) - OAuth авторизация[0m
+[1;33m❓ POST /auth/oauth/token - 503 - OAuth токен[0m
+[0;32m✅ POST /auth/oauth/revoke - 200 (работает) - OAuth отзыв токена[0m
+[0;34m📢 BROADCAST ENDPOINTS:[0m
+[1;33m❓ POST /notifications/broadcast - 000000{"error":"Authorization header required"}401 - Отправить broadcast уведомление[0m
+[1;33m❓ GET /notifications/templates - 000000{"error":"Authorization header required"}401 - Получить шаблоны уведомлений[0m
+[0;34m📊 ИТОГОВАЯ СТАТИСТИКА:[0m
+==============================================
+📊 Всего endpoints: [0;34m166[0m
+✅ Работают (200/201): [0;32m13[0m
+💥 500 ошибки: [0;31m3[0m
+❌ 404 ошибки: [0;31m0[0m
+⚠️  400 ошибки: [1;33m3[0m
+🚫 403 ошибки: [1;33m2[0m
+❓ Другие ошибки: [1;33m145[0m
+
+📈 ПРОЦЕНТЫ:
+✅ Работают: [0;32m7%[0m
+💥 500 ошибки: [0;31m1%[0m
+❌ 404 ошибки: [0;31m0%[0m
+⚠️  400 ошибки: [1;33m1%[0m
+🚫 403 ошибки: [1;33m1%[0m
+
+[0;32m✅ ЧЕСТНАЯ ДИАГНОСТИКА ЗАВЕРШЕНА![0m

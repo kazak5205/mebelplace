@@ -1,0 +1,661 @@
+{
+  "info": {
+    "name": "MebelPlace Full API Collection - 85+ Endpoints",
+    "description": "Comprehensive API testing collection covering ALL endpoints from TZ\nBase URL: https://mebelplace.com.kz/api/v2\nRequires: JWT token in cookies (HttpOnly)\nTotal endpoints: 91",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "mebelplace-full-api",
+    "version": "2.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://mebelplace.com.kz/api/v2",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "video_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "request_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "chat_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication (12 endpoints)",
+      "item": [
+        {
+          "name": "POST Register User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"phone\": \"+77001234567\",\n  \"password\": \"SecurePassword123!\",\n  \"role\": \"client\",\n  \"username\": \"testuser\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/auth/register"}
+          }
+        },
+        {
+          "name": "POST Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"test@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/auth/login"}
+          }
+        },
+        {
+          "name": "POST Verify SMS",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+77001234567\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/auth/verify-sms"}
+          }
+        },
+        {
+          "name": "POST Refresh Token",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/auth/refresh"}}
+        },
+        {
+          "name": "POST Logout",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/auth/logout"}}
+        },
+        {
+          "name": "POST Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/auth/forgot-password"}
+          }
+        },
+        {
+          "name": "POST Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"reset_token\",\n  \"password\": \"NewPassword123!\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/auth/reset-password"}
+          }
+        },
+        {
+          "name": "POST Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"OldPassword123!\",\n  \"new_password\": \"NewPassword123!\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/auth/change-password"}
+          }
+        },
+        {
+          "name": "GET Current User",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/auth/me"}}
+        },
+        {
+          "name": "PUT Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newusername\",\n  \"bio\": \"Updated bio\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/auth/profile"}
+          }
+        },
+        {
+          "name": "DELETE Delete Account",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/auth/account"}}
+        },
+        {
+          "name": "POST Resend Verification",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+77001234567\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/auth/resend-verification"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Videos (18 endpoints)",
+      "item": [
+        {
+          "name": "GET Video Feed",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/videos/feed?limit=20&offset=0&type=all"}}
+        },
+        {
+          "name": "GET Following Feed",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/videos/feed?type=following&limit=20"}}
+        },
+        {
+          "name": "GET Video by ID",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/videos/{{video_id}}"}}
+        },
+        {
+          "name": "POST Upload Video",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "multipart/form-data"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "video", "type": "file"}, {"key": "title", "value": "Test video"}, {"key": "description", "value": "Test description"}]},
+            "url": {"raw": "{{base_url}}/videos"}
+          }
+        },
+        {
+          "name": "PUT Update Video",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated title\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/videos/{{video_id}}"}
+          }
+        },
+        {
+          "name": "DELETE Delete Video",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/videos/{{video_id}}"}}
+        },
+        {
+          "name": "POST Like Video",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/videos/{{video_id}}/like"}}
+        },
+        {
+          "name": "DELETE Unlike Video",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/videos/{{video_id}}/like"}}
+        },
+        {
+          "name": "POST Share Video",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/videos/{{video_id}}/share"}}
+        },
+        {
+          "name": "POST Record View",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/videos/{{video_id}}/view"}}
+        },
+        {
+          "name": "GET Video Comments",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/videos/{{video_id}}/comments?limit=20&offset=0"}}
+        },
+        {
+          "name": "POST Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Great video!\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/videos/{{video_id}}/comments"}
+          }
+        },
+        {
+          "name": "DELETE Delete Comment",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/videos/{{video_id}}/comments/:comment_id"}}
+        },
+        {
+          "name": "GET Video Stats",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/videos/{{video_id}}/stats"}}
+        },
+        {
+          "name": "GET Trending Videos",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/videos/trending?limit=20"}}
+        },
+        {
+          "name": "GET Search Videos",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/videos/search?q=kitchen&limit=20"}}
+        },
+        {
+          "name": "GET User Videos",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/videos/user/:user_id?limit=20"}}
+        },
+        {
+          "name": "POST Report Video",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"inappropriate\",\n  \"description\": \"Contains offensive content\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/videos/{{video_id}}/report"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Requests (15 endpoints)",
+      "item": [
+        {
+          "name": "GET All Requests",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/requests?limit=20&offset=0"}}
+        },
+        {
+          "name": "GET Requests by Status",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/requests?status=open&limit=20"}}
+        },
+        {
+          "name": "GET Requests by Region",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/requests?region=Almaty&limit=20"}}
+        },
+        {
+          "name": "GET Request by ID",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/requests/{{request_id}}"}}
+        },
+        {
+          "name": "POST Create Request",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Need kitchen cabinet\",\n  \"description\": \"Looking for a master to make custom kitchen cabinet\",\n  \"category\": \"Кухни\",\n  \"region\": \"Алматы\",\n  \"budget\": 150000,\n  \"deadline\": \"2025-11-01\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/requests"}
+          }
+        },
+        {
+          "name": "PUT Update Request",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated title\",\n  \"budget\": 200000\n}"
+            },
+            "url": {"raw": "{{base_url}}/requests/{{request_id}}"}
+          }
+        },
+        {
+          "name": "DELETE Delete Request",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/requests/{{request_id}}"}}
+        },
+        {
+          "name": "POST Respond to Request",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I can help you with this request\",\n  \"price\": 180000,\n  \"timeline\": \"2 weeks\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/requests/{{request_id}}/respond"}
+          }
+        },
+        {
+          "name": "GET Request Responses",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/requests/{{request_id}}/responses"}}
+        },
+        {
+          "name": "POST Accept Response",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/requests/{{request_id}}/responses/:response_id/accept"}
+          }
+        },
+        {
+          "name": "POST Reject Response",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/requests/{{request_id}}/responses/:response_id/reject"}}
+        },
+        {
+          "name": "POST Complete Request",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/requests/{{request_id}}/complete"}}
+        },
+        {
+          "name": "POST Cancel Request",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/requests/{{request_id}}/cancel"}}
+        },
+        {
+          "name": "GET My Requests",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/requests/my?limit=20"}}
+        },
+        {
+          "name": "GET Request Categories",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/requests/categories"}}
+        }
+      ]
+    },
+    {
+      "name": "4. Chats & Messages (12 endpoints)",
+      "item": [
+        {
+          "name": "GET All Chats",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/chats"}}
+        },
+        {
+          "name": "GET Chat by ID",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/chats/{{chat_id}}"}}
+        },
+        {
+          "name": "POST Create Chat",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"participant_id\": \"123\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/chats"}
+          }
+        },
+        {
+          "name": "DELETE Delete Chat",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/chats/{{chat_id}}"}}
+        },
+        {
+          "name": "GET Chat Messages",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/chats/{{chat_id}}/messages?limit=50&offset=0"}}
+        },
+        {
+          "name": "POST Send Message",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hello, how are you?\",\n  \"type\": \"text\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/chats/{{chat_id}}/messages"}
+          }
+        },
+        {
+          "name": "POST Send Image",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "multipart/form-data"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "image", "type": "file"}, {"key": "type", "value": "image"}]},
+            "url": {"raw": "{{base_url}}/chats/{{chat_id}}/messages"}
+          }
+        },
+        {
+          "name": "POST Send File",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "multipart/form-data"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "file", "type": "file"}, {"key": "type", "value": "file"}]},
+            "url": {"raw": "{{base_url}}/chats/{{chat_id}}/messages"}
+          }
+        },
+        {
+          "name": "DELETE Delete Message",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/chats/{{chat_id}}/messages/:message_id"}}
+        },
+        {
+          "name": "POST Mark as Read",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/chats/{{chat_id}}/read"}}
+        },
+        {
+          "name": "GET Unread Count",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/chats/unread"}}
+        },
+        {
+          "name": "POST Typing Indicator",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/chats/{{chat_id}}/typing"}}
+        }
+      ]
+    },
+    {
+      "name": "5. User Profiles (10 endpoints)",
+      "item": [
+        {
+          "name": "GET User Profile",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/users/:user_id"}}
+        },
+        {
+          "name": "GET User Stats",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/users/:user_id/stats"}}
+        },
+        {
+          "name": "GET User Followers",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/users/:user_id/followers?limit=20"}}
+        },
+        {
+          "name": "GET User Following",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/users/:user_id/following?limit=20"}}
+        },
+        {
+          "name": "POST Follow User",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/users/:user_id/follow"}}
+        },
+        {
+          "name": "DELETE Unfollow User",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/users/:user_id/follow"}}
+        },
+        {
+          "name": "POST Block User",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/users/:user_id/block"}}
+        },
+        {
+          "name": "DELETE Unblock User",
+          "request": {"method": "DELETE", "url": {"raw": "{{base_url}}/users/:user_id/block"}}
+        },
+        {
+          "name": "POST Report User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"spam\",\n  \"description\": \"Sending spam messages\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/users/:user_id/report"}
+          }
+        },
+        {
+          "name": "GET Search Users",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/users/search?q=john&limit=20"}}
+        }
+      ]
+    },
+    {
+      "name": "6. Subscriptions & Notifications (8 endpoints)",
+      "item": [
+        {
+          "name": "GET All Subscriptions",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/subscriptions"}}
+        },
+        {
+          "name": "POST Subscribe",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"123\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/subscriptions/subscribe"}
+          }
+        },
+        {
+          "name": "POST Unsubscribe",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"123\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/subscriptions/unsubscribe"}
+          }
+        },
+        {
+          "name": "GET All Notifications",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/notifications?limit=20&offset=0"}}
+        },
+        {
+          "name": "GET Unread Notifications",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/notifications/unread"}}
+        },
+        {
+          "name": "POST Mark Notification Read",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/notifications/:notification_id/read"}}
+        },
+        {
+          "name": "POST Mark All Read",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/notifications/read-all"}}
+        },
+        {
+          "name": "POST Test Push Notification",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/notifications/test"}}
+        }
+      ]
+    },
+    {
+      "name": "7. Gamification & Points (8 endpoints)",
+      "item": [
+        {
+          "name": "GET User Points",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/gamification/points"}}
+        },
+        {
+          "name": "GET Points History",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/gamification/points/history?limit=20"}}
+        },
+        {
+          "name": "GET Leaderboard",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/gamification/leaderboard?limit=50"}}
+        },
+        {
+          "name": "GET User Achievements",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/gamification/achievements"}}
+        },
+        {
+          "name": "GET All Achievements",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/gamification/achievements/all"}}
+        },
+        {
+          "name": "GET Daily Tasks",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/gamification/tasks/daily"}}
+        },
+        {
+          "name": "POST Complete Task",
+          "request": {"method": "POST", "url": {"raw": "{{base_url}}/gamification/tasks/:task_id/complete"}}
+        },
+        {
+          "name": "GET Rewards",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/gamification/rewards"}}
+        }
+      ]
+    },
+    {
+      "name": "8. Admin & Moderation (8 endpoints)",
+      "item": [
+        {
+          "name": "GET Admin Stats",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/admin/stats"}}
+        },
+        {
+          "name": "GET Pending Reports",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/admin/reports?status=pending&limit=20"}}
+        },
+        {
+          "name": "POST Moderate Video - Approve",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/admin/moderate/video/:video_id"}
+          }
+        },
+        {
+          "name": "POST Moderate Video - Reject",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"reject\",\n  \"reason\": \"Violates community guidelines\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/admin/moderate/video/:video_id"}
+          }
+        },
+        {
+          "name": "POST Ban User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"123\",\n  \"reason\": \"Spam\",\n  \"duration\": \"7d\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/admin/users/ban"}
+          }
+        },
+        {
+          "name": "POST Unban User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"123\"\n}"
+            },
+            "url": {"raw": "{{base_url}}/admin/users/unban"}
+          }
+        },
+        {
+          "name": "GET System Logs",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/admin/logs?limit=100&level=error"}}
+        },
+        {
+          "name": "GET Analytics",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/admin/analytics?period=30d"}}
+        }
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,3502 @@
+openapi: 3.0.3
+info:
+  title: MebelPlace Mobile App API
+  description: |
+    MebelPlace Mobile Application API - мобильный клиент для платформы торговли мебелью
+    
+    ## Основные возможности:
+    - Регистрация и аутентификация пользователей
+    - Просмотр видео с мебелью и HLS streaming
+    - Система заявок и предложений
+    - Чаты и групповые чаты
+    - Каналы и подписки
+    - Система уведомлений
+    - Звонки и голосовые комнаты
+    - AR/3D модели
+    - Аналитика и геймификация
+    - Glass/Liquid Glass UI с адаптивными эффектами
+    - Offline режим с синхронизацией
+    
+    ## Технические особенности:
+    - Flutter + Dart кроссплатформенная разработка
+    - Clean Architecture с Riverpod state management
+    - Material Design 3 + Glass UI
+    - JWT токены и secure storage
+    - SQLite + Drift для локального хранилища
+    - Sentry для мониторинга и аналитики
+    
+    ## Rate Limiting:
+    - API запросы: 1000 запросов/минуту на пользователя
+    - Видео загрузка: 10 запросов/минуту на пользователя
+    - HLS streaming: 100 запросов/минуту на пользователя
+    
+    ## 🎨 ДЕТАЛЬНЫЕ АНИМАЦИИ И UI ЭФФЕКТЫ:
+    
+    ### ⚡ Основные анимации (AppAnimations):
+    - **Duration Fast**: 120ms - быстрые анимации
+    - **Duration Default**: 240ms - стандартные анимации  
+    - **Duration Slow**: 360ms - медленные анимации
+    - **Duration Slower**: 500ms - очень медленные анимации
+    - **Double-tap Like**: 300ms (оптимизированная) / 350ms (оригинальная) - анимация лайка
+    - **Skeleton Pulse**: 1000ms (оптимизированная) / 1500ms (оригинальная) - shimmer эффект
+    - **Bottom Sheet Open**: 240ms - открытие bottom sheet
+    - **Bottom Sheet Close**: 200ms - закрытие bottom sheet
+    - **Hover Effects**: 100ms - hover эффекты
+    - **Tilt Effects**: 150ms - tilt эффект для карточек
+    - **Swipe Reactions**: 150ms - swipe реакции
+    - **Spring Effects**: 800ms - пружинные эффекты
+    
+    ### 🔄 Кривые анимаций:
+    - **Default Curve**: Cubic(0.2, 0.8, 0.2, 1.0) - стандартная
+    - **Ease In**: Cubic(0.4, 0.0, 1.0, 1.0) - ускорение
+    - **Ease Out**: Cubic(0.0, 0.0, 0.2, 1.0) - замедление
+    - **Spring**: Cubic(0.68, -0.55, 0.265, 1.55) - пружинная
+    
+    ### 📏 Масштабы анимаций:
+    - **Button Press Scale**: 0.98 - нажатие кнопки
+    - **Double-tap Start**: 0.6 - начало double-tap
+    - **Double-tap Peak**: 1.4 - пик double-tap
+    - **Double-tap End**: 1.0 - конец double-tap
+    
+    ### 🎭 Page Transitions (ModernAnimations):
+    - **Fade + Scale**: 240ms, fade 0.0→1.0, scale 0.95→1.0
+    - **Slide From Right**: 240ms, Offset(1.0,0.0)→Offset.zero
+    - **Slide Up**: 240ms, Offset(0.0,1.0)→Offset.zero
+    - **Rotation + Fade**: 360ms, rotation 0.0→1.0 turns + elasticOut
+    
+    ### ✨ UI Анимации:
+    - **AnimatedGlowContainer**: 1500ms, glow 0.3→1.0, blur 20*value
+    - **ShimmerLoading**: 1500ms, position -2.0→2.0, gradient 3 цвета
+    - **PulseAnimation**: 600ms, scale 1.0→1.2→1.0, repeat infinite
+    - **BounceAnimation**: 120ms, scale 1.0→0.95, trigger onTap
+    
+    ### 🎪 Particle System:
+    - **Confetti**: 50 частиц (high) / 30 (medium) / 20 (low), 2 сек, 5 цветов, gravity + wind + bounce
+    - **Stars**: 30 частиц (high) / 20 (medium) / 15 (low), 1.5 сек, 3 цвета, rotation + fade
+    - **Hearts**: 20 частиц (high) / 15 (medium) / 10 (low), 2 сек, 3 цвета, float + pulse
+    - **Sparkles**: 40 частиц (high) / 25 (medium) / 15 (low), 1 сек, 3 цвета, burst + fade
+    - **Wood Chips**: 30 частиц (high) / 20 (medium) / 15 (low), 1.5 сек, 4 коричневых оттенка, мебельная тематика
+    - **Furniture Pieces**: кастомные частицы для мебельных эффектов
+    - **Sawdust**: анимация деревянной стружки для загрузки
+    - **Interactive Particles**: мини-анимации с 10 частицами при касании
+    
+    ### 🏗️ Physics Animations:
+    - **SpringAnimation**: 1000ms, elasticOut, SpringDescription
+    - **ElasticAnimation**: 800ms, elasticOut, 3-4 bounces
+    
+    ### 🎯 AnimatedButton:
+    - **Scale**: 150ms, 1.0→0.98→1.0, easeInOut
+    - **Ripple**: 600ms, scale 0.0→2.0, opacity 0.6→0.0
+    - **Haptic Feedback**: вибрация при нажатии
+    - **Sound Effects**: тихие звуки для обратной связи
+    
+    ### 🎮 Интерактивные анимации:
+    - **Hover Effects**: 100ms, scale 1.0→1.05 при наведении пальца
+    - **Tilt Effects**: 150ms, наклон карточки при касании (гироскоп)
+    - **Swipe Reactions**: 150ms, свайп вправо (лайк) / влево (пропуск)
+    - **Long Press Preview**: 3-секундное видео-превью с Fade + Scale
+    - **Contextual Animations**: микроанимации для кнопок при hover
+    - **Smart Back Button**: возврат к последнему контенту с Slide From Right
+    
+    ## 🪟 GLASS UI КОМПОНЕНТЫ (20 компонентов):
+    
+    ### Основные Glass компоненты:
+    1. **glass_video_card_with_doubletap.dart** - Видео карточка с double-tap лайк
+    2. **glass_custom_cards.dart** - Кастомные glass карточки с blur эффектами
+    3. **glass_button.dart** - Кнопка с glass эффектом и градиентом
+    4. **glass_icon_button_custom.dart** - Кастомная glass кнопка с иконкой
+    5. **glass_text_field.dart** - Glass поле ввода с размытием
+    6. **glass_message_bubble.dart** - Glass пузырек сообщения
+    7. **glass_panel.dart** - Glass панель с backdrop filter
+    8. **glass_screen_base.dart** - Базовый glass экран
+    9. **glass_video_card.dart** - Обычная glass видео карточка
+    10. **glass_ad_video_card.dart** - Рекламная видео карточка
+    11. **glass_chip.dart** - Чип с glass эффектом
+    12. **glass_custom_icons.dart** - Кастомные glass иконки
+    13. **glass_custom_widgets.dart** - Кастомные glass виджеты
+    14. **glass_icon_button.dart** - Glass кнопка с иконкой
+    
+    ### Дополнительные UI компоненты:
+    15. **glass_bottom_sheet.dart** - Glass bottom sheet
+    16. **glass_modal.dart** - Glass модальное окно
+    17. **glass_input.dart** - Glass поле ввода
+    18. **glass_card.dart** - Glass карточка
+    19. **glass_video_detail_screen.dart** - Glass экран деталей видео
+    
+    ### Glass параметры:
+    - **Blur Sigma**: 10.0 (high) / 7.0 (medium) / 5.0 (low) - адаптивное размытие
+    - **Border Radius**: 16.0 (desktop) / 12.0 (mobile) - адаптивные углы
+    - **Background Alpha**: 0.2 (light) / 0.5 (high contrast) - адаптивная прозрачность
+    - **Gradient Colors**: тематические градиенты (Classic, Minimal, Wooden Glass)
+    - **Performance Levels**: low/medium/high для адаптации эффектов
+    
+    ## 📱 ЭКРАНЫ МОБИЛЬНОГО ПРИЛОЖЕНИЯ (68+ экранов):
+    
+    ### 🏠 Главные экраны (5 основных):
+    1. **GlassFeedScreenRefactored** - Видео лента (главный экран)
+    2. **GlassSearchScreen** - Поиск контента
+    3. **GlassRequestsTab** - Заявки на мебель
+    4. **GlassChatsListScreen** - Список чатов
+    5. **GlassProfileScreenRefactored** - Профиль пользователя
+    
+    ### 🔐 Аутентификация (6 экранов):
+    6. **glass_login_screen.dart** - Вход в систему
+    7. **glass_register_screen.dart** - Регистрация
+    8. **glass_sms_verification_screen.dart** - SMS верификация
+    9. **glass_verify_phone_screen.dart** - Подтверждение телефона
+    10. **glass_verify_email_screen.dart** - Подтверждение email
+    11. **glass_forgot_password_screen.dart** - Восстановление пароля
+    
+    ### 🎬 Видео (7 экранов):
+    12. **glass_feed_screen_refactored.dart** - Лента видео
+    13. **glass_video_player_screen.dart** - Видео плеер
+    14. **glass_video_detail_screen.dart** - Детали видео
+    15. **glass_comments_screen.dart** - Комментарии к видео
+    16. **glass_favorites_screen.dart** - Избранные видео
+    17. **glass_upload_video_screen.dart** - Загрузка видео
+    18. **glass_video_feed_tab.dart** - Таб ленты видео
+    
+    ### 💬 Чаты (4 экрана):
+    19. **glass_chats_list_screen.dart** - Список чатов
+    20. **glass_chat_screen.dart** - Индивидуальный чат
+    21. **glass_create_chat_screen.dart** - Создание чата
+    22. **glass_messenger_chat_screen.dart** - Мессенджер чат
+    
+    ### 👤 Профиль (7 экранов):
+    23. **glass_profile_screen_refactored.dart** - Главный профиль
+    24. **glass_user_profile_screen.dart** - Профиль пользователя
+    25. **glass_edit_profile_screen.dart** - Редактирование профиля
+    26. **glass_my_videos_screen.dart** - Мои видео
+    27. **glass_my_channel_screen.dart** - Мой канал
+    28. **glass_channel_page.dart** - Страница канала
+    29. **glass_profile_tab.dart** - Таб профиля
+    
+    ### 🛒 Заявки (4 экрана):
+    30. **glass_request_screen.dart** - Главный экран заявок
+    31. **glass_request_details_screen.dart** - Детали заявки
+    32. **glass_request_responses_screen.dart** - Ответы на заявку
+    33. **glass_create_proposal_screen.dart** - Создание предложения
+    
+    ### 👑 Администрация (15 экранов):
+    34. **glass_admin_screen.dart** - Главный админ экран
+    35. **glass_admin_panel_screen.dart** - Панель администратора
+    36. **glass_all_users_screen.dart** - Все пользователи
+    37. **glass_banned_users_screen.dart** - Заблокированные пользователи
+    38. **glass_pending_content_screen.dart** - Ожидающий контент
+    39. **glass_pending_tickets_screen.dart** - Ожидающие тикеты
+    40. **glass_reported_content_screen.dart** - Жалобы на контент
+    41. **glass_all_tickets_screen.dart** - Все тикеты поддержки
+    42. **glass_ads_list_screen.dart** - Список рекламы
+    43. **glass_user_analytics_screen.dart** - Аналитика пользователей
+    44. **glass_video_analytics_screen.dart** - Аналитика видео
+    45. **glass_order_analytics_screen.dart** - Аналитика заказов
+    46. **glass_revenue_analytics_screen.dart** - Аналитика доходов
+    47. **ads_tab.dart** - Таб рекламы
+    48. **analytics_tab.dart** - Таб аналитики
+    49. **moderation_tab.dart** - Таб модерации
+    50. **support_tab.dart** - Таб поддержки
+    
+    ### 🎯 Геймификация (4 экрана):
+    51. **glass_user_stats_screen.dart** - Статистика пользователя
+    52. **glass_achievements_screen.dart** - Достижения
+    53. **glass_leaderboard_screen.dart** - Таблица лидеров
+    54. **glass_rewards_screen.dart** - Награды
+    
+    ### ⚙️ Настройки (2 экрана):
+    55. **glass_settings_screen.dart** - Настройки приложения
+    56. **glass_notifications_settings_screen.dart** - Настройки уведомлений
+    
+    ### 🔔 Уведомления (2 экрана):
+    57. **glass_notifications_screen.dart** - Список уведомлений
+    58. **glass_notifications_settings_screen.dart** - Настройки уведомлений
+    
+    ### 🛍️ Заказы (3 экрана):
+    59. **glass_my_orders_screen.dart** - Мои заказы
+    60. **glass_order_product_screen.dart** - Заказ продукта
+    
+    ### 📚 Каталог (2 экрана):
+    61. **glass_catalog_screen.dart** - Каталог мебели
+    62. **glass_projects_catalog_screen.dart** - Каталог проектов
+    
+    ### 🎨 AR/3D Конфигуратор (2 экрана):
+    63. **glass_configurator_screen.dart** - Конфигуратор мебели
+    64. **glass_interior_configurator_screen.dart** - Конфигуратор интерьера
+    
+    ### 🤖 AI (1 экран):
+    65. **glass_ai_assistant_screen.dart** - AI помощник
+    
+    ### 🎬 Каналы (2 экрана):
+    66. **glass_user_channel_screen.dart** - Канал пользователя
+    67. **glass_messenger_channel_screen.dart** - Канал в мессенджере
+    
+    ### 🆘 Поддержка (1 экран):
+    68. **glass_support_screen.dart** - Техническая поддержка
+    
+    ### 📱 Onboarding (4 экрана):
+    69. **glass_onboarding_screen.dart** - Главный онбординг
+    70. **glass_welcome_page.dart** - Приветствие
+    71. **glass_get_started_page.dart** - Начало работы
+    72. **glass_features_page.dart** - Возможности приложения
+    
+    ### 🎭 Дизайн (1 экран):
+    73. **glass_design_ideas_screen.dart** - Идеи дизайна
+    
+    ### 👥 Пользователи (1 экран):
+    74. **glass_user_screen.dart** - Профиль пользователя
+    
+    ### 🔄 Загрузка (1 экран):
+    75. **glass_loading_screen.dart** - Экран загрузки
+    
+    ### ❌ Ошибки (1 экран):
+    76. **glass_error_screen.dart** - Экран ошибок
+    
+    ### 🎬 Демо (1 экран):
+    77. **glass_animations_demo_screen.dart** - Демо анимаций
+    
+    ### 🎯 Splash (1 экран):
+    78. **glass_splash_screen.dart** - Заставка приложения
+    
+    ### 📊 Подписки (1 экран):
+    79. **glass_subscriptions_screen.dart** - Подписки на каналы
+    
+    ## 🧭 СТРУКТУРА НАВИГАЦИИ:
+    
+    ### Главная навигация (Bottom Navigation):
+    ```
+    MainPage (lib/presentation/pages/main_page.dart)
+    ├── GlassFeedScreenRefactored (Видео лента)
+    ├── GlassSearchScreen (Поиск)
+    ├── GlassRequestsTab (Заявки)
+    ├── GlassChatsListScreen (Чаты)
+    └── GlassProfileScreenRefactored (Профиль)
+    ```
+    
+    ### Переходы между экранами:
+    - **MaterialPageRoute** - стандартные переходы
+    - **ModernAnimations** - кастомные анимации переходов
+    - **PageTransitions** - slideRight, slideLeft, slideUp, fade, scale
+    - **Glass эффекты** - все переходы с glass morphism
+    - **Комбинированные переходы** - Fade + Scale (200ms) для основных экранов
+    - **Модальные переходы** - Slide Up (180ms) для модальных окон
+    - **Визуальные индикаторы** - прогресс-бар с ShimmerLoading
+    - **Контекстная навигация** - превью следующего экрана при свайпе
+    
+    ### Навигационные потоки:
+    1. **Auth Flow**: Splash → Onboarding → Login/Register → Main
+    2. **Video Flow**: Feed → Video Detail → Comments → Profile
+    3. **Chat Flow**: Chat List → Chat → Create Chat
+    4. **Request Flow**: Requests → Request Details → Create Proposal
+    5. **Profile Flow**: Profile → Edit Profile → My Videos → My Channel
+    
+    ## 🌐 OFFLINE ВОЗМОЖНОСТИ:
+    - Кэширование видео и изображений
+    - Offline queue для действий
+    - Автоматическая синхронизация
+    - Conflict resolution
+    - Network connectivity monitoring
+    
+    ## ♿ ДОСТУПНОСТЬ (ACCESSIBILITY):
+    - **Экранные читалки**: семантические метки для TalkBack/VoiceOver
+    - **Высокий контраст**: backgroundAlpha 0.5, полная непрозрачность текста
+    - **Масштабирование текста**: поддержка системного Dynamic Type/Text Scaling
+    - **Цветовая слепота**: фильтры для дальтоников (protanopia, deuteranopia, tritanopia)
+    - **Тактильная обратная связь**: вибрация и звуки для действий
+    - **Увеличенные touch targets**: минимум 44px для всех интерактивных элементов
+    
+    ## 🎨 ПЕРСОНАЛИЗАЦИЯ:
+    - **Темы оформления**: Light Glass, Dark Glass, Wooden Glass, Minimal Glass
+    - **Кастомные Glass эффекты**: пользовательские gradientColors и blurSigma
+    - **Анимированные иконки**: вращение 360° при нажатии (300ms)
+    - **Динамические фоны**: изменение в зависимости от времени суток/категории
+    - **Адаптивные размеры**: автоматическая подстройка под размер экрана
+    
+    ## ⚡ ОПТИМИЗАЦИЯ ПРОИЗВОДИТЕЛЬНОСТИ:
+    - **Адаптивные Glass эффекты**: blurSigma 5.0-10.0 в зависимости от устройства
+    - **Оптимизированные анимации**: сокращенные длительности для плавности
+    - **Low Performance Mode**: статичные эффекты вместо анимаций
+    - **Адаптивные particle systems**: 20-50 частиц в зависимости от мощности
+    - **Умное кэширование**: приоритет для критичных UI элементов
+    - **Lazy loading**: отложенная загрузка тяжелых анимаций
+    
+    ## 📱 АДАПТИВНОСТЬ:
+    - **Поддержка экранов**: mobile (12px radius), tablet (20px), desktop (16px)
+    - **Ориентация**: ландшафтный режим с адаптацией UI
+    - **Foldable устройства**: двухэкранный режим (лента + детали)
+    - **Маленькие экраны**: уменьшенные масштабы анимаций (1.2 вместо 1.4)
+    - **Высокие DPI**: оптимизация для Retina дисплеев
+    
+    ## 🎮 МИКРОИНТЕРАКЦИИ:
+    - **Feedback на действия**: звуки и вибрация при лайках/комментариях
+    - **Контекстные подсказки**: интерактивные туториалы с PulseAnimation
+    - **Тематические loading**: деревянные стружки вместо стандартного shimmer
+    - **Hover states**: легкие анимации при наведении (scale 1.05)
+    - **Progress indicators**: анимированные прогресс-бары для длительных операций
+    
+  version: 2.4.0
+  contact:
+    name: MebelPlace Support
+    email: support@mebelplace.com.kz
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://mebelplace.com.kz/api/v2
+    description: Production server
+  - url: http://localhost:8080/api/v2
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: System
+    description: Системные эндпоинты
+  - name: Authentication
+    description: Аутентификация и регистрация
+  - name: Users
+    description: Управление пользователями
+  - name: Videos
+    description: Видео контент
+  - name: Requests
+    description: Заявки и предложения
+  - name: Chats
+    description: Чаты и сообщения
+  - name: Channels
+    description: Каналы и подписки
+  - name: Notifications
+    description: Уведомления
+  - name: Calls
+    description: Звонки и голосовые комнаты
+  - name: Analytics
+    description: Аналитика
+  - name: Admin
+    description: Административные функции
+  - name: Stories
+    description: Истории (временный контент)
+  - name: Group Chats
+    description: Групповые чаты
+  - name: Written Channels
+    description: Письменные каналы
+  - name: Support
+    description: Система поддержки
+  - name: Comments
+    description: Комментарии
+  - name: Gamification
+    description: Геймификация и достижения
+  - name: AR/3D Models
+    description: AR и 3D модели
+  - name: Maps
+    description: Карты и геолокация
+  - name: Integrations
+    description: Интеграции с внешними сервисами
+  - name: Referrals
+    description: Реферальная система
+  - name: Live Streams
+    description: Прямые трансляции
+  - name: Voice Rooms
+    description: Голосовые комнаты
+  - name: HLS Streaming
+    description: HTTP Live Streaming для видео
+  - name: WebRTC
+    description: WebRTC signaling и real-time коммуникация
+  - name: WebSocket
+    description: WebSocket соединения для real-time данных
+  - name: AI
+    description: AI анализ и машинное обучение
+  - name: Payments
+    description: Платежи и монетизация
+
+paths:
+  # ========== SYSTEM ENDPOINTS ==========
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      description: Проверка состояния API сервера
+      responses:
+        '200':
+          description: Сервер работает
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00Z"
+
+  /metrics:
+    get:
+      tags: [System]
+      summary: Metrics
+      description: Метрики производительности
+      responses:
+        '200':
+          description: Метрики системы
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activeUsers:
+                    type: integer
+                    example: 1250
+                  videosProcessed:
+                    type: integer
+                    example: 3456
+                  requestsToday:
+                    type: integer
+                    example: 892
+
+  # ========== AUTHENTICATION ENDPOINTS ==========
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Регистрация пользователя
+      description: Регистрация нового пользователя по телефону или email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email_or_phone
+                - password
+              properties:
+                email_or_phone:
+                  type: string
+                  description: Email или номер телефона
+                  example: "+77777777777"
+                password:
+                  type: string
+                  description: Пароль
+                  minLength: 6
+                  example: "password123"
+                username:
+                  type: string
+                  description: Имя пользователя (опционально)
+                  example: "john_doe"
+      responses:
+        '200':
+          description: Успешная регистрация
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT токен
+                  access_token:
+                    type: string
+                    description: Access токен
+                  refresh_token:
+                    type: string
+                    description: Refresh токен
+                  expires_in:
+                    type: integer
+                    description: Время жизни токена в секундах
+                    example: 3600
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Ошибка валидации
+        '409':
+          description: Пользователь уже существует
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Вход в систему
+      description: Аутентификация пользователя
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email_or_phone
+                - password
+              properties:
+                email_or_phone:
+                  type: string
+                  example: "+77777777777"
+                password:
+                  type: string
+                  example: "password123"
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Неверные учетные данные
+
+  /auth/verify-sms:
+    post:
+      tags: [Authentication]
+      summary: Подтверждение SMS
+      description: Подтверждение номера телефона через SMS код
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+                - code
+              properties:
+                phone:
+                  type: string
+                  example: "+77777777777"
+                code:
+                  type: string
+                  example: "1234"
+      responses:
+        '200':
+          description: SMS подтвержден
+        '400':
+          description: Неверный код
+
+  /auth/verify-email:
+    post:
+      tags: [Authentication]
+      summary: Подтверждение Email
+      description: Подтверждение email адреса
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - code
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Email подтвержден
+        '400':
+          description: Неверный код
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Обновление токена
+      description: Обновление access токена с помощью refresh токена
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Токен обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  expires_in:
+                    type: integer
+                    example: 3600
+
+  # ========== USER ENDPOINTS ==========
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Получить текущего пользователя
+      description: |
+        Получение информации о текущем пользователе.
+        Используется для загрузки профиля в мобильном приложении.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserEntity'
+        '401':
+          description: Не авторизован
+
+  /users/me/avatar:
+    put:
+      tags: [Users]
+      summary: Обновить аватар
+      description: |
+        Загрузка нового аватара пользователя.
+        Поддерживает изображения до 10MB.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Аватар обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avatarUrl:
+                    type: string
+                    example: "https://cdn.mebelplace.com.kz/avatars/user123.jpg"
+
+  # ========== VIDEO ENDPOINTS ==========
+  /videos/feed:
+    get:
+      tags: [Videos]
+      summary: Лента видео
+      description: Получить ленту видео
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: user_id
+          in: query
+          schema:
+            type: integer
+            description: Фильтр по пользователю
+      responses:
+        '200':
+          description: Лента видео
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  videos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Video'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /videos/{id}/like:
+    post:
+      tags: [Videos]
+      summary: Лайкнуть видео
+      description: |
+        Поставить лайк видео. Запускает анимацию в мобильном приложении.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Лайк поставлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  likesCount:
+                    type: integer
+                    example: 42
+                  isLiked:
+                    type: boolean
+                    example: true
+
+  /videos/{id}/comments:
+    get:
+      tags: [Videos]
+      summary: Получить комментарии
+      description: |
+        Получение комментариев к видео с пагинацией.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Комментарии
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentsResponse'
+
+    post:
+      tags: [Videos]
+      summary: Добавить комментарий
+      description: |
+        Добавление комментария к видео.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  example: "Отличная мебель!"
+              required: [text]
+      responses:
+        '201':
+          description: Комментарий добавлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+  # ========== CHAT ENDPOINTS ==========
+  /chats:
+    get:
+      tags: [Chats]
+      summary: Список чатов
+      description: |
+        Получение списка чатов пользователя.
+        Отображается в мобильном приложении в разделе "Чаты".
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список чатов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chats:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Chat'
+
+  /chats/{id}/messages:
+    get:
+      tags: [Chats]
+      summary: Сообщения чата
+      description: |
+        Получение сообщений чата с пагинацией.
+        Поддерживает текстовые и голосовые сообщения.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Сообщения чата
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+
+    post:
+      tags: [Chats]
+      summary: Отправить сообщение
+      description: |
+        Отправка сообщения в чат.
+        Поддерживает текстовые, голосовые и файловые сообщения.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Сообщение отправлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+  # ========== REQUEST ENDPOINTS ==========
+  /requests:
+    get:
+      tags: [Requests]
+      summary: Список заявок
+      description: |
+        Получение списка заявок пользователя.
+        Отображается в разделе "Заявки" мобильного приложения.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, active, completed, cancelled]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Список заявок
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Request'
+
+    post:
+      tags: [Requests]
+      summary: Создать заявку
+      description: |
+        Создание новой заявки на изготовление мебели.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequestRequest'
+      responses:
+        '201':
+          description: Заявка создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+
+  # ========== GAMIFICATION ENDPOINTS ==========
+  /gamification/stats:
+    get:
+      tags: [Gamification]
+      summary: Статистика геймификации
+      description: |
+        Получение статистики достижений и очков пользователя.
+        Используется для отображения прогресса в мобильном приложении.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Статистика геймификации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GamificationStats'
+
+  /gamification/achievements:
+    get:
+      tags: [Gamification]
+      summary: Достижения пользователя
+      description: |
+        Получение списка достижений пользователя.
+        Отображается в разделе "Достижения" мобильного приложения.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список достижений
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  achievements:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Achievement'
+
+  # ========== NOTIFICATION ENDPOINTS ==========
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Список уведомлений
+      description: |
+        Получение списка уведомлений пользователя.
+        Отображается в разделе "Уведомления" мобильного приложения.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Список уведомлений
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+
+  /notifications/settings:
+    put:
+      tags: [Notifications]
+      summary: Настройки уведомлений
+      description: |
+        Обновление настроек push уведомлений.
+        Влияет на получение уведомлений в мобильном приложении.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSettings'
+      responses:
+        '200':
+          description: Настройки обновлены
+
+  # ========== SEARCH ENDPOINTS ==========
+  /search:
+    get:
+      tags: [Search]
+      summary: Поиск контента
+      description: |
+        Поиск видео, пользователей и мастеров.
+        Используется в поисковой строке мобильного приложения.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Поисковый запрос
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, videos, users, masters]
+            default: all
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Результаты поиска
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  # ========== ANIMATION ENDPOINTS ==========
+  /animations/config:
+    get:
+      tags: [System]
+      summary: Конфигурация анимаций
+      description: |
+        Получение конфигурации анимаций для мобильного приложения.
+        Возвращает параметры длительности, кривых и масштабов.
+      responses:
+        '200':
+          description: Конфигурация анимаций
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  durations:
+                    $ref: '#/components/schemas/AnimationDuration'
+                  curves:
+                    $ref: '#/components/schemas/AnimationCurve'
+                  scales:
+                    $ref: '#/components/schemas/AnimationScale'
+                  pageTransitions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PageTransition'
+                  particleSystems:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ParticleSystem'
+
+  /animations/particle-system/{type}:
+    post:
+      tags: [System]
+      summary: Запуск particle system
+      description: |
+        Запуск системы частиц для анимации (конфетти, звёздочки, сердечки).
+        Используется при лайках, достижениях и других событиях.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [confetti, stars, hearts, sparkles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                particleCount:
+                  type: integer
+                  default: 50
+                duration:
+                  type: integer
+                  default: 2000
+                colors:
+                  type: array
+                  items:
+                    type: string
+                position:
+                  type: object
+                  properties:
+                    x:
+                      type: number
+                      format: float
+                    y:
+                      type: number
+                      format: float
+      responses:
+        '200':
+          description: Particle system запущена
+        '400':
+          description: Неверные параметры
+
+  # ========== UI COMPONENTS ENDPOINTS ==========
+  /ui/glass-components:
+    get:
+      tags: [System]
+      summary: Список Glass компонентов
+      description: |
+        Получение списка всех Glass UI компонентов с их параметрами.
+        Используется для настройки UI в мобильном приложении.
+      parameters:
+        - name: devicePerformance
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high]
+            default: high
+          description: "Уровень производительности устройства"
+        - name: screenSize
+          in: query
+          schema:
+            type: string
+            enum: [mobile, tablet, desktop]
+            default: mobile
+          description: "Размер экрана"
+        - name: glassTheme
+          in: query
+          schema:
+            type: string
+            enum: [classic, minimal, wooden, dark]
+            default: classic
+          description: "Тема Glass эффектов"
+      responses:
+        '200':
+          description: Список Glass компонентов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  components:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GlassComponent'
+                  optimizedParams:
+                    type: object
+                    properties:
+                      blurSigma:
+                        type: object
+                        properties:
+                          low:
+                            type: number
+                            format: float
+                            example: 5.0
+                          medium:
+                            type: number
+                            format: float
+                            example: 7.0
+                          high:
+                            type: number
+                            format: float
+                            example: 10.0
+                      borderRadius:
+                        type: object
+                        properties:
+                          mobile:
+                            type: number
+                            format: float
+                            example: 12.0
+                          tablet:
+                            type: number
+                            format: float
+                            example: 20.0
+                          desktop:
+                            type: number
+                            format: float
+                            example: 16.0
+                      themes:
+                        type: object
+                        properties:
+                          classic:
+                            type: object
+                            properties:
+                              backgroundColor:
+                                type: string
+                                example: "rgba(255, 255, 255, 0.2)"
+                              gradientColors:
+                                type: array
+                                items:
+                                  type: string
+                                example: ["rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.05)"]
+                          minimal:
+                            type: object
+                            properties:
+                              backgroundColor:
+                                type: string
+                                example: "rgba(255, 255, 255, 0.3)"
+                              gradientColors:
+                                type: array
+                                items:
+                                  type: string
+                                example: ["rgba(255, 255, 255, 0.3)", "rgba(200, 200, 200, 0.1)"]
+                          wooden:
+                            type: object
+                            properties:
+                              backgroundColor:
+                                type: string
+                                example: "rgba(139, 69, 19, 0.2)"
+                              gradientColors:
+                                type: array
+                                items:
+                                  type: string
+                                example: ["rgba(139, 69, 19, 0.2)", "rgba(210, 180, 140, 0.1)"]
+
+  /ui/glass-components/{componentName}/config:
+    get:
+      tags: [System]
+      summary: Конфигурация Glass компонента
+      description: |
+        Получение конфигурации конкретного Glass компонента.
+      parameters:
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Имя компонента
+      responses:
+        '200':
+          description: Конфигурация компонента
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlassComponent'
+        '404':
+          description: Компонент не найден
+
+  # ========== SCREEN NAVIGATION ENDPOINTS ==========
+  /navigation/flows:
+    get:
+      tags: [System]
+      summary: Навигационные потоки
+      description: |
+        Получение всех навигационных потоков приложения.
+        Описывает переходы между экранами.
+      responses:
+        '200':
+          description: Навигационные потоки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NavigationFlow'
+                  mainNavigation:
+                    type: object
+                    properties:
+                      bottomNavigation:
+                        type: array
+                        items:
+                          type: string
+                        example: ["GlassFeedScreenRefactored", "GlassSearchScreen", "GlassRequestsTab", "GlassChatsListScreen", "GlassProfileScreenRefactored"]
+
+  /navigation/screens:
+    get:
+      tags: [System]
+      summary: Список экранов
+      description: |
+        Получение списка всех экранов приложения с их навигационными параметрами.
+      parameters:
+        - name: screenType
+          in: query
+          schema:
+            type: string
+            enum: [main, auth, video, chat, profile, request, admin, gamification, settings, notification, order, catalog, configurator, ai, channel, support, onboarding, design, user, loading, error, demo, splash, subscription]
+        - name: requiresAuth
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Список экранов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  screens:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ScreenNavigation'
+                  totalCount:
+                    type: integer
+                    example: 79
+
+  /navigation/screens/{screenName}:
+    get:
+      tags: [System]
+      summary: Детали экрана
+      description: |
+        Получение детальной информации об экране.
+      parameters:
+        - name: screenName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали экрана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScreenNavigation'
+        '404':
+          description: Экран не найден
+
+  # ========== FEATURES ENDPOINTS ==========
+  /features:
+    get:
+      tags: [System]
+      summary: Список функций приложения
+      description: |
+        Получение списка всех функций мобильного приложения.
+        Описывает экраны, компоненты, анимации и API эндпоинты для каждой функции.
+      parameters:
+        - name: featureType
+          in: query
+          schema:
+            type: string
+            enum: [core, auth, video, chat, profile, request, admin, gamification, settings, notification, order, catalog, configurator, ai, channel, support, onboarding, design, user, loading, error, demo, splash, subscription]
+      responses:
+        '200':
+          description: Список функций
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  features:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MobileFeature'
+                  totalCount:
+                    type: integer
+                    example: 25
+
+  /features/{featureName}:
+    get:
+      tags: [System]
+      summary: Детали функции
+      description: |
+        Получение детальной информации о функции приложения.
+      parameters:
+        - name: featureName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали функции
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileFeature'
+        '404':
+          description: Функция не найдена
+
+  # ========== ACCESSIBILITY ENDPOINTS ==========
+  /accessibility/settings:
+    get:
+      tags: [System]
+      summary: Настройки доступности
+      description: |
+        Получение настроек доступности для пользователя.
+        Включает поддержку экранных читалок, высокий контраст, масштабирование текста.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Настройки доступности
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  screenReader:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        example: true
+                      semanticLabels:
+                        type: boolean
+                        example: true
+                  highContrast:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        example: false
+                      backgroundAlpha:
+                        type: number
+                        format: float
+                        example: 0.5
+                      textOpacity:
+                        type: number
+                        format: float
+                        example: 1.0
+                  textScaling:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        example: true
+                      scaleFactor:
+                        type: number
+                        format: float
+                        example: 1.0
+                      minScale:
+                        type: number
+                        format: float
+                        example: 0.8
+                      maxScale:
+                        type: number
+                        format: float
+                        example: 2.0
+                  colorBlindSupport:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        example: false
+                      filter:
+                        type: string
+                        enum: [none, protanopia, deuteranopia, tritanopia]
+                        example: "none"
+
+    put:
+      tags: [System]
+      summary: Обновление настроек доступности
+      description: |
+        Обновление настроек доступности пользователя.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                screenReader:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    semanticLabels:
+                      type: boolean
+                highContrast:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    backgroundAlpha:
+                      type: number
+                      format: float
+                textScaling:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    scaleFactor:
+                      type: number
+                      format: float
+                colorBlindSupport:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    filter:
+                      type: string
+                      enum: [none, protanopia, deuteranopia, tritanopia]
+      responses:
+        '200':
+          description: Настройки обновлены
+
+  # ========== PERSONALIZATION ENDPOINTS ==========
+  /personalization/themes:
+    get:
+      tags: [System]
+      summary: Доступные темы оформления
+      description: |
+        Получение списка доступных тем оформления для Glass UI.
+      responses:
+        '200':
+          description: Список тем
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  themes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "light_glass"
+                        name:
+                          type: string
+                          example: "Light Glass"
+                        description:
+                          type: string
+                          example: "Классическая светлая тема с Glass эффектами"
+                        glassParams:
+                          type: object
+                          properties:
+                            backgroundColor:
+                              type: string
+                              example: "rgba(255, 255, 255, 0.2)"
+                            gradientColors:
+                              type: array
+                              items:
+                                type: string
+                              example: ["rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.05)"]
+                            blurSigma:
+                              type: number
+                              format: float
+                              example: 10.0
+                        category:
+                          type: string
+                          enum: [classic, minimal, wooden, dark, custom]
+                          example: "classic"
+
+  /personalization/user-theme:
+    get:
+      tags: [System]
+      summary: Текущая тема пользователя
+      description: |
+        Получение текущей темы оформления пользователя.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Тема пользователя
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  themeId:
+                    type: string
+                    example: "light_glass"
+                  customSettings:
+                    type: object
+                    properties:
+                      customGradientColors:
+                        type: array
+                        items:
+                          type: string
+                      customBlurSigma:
+                        type: number
+                        format: float
+                      customBorderRadius:
+                        type: number
+                        format: float
+
+    put:
+      tags: [System]
+      summary: Обновление темы пользователя
+      description: |
+        Обновление темы оформления пользователя.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                themeId:
+                  type: string
+                  example: "wooden_glass"
+                customSettings:
+                  type: object
+                  properties:
+                    customGradientColors:
+                      type: array
+                      items:
+                        type: string
+                    customBlurSigma:
+                      type: number
+                      format: float
+                    customBorderRadius:
+                      type: number
+                      format: float
+      responses:
+        '200':
+          description: Тема обновлена
+
+  # ========== PERFORMANCE ENDPOINTS ==========
+  /performance/device-info:
+    get:
+      tags: [System]
+      summary: Информация об устройстве
+      description: |
+        Получение информации об устройстве для оптимизации UI.
+      responses:
+        '200':
+          description: Информация об устройстве
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  performanceLevel:
+                    type: string
+                    enum: [low, medium, high]
+                    example: "high"
+                  screenSize:
+                    type: string
+                    enum: [mobile, tablet, desktop]
+                    example: "mobile"
+                  screenWidth:
+                    type: number
+                    format: float
+                    example: 375.0
+                  screenHeight:
+                    type: number
+                    format: float
+                    example: 812.0
+                  devicePixelRatio:
+                    type: number
+                    format: float
+                    example: 3.0
+                  platform:
+                    type: string
+                    enum: [ios, android, web]
+                    example: "ios"
+                  memoryInfo:
+                    type: object
+                    properties:
+                      totalMemory:
+                        type: integer
+                        example: 4096
+                      availableMemory:
+                        type: integer
+                        example: 2048
+                  recommendedSettings:
+                    type: object
+                    properties:
+                      blurSigma:
+                        type: number
+                        format: float
+                        example: 10.0
+                      particleCount:
+                        type: integer
+                        example: 50
+                      animationDuration:
+                        type: string
+                        enum: [optimized, original]
+                        example: "optimized"
+                      lowPerformanceMode:
+                        type: boolean
+                        example: false
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "john_doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        phone:
+          type: string
+          example: "+77777777777"
+        role:
+          type: string
+          enum: [buyer, seller, admin]
+          example: "buyer"
+        avatar_url:
+          type: string
+          example: "https://mebelplace.com.kz/uploads/avatars/user_1.jpg"
+        bio:
+          type: string
+          example: "Люблю качественную мебель"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PublicUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        avatar_url:
+          type: string
+        bio:
+          type: string
+        is_online:
+          type: boolean
+        last_seen:
+          type: string
+          format: date-time
+
+    Video:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Красивый диван"
+        description:
+          type: string
+          example: "Показываю новый диван"
+        path:
+          type: string
+          example: "https://mebelplace.com.kz/uploads/videos/video_1.mp4"
+        thumbnail_path:
+          type: string
+          example: "https://mebelplace.com.kz/uploads/thumbnails/thumb_1.jpg"
+        size_bytes:
+          type: integer
+          example: 10485760
+        hashtags:
+          type: array
+          items:
+            type: string
+          example: ["диван", "мебель", "дом"]
+        views_count:
+          type: integer
+          example: 150
+        likes_count:
+          type: integer
+          example: 25
+        comments_count:
+          type: integer
+          example: 5
+        shares_count:
+          type: integer
+          example: 3
+        product_price:
+          type: number
+          example: 150000.00
+        product_description:
+          type: string
+          example: "Диван из натуральной кожи"
+        is_product:
+          type: boolean
+          example: true
+        is_ad:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/PublicUser'
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        video_id:
+          type: integer
+        text:
+          type: string
+        parent_id:
+          type: integer
+          nullable: true
+        likes_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/PublicUser'
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+
+    Request:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        budget:
+          type: number
+        region:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, completed, cancelled]
+        photos:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/PublicUser'
+        proposals_count:
+          type: integer
+
+    Proposal:
+      type: object
+      properties:
+        id:
+          type: integer
+        request_id:
+          type: integer
+        user_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        photos:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+        created_at:
+          type: string
+          format: date-time
+        author:
+          $ref: '#/components/schemas/PublicUser'
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        pages:
+          type: integer
+          example: 5
+        has_next:
+          type: boolean
+          example: true
+        has_prev:
+          type: boolean
+          example: false
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Validation failed"
+        code:
+          type: integer
+          example: 400
+        details:
+          type: object
+          additionalProperties: true
+
+    # ========== MOBILE-SPECIFIC SCHEMAS ==========
+    GamificationData:
+      type: object
+      properties:
+        level:
+          type: integer
+          example: 5
+        points:
+          type: integer
+          example: 1250
+        achievements:
+          type: array
+          items:
+            type: string
+          example: ["first_video", "popular_creator", "helpful_reviewer"]
+
+    # ========== ANIMATION SCHEMAS ==========
+    AnimationDuration:
+      type: object
+      properties:
+        fast:
+          type: integer
+          example: 120
+          description: "Быстрые анимации (ms)"
+        default:
+          type: integer
+          example: 240
+          description: "Стандартные анимации (ms)"
+        slow:
+          type: integer
+          example: 360
+          description: "Медленные анимации (ms)"
+        slower:
+          type: integer
+          example: 500
+          description: "Очень медленные анимации (ms)"
+        doubleTapLike:
+          type: object
+          properties:
+            optimized:
+              type: integer
+              example: 300
+              description: "Оптимизированная версия (ms)"
+            original:
+              type: integer
+              example: 350
+              description: "Оригинальная версия (ms)"
+        skeletonPulse:
+          type: object
+          properties:
+            optimized:
+              type: integer
+              example: 1000
+              description: "Оптимизированная версия (ms)"
+            original:
+              type: integer
+              example: 1500
+              description: "Оригинальная версия (ms)"
+        bottomSheetOpen:
+          type: integer
+          example: 240
+          description: "Открытие bottom sheet (ms)"
+        bottomSheetClose:
+          type: integer
+          example: 200
+          description: "Закрытие bottom sheet (ms)"
+        hover:
+          type: integer
+          example: 100
+          description: "Hover эффекты (ms)"
+        tilt:
+          type: integer
+          example: 150
+          description: "Tilt эффект для карточек (ms)"
+        swipe:
+          type: integer
+          example: 150
+          description: "Swipe реакции (ms)"
+        spring:
+          type: integer
+          example: 800
+          description: "Пружинные эффекты (ms)"
+
+    AnimationCurve:
+      type: object
+      properties:
+        default:
+          type: string
+          example: "Cubic(0.2, 0.8, 0.2, 1.0)"
+          description: "Стандартная кривая"
+        easeIn:
+          type: string
+          example: "Cubic(0.4, 0.0, 1.0, 1.0)"
+          description: "Кривая ускорения"
+        easeOut:
+          type: string
+          example: "Cubic(0.0, 0.0, 0.2, 1.0)"
+          description: "Кривая замедления"
+        spring:
+          type: string
+          example: "Cubic(0.68, -0.55, 0.265, 1.55)"
+          description: "Пружинная кривая"
+        elasticOut:
+          type: string
+          example: "Curves.elasticOut"
+          description: "Эластичная кривая"
+
+    AnimationScale:
+      type: object
+      properties:
+        buttonPress:
+          type: number
+          format: float
+          example: 0.98
+          description: "Масштаб нажатия кнопки"
+        doubleTapStart:
+          type: number
+          format: float
+          example: 0.6
+          description: "Начальный масштаб double-tap"
+        doubleTapPeak:
+          type: number
+          format: float
+          example: 1.4
+          description: "Пиковый масштаб double-tap"
+        doubleTapEnd:
+          type: number
+          format: float
+          example: 1.0
+          description: "Конечный масштаб double-tap"
+
+    ParticleSystem:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [confetti, stars, hearts, sparkles, wood_chips, furniture_pieces, sawdust]
+          example: "confetti"
+        particleCount:
+          type: object
+          properties:
+            low:
+              type: integer
+              example: 20
+              description: "Для слабых устройств"
+            medium:
+              type: integer
+              example: 30
+              description: "Для средних устройств"
+            high:
+              type: integer
+              example: 50
+              description: "Для мощных устройств"
+        duration:
+          type: object
+          properties:
+            confetti:
+              type: integer
+              example: 2000
+            stars:
+              type: integer
+              example: 1500
+            hearts:
+              type: integer
+              example: 2000
+            sparkles:
+              type: integer
+              example: 1000
+            wood_chips:
+              type: integer
+              example: 1500
+        colors:
+          type: object
+          properties:
+            confetti:
+              type: array
+              items:
+                type: string
+              example: ["#FF6600", "#FF0000", "#FFFF00", "#00FF00", "#0000FF"]
+            stars:
+              type: array
+              items:
+                type: string
+              example: ["#FFD700", "#C0C0C0", "#FFFFFF"]
+            hearts:
+              type: array
+              items:
+                type: string
+              example: ["#FF0000", "#FF69B4", "#FF1493"]
+            sparkles:
+              type: array
+              items:
+                type: string
+              example: ["#FFFFFF", "#FFD700", "#C0C0C0"]
+            wood_chips:
+              type: array
+              items:
+                type: string
+              example: ["#8B4513", "#A0522D", "#D2691E", "#CD853F"]
+        physics:
+          type: object
+          properties:
+            gravity:
+              type: number
+              format: float
+              example: 9.8
+            wind:
+              type: number
+              format: float
+              example: 0.5
+            bounce:
+              type: number
+              format: float
+              example: 0.7
+        interactive:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+              example: true
+            touchTrigger:
+              type: boolean
+              example: true
+              description: "Запуск при касании"
+            miniAnimation:
+              type: boolean
+              example: true
+              description: "Мини-анимация с 10 частицами"
+
+    PageTransition:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [fadeScale, slideFromRight, slideUp, rotationFade]
+          example: "fadeScale"
+        duration:
+          type: integer
+          example: 240
+          description: "Длительность перехода (ms)"
+        fadeRange:
+          type: object
+          properties:
+            begin:
+              type: number
+              format: float
+              example: 0.0
+            end:
+              type: number
+              format: float
+              example: 1.0
+        scaleRange:
+          type: object
+          properties:
+            begin:
+              type: number
+              format: float
+              example: 0.95
+            end:
+              type: number
+              format: float
+              example: 1.0
+        slideOffset:
+          type: object
+          properties:
+            begin:
+              type: object
+              properties:
+                x:
+                  type: number
+                  format: float
+                  example: 1.0
+                y:
+                  type: number
+                  format: float
+                  example: 0.0
+            end:
+              type: object
+              properties:
+                x:
+                  type: number
+                  format: float
+                  example: 0.0
+                y:
+                  type: number
+                  format: float
+                  example: 0.0
+
+    # ========== GLASS UI SCHEMAS ==========
+    GlassComponent:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "glass_video_card_with_doubletap"
+        type:
+          type: string
+          enum: [video_card, button, text_field, message_bubble, panel, screen_base]
+          example: "video_card"
+        devicePerformanceLevel:
+          type: string
+          enum: [low, medium, high]
+          example: "high"
+          description: "Уровень производительности устройства"
+        blurSigma:
+          type: object
+          properties:
+            low:
+              type: number
+              format: float
+              example: 5.0
+            medium:
+              type: number
+              format: float
+              example: 7.0
+            high:
+              type: number
+              format: float
+              example: 10.0
+          description: "Адаптивное размытие фона"
+        borderRadius:
+          type: object
+          properties:
+            mobile:
+              type: number
+              format: float
+              example: 12.0
+            desktop:
+              type: number
+              format: float
+              example: 16.0
+            tablet:
+              type: number
+              format: float
+              example: 20.0
+          description: "Адаптивное скругление углов"
+        backgroundColor:
+          type: string
+          example: "rgba(255, 255, 255, 0.2)"
+          description: "Цвет фона с прозрачностью"
+        highContrastBackground:
+          type: string
+          example: "rgba(255, 255, 255, 0.5)"
+          description: "Фон для режима высокого контраста"
+        glassTheme:
+          type: string
+          enum: [classic, minimal, wooden, dark]
+          example: "classic"
+          description: "Тема Glass эффектов"
+        gradientColors:
+          type: object
+          properties:
+            classic:
+              type: array
+              items:
+                type: string
+              example: ["rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.05)"]
+            minimal:
+              type: array
+              items:
+                type: string
+              example: ["rgba(255, 255, 255, 0.3)", "rgba(200, 200, 200, 0.1)"]
+            wooden:
+              type: array
+              items:
+                type: string
+              example: ["rgba(139, 69, 19, 0.2)", "rgba(210, 180, 140, 0.1)"]
+            dark:
+              type: array
+              items:
+                type: string
+              example: ["rgba(0, 0, 0, 0.3)", "rgba(50, 50, 50, 0.1)"]
+        padding:
+          type: object
+          properties:
+            small:
+              type: object
+              properties:
+                horizontal:
+                  type: number
+                  format: float
+                  example: 12.0
+                vertical:
+                  type: number
+                  format: float
+                  example: 12.0
+            normal:
+              type: object
+              properties:
+                horizontal:
+                  type: number
+                  format: float
+                  example: 16.0
+                vertical:
+                  type: number
+                  format: float
+                  example: 16.0
+            large:
+              type: object
+              properties:
+                horizontal:
+                  type: number
+                  format: float
+                  example: 24.0
+                vertical:
+                  type: number
+                  format: float
+                  example: 24.0
+        margin:
+          type: object
+          properties:
+            horizontal:
+              type: number
+              format: float
+              example: 8.0
+            vertical:
+              type: number
+              format: float
+              example: 8.0
+        accessibility:
+          type: object
+          properties:
+            semanticLabel:
+              type: string
+              example: "Видео карточка с лайком"
+            contrastRatio:
+              type: number
+              format: float
+              example: 4.5
+            textScaleFactor:
+              type: number
+              format: float
+              example: 1.0
+            colorBlindSupport:
+              type: boolean
+              example: true
+
+    GlassVideoCard:
+      type: object
+      properties:
+        videoId:
+          type: string
+          example: "video_123"
+        title:
+          type: string
+          example: "Современная кухня в стиле минимализм"
+        thumbnailUrl:
+          type: string
+          format: uri
+          example: "https://cdn.mebelplace.com.kz/thumbnails/123.jpg"
+        authorName:
+          type: string
+          example: "Иван Мастер"
+        likesCount:
+          type: integer
+          example: 42
+        isLiked:
+          type: boolean
+          example: true
+        glassEffects:
+          type: object
+          properties:
+            doubleTapEnabled:
+              type: boolean
+              example: true
+            particleSystem:
+              $ref: '#/components/schemas/ParticleSystem'
+            tiltEffect:
+              type: boolean
+              example: true
+            hoverEffect:
+              type: boolean
+              example: true
+
+    ScreenNavigation:
+      type: object
+      properties:
+        screenName:
+          type: string
+          example: "GlassFeedScreenRefactored"
+        screenType:
+          type: string
+          enum: [main, auth, video, chat, profile, request, admin, gamification, settings, notification, order, catalog, configurator, ai, channel, support, onboarding, design, user, loading, error, demo, splash, subscription]
+          example: "main"
+        navigationPath:
+          type: string
+          example: "/feed"
+        parentScreen:
+          type: string
+          example: "MainPage"
+        childScreens:
+          type: array
+          items:
+            type: string
+          example: ["GlassVideoDetailScreen", "GlassCommentsScreen"]
+        transitionType:
+          type: string
+          enum: [fadeScale, slideFromRight, slideUp, rotationFade, materialRoute]
+          example: "fadeScale"
+        transitionDuration:
+          type: integer
+          example: 240
+        glassEffects:
+          type: boolean
+          example: true
+        requiresAuth:
+          type: boolean
+          example: false
+
+    NavigationFlow:
+      type: object
+      properties:
+        flowName:
+          type: string
+          example: "Auth Flow"
+        screens:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreenNavigation'
+        description:
+          type: string
+          example: "Splash → Onboarding → Login/Register → Main"
+        entryPoint:
+          type: string
+          example: "GlassSplashScreen"
+        exitPoint:
+          type: string
+          example: "MainPage"
+
+    MobileFeature:
+      type: object
+      properties:
+        featureName:
+          type: string
+          example: "Video Feed"
+        featureType:
+          type: string
+          enum: [core, auth, video, chat, profile, request, admin, gamification, settings, notification, order, catalog, configurator, ai, channel, support, onboarding, design, user, loading, error, demo, splash, subscription]
+          example: "video"
+        screens:
+          type: array
+          items:
+            type: string
+          example: ["GlassFeedScreenRefactored", "GlassVideoPlayerScreen", "GlassVideoDetailScreen"]
+        components:
+          type: array
+          items:
+            type: string
+          example: ["GlassVideoCardWithDoubleTap", "GlassVideoCard"]
+        animations:
+          type: array
+          items:
+            type: string
+          example: ["doubleTapLike", "particleSystem", "3dCardTilt"]
+        apiEndpoints:
+          type: array
+          items:
+            type: string
+          example: ["/videos/feed", "/videos/{id}/like", "/videos/{id}/comments"]
+
+security:
+  - bearerAuth: []
+        title:
+          type: string
+          example: "Современная кухня в стиле минимализм"
+        description:
+          type: string
+          example: "Обзор кухни с подробным описанием материалов"
+        videoUrl:
+          type: string
+          format: uri
+          example: "https://cdn.mebelplace.com.kz/videos/456/hls/playlist.m3u8"
+        thumbnailUrl:
+          type: string
+          format: uri
+          example: "https://cdn.mebelplace.com.kz/thumbnails/456.jpg"
+        author:
+          $ref: '#/components/schemas/UserEntity'
+        likesCount:
+          type: integer
+          example: 42
+        commentsCount:
+          type: integer
+          example: 15
+        viewsCount:
+          type: integer
+          example: 1250
+        isLiked:
+          type: boolean
+          example: true
+        isFavorite:
+          type: boolean
+          example: false
+        category:
+          type: string
+          enum: [kitchen, bedroom, living_room, office, other]
+          example: "kitchen"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    VideoFeedResponse:
+      type: object
+      properties:
+        videos:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoEntity'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "comment_789"
+        text:
+          type: string
+          example: "Отличная работа!"
+        author:
+          $ref: '#/components/schemas/UserEntity'
+        likesCount:
+          type: integer
+          example: 3
+        isLiked:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    CommentsResponse:
+      type: object
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # ========== CHAT SCHEMAS ==========
+    Chat:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "chat_101"
+        type:
+          type: string
+          enum: [private, group]
+          example: "private"
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserEntity'
+        lastMessage:
+          $ref: '#/components/schemas/Message'
+        unreadCount:
+          type: integer
+          example: 3
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "msg_202"
+        type:
+          type: string
+          enum: [text, voice, image, file]
+          example: "text"
+        text:
+          type: string
+          example: "Привет! Как дела?"
+        voiceUrl:
+          type: string
+          format: uri
+          example: "https://cdn.mebelplace.com.kz/voice/msg_202.mp3"
+        imageUrl:
+          type: string
+          format: uri
+          example: "https://cdn.mebelplace.com.kz/images/msg_202.jpg"
+        author:
+          $ref: '#/components/schemas/UserEntity'
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    SendMessageRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [text, voice, image, file]
+          example: "text"
+        text:
+          type: string
+          example: "Привет!"
+        voiceFile:
+          type: string
+          format: binary
+        imageFile:
+          type: string
+          format: binary
+
+    # ========== REQUEST SCHEMAS ==========
+    Request:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "req_303"
+        title:
+          type: string
+          example: "Изготовление кухонного гарнитура"
+        description:
+          type: string
+          example: "Нужна кухня 3 метра в белом цвете"
+        category:
+          type: string
+          enum: [kitchen, bedroom, living_room, office, other]
+          example: "kitchen"
+        budget:
+          type: number
+          format: float
+          example: 500000.0
+        status:
+          type: string
+          enum: [pending, active, completed, cancelled]
+          example: "pending"
+        client:
+          $ref: '#/components/schemas/UserEntity'
+        proposals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Proposal'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    Proposal:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "prop_404"
+        description:
+          type: string
+          example: "Могу изготовить за 450000 тенге"
+        price:
+          type: number
+          format: float
+          example: 450000.0
+        timeline:
+          type: string
+          example: "2 недели"
+        master:
+          $ref: '#/components/schemas/UserEntity'
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+          example: "pending"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    CreateRequestRequest:
+      type: object
+      required: [title, description, category, budget]
+      properties:
+        title:
+          type: string
+          example: "Изготовление кухонного гарнитура"
+        description:
+          type: string
+          example: "Нужна кухня 3 метра в белом цвете"
+        category:
+          type: string
+          enum: [kitchen, bedroom, living_room, office, other]
+          example: "kitchen"
+        budget:
+          type: number
+          format: float
+          example: 500000.0
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["https://example.com/image1.jpg"]
+
+    # ========== GAMIFICATION SCHEMAS ==========
+    GamificationStats:
+      type: object
+      properties:
+        currentLevel:
+          type: integer
+          example: 5
+        totalPoints:
+          type: integer
+          example: 1250
+        pointsToNextLevel:
+          type: integer
+          example: 250
+        progressToNextLevel:
+          type: number
+          format: float
+          example: 0.75
+        achievements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Achievement'
+        recentPointsGained:
+          type: array
+          items:
+            type: string
+          example: ["+10 баллов за загрузку видео", "+5 баллов за лайк"]
+
+    Achievement:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "first_video"
+        title:
+          type: string
+          example: "Первое видео"
+        description:
+          type: string
+          example: "Загрузили свое первое видео"
+        icon:
+          type: string
+          example: "🎬"
+        isUnlocked:
+          type: boolean
+          example: true
+        unlockedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    # ========== NOTIFICATION SCHEMAS ==========
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "notif_505"
+        type:
+          type: string
+          enum: [like, comment, follow, request, message, system]
+          example: "like"
+        title:
+          type: string
+          example: "Новый лайк!"
+        message:
+          type: string
+          example: "Иван поставил лайк вашему видео"
+        data:
+          type: object
+          additionalProperties: true
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    NotificationSettings:
+      type: object
+      properties:
+        pushEnabled:
+          type: boolean
+          example: true
+        emailEnabled:
+          type: boolean
+          example: false
+        likeNotifications:
+          type: boolean
+          example: true
+        commentNotifications:
+          type: boolean
+          example: true
+        followNotifications:
+          type: boolean
+          example: true
+        requestNotifications:
+          type: boolean
+          example: true
+
+    # ========== SEARCH SCHEMAS ==========
+    SearchResponse:
+      type: object
+      properties:
+        videos:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoEntity'
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserEntity'
+        masters:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserEntity'
+        totalResults:
+          type: integer
+          example: 42
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # ========== COMMON SCHEMAS ==========
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Bad Request"
+        message:
+          type: string
+          example: "Validation failed"
+        details:
+          type: object
+          additionalProperties: true
+
+    # ========== ANIMATION SCHEMAS ==========
+    AnimationDuration:
+      type: object
+      properties:
+        fast:
+          type: integer
+          example: 120
+          description: "Быстрые анимации (ms)"
+        default:
+          type: integer
+          example: 240
+          description: "Стандартные анимации (ms)"
+        slow:
+          type: integer
+          example: 360
+          description: "Медленные анимации (ms)"
+        slower:
+          type: integer
+          example: 500
+          description: "Очень медленные анимации (ms)"
+        doubleTapLike:
+          type: object
+          properties:
+            optimized:
+              type: integer
+              example: 300
+              description: "Оптимизированная версия (ms)"
+            original:
+              type: integer
+              example: 350
+              description: "Оригинальная версия (ms)"
+        skeletonPulse:
+          type: object
+          properties:
+            optimized:
+              type: integer
+              example: 1000
+              description: "Оптимизированная версия (ms)"
+            original:
+              type: integer
+              example: 1500
+              description: "Оригинальная версия (ms)"
+        bottomSheetOpen:
+          type: integer
+          example: 240
+          description: "Открытие bottom sheet (ms)"
+        bottomSheetClose:
+          type: integer
+          example: 200
+          description: "Закрытие bottom sheet (ms)"
+        hover:
+          type: integer
+          example: 100
+          description: "Hover эффекты (ms)"
+        tilt:
+          type: integer
+          example: 150
+          description: "Tilt эффект для карточек (ms)"
+        swipe:
+          type: integer
+          example: 150
+          description: "Swipe реакции (ms)"
+        spring:
+          type: integer
+          example: 800
+          description: "Пружинные эффекты (ms)"
+
+    AnimationCurve:
+      type: object
+      properties:
+        default:
+          type: string
+          example: "Cubic(0.2, 0.8, 0.2, 1.0)"
+          description: "Стандартная кривая"
+        easeIn:
+          type: string
+          example: "Cubic(0.4, 0.0, 1.0, 1.0)"
+          description: "Кривая ускорения"
+        easeOut:
+          type: string
+          example: "Cubic(0.0, 0.0, 0.2, 1.0)"
+          description: "Кривая замедления"
+        spring:
+          type: string
+          example: "Cubic(0.68, -0.55, 0.265, 1.55)"
+          description: "Пружинная кривая"
+        elasticOut:
+          type: string
+          example: "Curves.elasticOut"
+          description: "Эластичная кривая"
+
+    AnimationScale:
+      type: object
+      properties:
+        buttonPress:
+          type: number
+          format: float
+          example: 0.98
+          description: "Масштаб нажатия кнопки"
+        doubleTapStart:
+          type: number
+          format: float
+          example: 0.6
+          description: "Начальный масштаб double-tap"
+        doubleTapPeak:
+          type: number
+          format: float
+          example: 1.4
+          description: "Пиковый масштаб double-tap"
+        doubleTapEnd:
+          type: number
+          format: float
+          example: 1.0
+          description: "Конечный масштаб double-tap"
+
+    ParticleSystem:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [confetti, stars, hearts, sparkles, wood_chips, furniture_pieces, sawdust]
+          example: "confetti"
+        particleCount:
+          type: object
+          properties:
+            low:
+              type: integer
+              example: 20
+              description: "Для слабых устройств"
+            medium:
+              type: integer
+              example: 30
+              description: "Для средних устройств"
+            high:
+              type: integer
+              example: 50
+              description: "Для мощных устройств"
+        duration:
+          type: object
+          properties:
+            confetti:
+              type: integer
+              example: 2000
+            stars:
+              type: integer
+              example: 1500
+            hearts:
+              type: integer
+              example: 2000
+            sparkles:
+              type: integer
+              example: 1000
+            wood_chips:
+              type: integer
+              example: 1500
+        colors:
+          type: object
+          properties:
+            confetti:
+              type: array
+              items:
+                type: string
+              example: ["#FF6600", "#FF0000", "#FFFF00", "#00FF00", "#0000FF"]
+            stars:
+              type: array
+              items:
+                type: string
+              example: ["#FFD700", "#C0C0C0", "#FFFFFF"]
+            hearts:
+              type: array
+              items:
+                type: string
+              example: ["#FF0000", "#FF69B4", "#FF1493"]
+            sparkles:
+              type: array
+              items:
+                type: string
+              example: ["#FFFFFF", "#FFD700", "#C0C0C0"]
+            wood_chips:
+              type: array
+              items:
+                type: string
+              example: ["#8B4513", "#A0522D", "#D2691E", "#CD853F"]
+        physics:
+          type: object
+          properties:
+            gravity:
+              type: number
+              format: float
+              example: 9.8
+            wind:
+              type: number
+              format: float
+              example: 0.5
+            bounce:
+              type: number
+              format: float
+              example: 0.7
+        interactive:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+              example: true
+            touchTrigger:
+              type: boolean
+              example: true
+              description: "Запуск при касании"
+            miniAnimation:
+              type: boolean
+              example: true
+              description: "Мини-анимация с 10 частицами"
+
+    PageTransition:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [fadeScale, slideFromRight, slideUp, rotationFade]
+          example: "fadeScale"
+        duration:
+          type: integer
+          example: 240
+          description: "Длительность перехода (ms)"
+        fadeRange:
+          type: object
+          properties:
+            begin:
+              type: number
+              format: float
+              example: 0.0
+            end:
+              type: number
+              format: float
+              example: 1.0
+        scaleRange:
+          type: object
+          properties:
+            begin:
+              type: number
+              format: float
+              example: 0.95
+            end:
+              type: number
+              format: float
+              example: 1.0
+        slideOffset:
+          type: object
+          properties:
+            begin:
+              type: object
+              properties:
+                x:
+                  type: number
+                  format: float
+                  example: 1.0
+                y:
+                  type: number
+                  format: float
+                  example: 0.0
+            end:
+              type: object
+              properties:
+                x:
+                  type: number
+                  format: float
+                  example: 0.0
+                y:
+                  type: number
+                  format: float
+                  example: 0.0
+
+    # ========== GLASS UI SCHEMAS ==========
+    GlassComponent:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "glass_video_card_with_doubletap"
+        type:
+          type: string
+          enum: [video_card, button, text_field, message_bubble, panel, screen_base]
+          example: "video_card"
+        devicePerformanceLevel:
+          type: string
+          enum: [low, medium, high]
+          example: "high"
+          description: "Уровень производительности устройства"
+        blurSigma:
+          type: object
+          properties:
+            low:
+              type: number
+              format: float
+              example: 5.0
+            medium:
+              type: number
+              format: float
+              example: 7.0
+            high:
+              type: number
+              format: float
+              example: 10.0
+          description: "Адаптивное размытие фона"
+        borderRadius:
+          type: object
+          properties:
+            mobile:
+              type: number
+              format: float
+              example: 12.0
+            desktop:
+              type: number
+              format: float
+              example: 16.0
+            tablet:
+              type: number
+              format: float
+              example: 20.0
+          description: "Адаптивное скругление углов"
+        backgroundColor:
+          type: string
+          example: "rgba(255, 255, 255, 0.2)"
+          description: "Цвет фона с прозрачностью"
+        highContrastBackground:
+          type: string
+          example: "rgba(255, 255, 255, 0.5)"
+          description: "Фон для режима высокого контраста"
+        glassTheme:
+          type: string
+          enum: [classic, minimal, wooden, dark]
+          example: "classic"
+          description: "Тема Glass эффектов"
+        gradientColors:
+          type: object
+          properties:
+            classic:
+              type: array
+              items:
+                type: string
+              example: ["rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 0.05)"]
+            minimal:
+              type: array
+              items:
+                type: string
+              example: ["rgba(255, 255, 255, 0.3)", "rgba(200, 200, 200, 0.1)"]
+            wooden:
+              type: array
+              items:
+                type: string
+              example: ["rgba(139, 69, 19, 0.2)", "rgba(210, 180, 140, 0.1)"]
+            dark:
+              type: array
+              items:
+                type: string
+              example: ["rgba(0, 0, 0, 0.3)", "rgba(50, 50, 50, 0.1)"]
+        padding:
+          type: object
+          properties:
+            small:
+              type: object
+              properties:
+                horizontal:
+                  type: number
+                  format: float
+                  example: 12.0
+                vertical:
+                  type: number
+                  format: float
+                  example: 12.0
+            normal:
+              type: object
+              properties:
+                horizontal:
+                  type: number
+                  format: float
+                  example: 16.0
+                vertical:
+                  type: number
+                  format: float
+                  example: 16.0
+            large:
+              type: object
+              properties:
+                horizontal:
+                  type: number
+                  format: float
+                  example: 24.0
+                vertical:
+                  type: number
+                  format: float
+                  example: 24.0
+        margin:
+          type: object
+          properties:
+            horizontal:
+              type: number
+              format: float
+              example: 8.0
+            vertical:
+              type: number
+              format: float
+              example: 8.0
+        accessibility:
+          type: object
+          properties:
+            semanticLabel:
+              type: string
+              example: "Видео карточка с лайком"
+            contrastRatio:
+              type: number
+              format: float
+              example: 4.5
+            textScaleFactor:
+              type: number
+              format: float
+              example: 1.0
+            colorBlindSupport:
+              type: boolean
+              example: true
+
+    GlassVideoCard:
+      type: object
+      properties:
+        videoId:
+          type: string
+          example: "video_123"
+        title:
+          type: string
+          example: "Современная кухня в стиле минимализм"
+        thumbnailUrl:
+          type: string
+          format: uri
+          example: "https://cdn.mebelplace.com.kz/thumbnails/123.jpg"
+        authorName:
+          type: string
+          example: "Иван Мастер"
+        likesCount:
+          type: integer
+          example: 42
+        isLiked:
+          type: boolean
+          example: true
+        glassEffects:
+          type: object
+          properties:
+            doubleTapEnabled:
+              type: boolean
+              example: true
+            particleSystem:
+              $ref: '#/components/schemas/ParticleSystem'
+            tiltEffect:
+              type: boolean
+              example: true
+            hoverEffect:
+              type: boolean
+              example: true
+
+    # ========== SCREEN NAVIGATION SCHEMAS ==========
+    ScreenNavigation:
+      type: object
+      properties:
+        screenName:
+          type: string
+          example: "GlassFeedScreenRefactored"
+        screenType:
+          type: string
+          enum: [main, auth, video, chat, profile, request, admin, gamification, settings, notification, order, catalog, configurator, ai, channel, support, onboarding, design, user, loading, error, demo, splash, subscription]
+          example: "main"
+        navigationPath:
+          type: string
+          example: "/feed"
+        parentScreen:
+          type: string
+          example: "MainPage"
+        childScreens:
+          type: array
+          items:
+            type: string
+          example: ["GlassVideoDetailScreen", "GlassCommentsScreen"]
+        transitionType:
+          type: string
+          enum: [fadeScale, slideFromRight, slideUp, rotationFade, materialRoute]
+          example: "fadeScale"
+        transitionDuration:
+          type: integer
+          example: 240
+        glassEffects:
+          type: boolean
+          example: true
+        requiresAuth:
+          type: boolean
+          example: false
+
+    NavigationFlow:
+      type: object
+      properties:
+        flowName:
+          type: string
+          example: "Auth Flow"
+        screens:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreenNavigation'
+        description:
+          type: string
+          example: "Splash → Onboarding → Login/Register → Main"
+        entryPoint:
+          type: string
+          example: "GlassSplashScreen"
+        exitPoint:
+          type: string
+          example: "MainPage"
+
+    # ========== FEATURE SCHEMAS ==========
+    MobileFeature:
+      type: object
+      properties:
+        featureName:
+          type: string
+          example: "Video Feed"
+        featureType:
+          type: string
+          enum: [core, auth, video, chat, profile, request, admin, gamification, settings, notification, order, catalog, configurator, ai, channel, support, onboarding, design, user, loading, error, demo, splash, subscription]
+          example: "video"
+        screens:
+          type: array
+          items:
+            type: string
+          example: ["GlassFeedScreenRefactored", "GlassVideoPlayerScreen", "GlassVideoDetailScreen"]
+        components:
+          type: array
+          items:
+            type: string
+          example: ["GlassVideoCardWithDoubleTap", "GlassVideoCard"]
+        animations:
+          type: array
+          items:
+            type: string
+          example: ["doubleTapLike", "particleSystem", "3dCardTilt"]
+        apiEndpoints:
+          type: array
+          items:
+            type: string
+          example: ["/videos/feed", "/videos/{id}/like", "/videos/{id}/comments"]
+
+security:
+  - bearerAuth: []

@@ -1,0 +1,31 @@
+/* Theme CSS for MebelPlace */
+
+:root {
+  /* Glass Design System Colors */
+  --glass-primary: #1a1a1a;
+  --glass-secondary: #2a2a2a;
+  --glass-tertiary: #3a3a3a;
+  --glass-accent: #ff6b35;
+  --glass-success: #10b981;
+  --glass-warning: #f59e0b;
+  --glass-danger: #ef4444;
+  --glass-info: #3b82f6;
+  
+  /* Text Colors */
+  --glass-text-primary: #ffffff;
+  --glass-text-secondary: #a1a1aa;
+  --glass-text-muted: #71717a;
+  
+  /* Glass Effects */
+  --glass-blur: blur(20px);
+  --glass-blur-sm: blur(10px);
+  --glass-blur-lg: blur(30px);
+  
+  /* Shadows */
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --glass-shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.4);
+  
+  /* Borders */
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --glass-border-thick: 2px solid rgba(255, 255, 255, 0.2);
+}

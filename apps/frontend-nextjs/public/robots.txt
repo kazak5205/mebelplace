@@ -1,0 +1,14 @@
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /profile/
+Disallow: /messenger/
+
+Allow: /
+Allow: /search
+Allow: /requests
+
+Sitemap: https://mebelplace.kz/sitemap.xml
+
