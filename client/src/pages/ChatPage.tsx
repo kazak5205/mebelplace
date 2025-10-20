@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Send, ArrowLeft, Image, Paperclip, Smile } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
-import { Chat, Message } from '../types'
+import type { Chat, Message } from '@shared/types'
 import { chatService } from '../services/chatService'
 import { useSocket } from '../contexts/SocketContext'
 
@@ -40,7 +40,7 @@ const ChatPage: React.FC = () => {
 
   const loadChat = async () => {
     try {
-      const response = await chatService.getChat(id!)
+      const response = await chatService.getChat(id!) as any
       setChat(response)
     } catch (error) {
       console.error('Failed to load chat:', error)
@@ -50,7 +50,7 @@ const ChatPage: React.FC = () => {
   const loadMessages = async () => {
     try {
       setLoading(true)
-      const response = await chatService.getMessages(id!)
+      const response = await chatService.getMessages(id!) as any
       setMessages(response.messages)
     } catch (error) {
       console.error('Failed to load messages:', error)
@@ -68,7 +68,7 @@ const ChatPage: React.FC = () => {
     if (!newMessage.trim() || !id) return
 
     try {
-      const message = await chatService.sendMessage(id, newMessage.trim())
+      const message = await chatService.sendMessage(id, newMessage.trim()) as any
       setMessages(prev => [...prev, message])
       setNewMessage('')
     } catch (error) {

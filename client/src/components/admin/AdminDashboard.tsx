@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/api';
+import { adminService } from '../../services/adminService';
 
 interface DashboardData {
   overview: {
@@ -47,7 +47,7 @@ const AdminDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get(`/admin/dashboard?period=${selectedPeriod}`);
+      const response = await adminService.getDashboard(selectedPeriod) as any;
       setData(response.data);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);

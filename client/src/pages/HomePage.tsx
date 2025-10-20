@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import VideoPlayer from '../components/VideoPlayer'
-import { Video } from '../types'
+import type { Video } from '@shared/types'
 import { videoService } from '../services/videoService'
 import { useSocket } from '../contexts/SocketContext'
 
@@ -19,7 +19,7 @@ const HomePage: React.FC = () => {
       setLoading(true)
       const response = await videoService.getVideos({ 
         limit: 50
-      })
+      }) as any
       setVideos(response.videos)
     } catch (error) {
       console.error('Failed to load videos:', error)

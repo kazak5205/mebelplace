@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/api';
+import { adminService } from '../../services/adminService';
 
 interface User {
   id: string;
@@ -39,7 +39,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
         limit: 20,
         ...filters
       };
-      const response = await apiService.get('/admin/users', params);
+      const response = await adminService.users.list(params) as any;
       setUsers(response.data.users);
       setTotalPages(response.data.pagination.pages);
     } catch (error) {
@@ -51,9 +51,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
 
   const handleStatusChange = async (userId: string, field: 'isActive' | 'role', value: boolean | string) => {
     try {
-      await apiService.put(`/admin/users/${userId}/status`, {
-        [field]: value
-      });
+      await adminService.updateUserStatus(userId, value as string);
       loadUsers();
     } catch (error) {
       console.error('Failed to update user status:', error);

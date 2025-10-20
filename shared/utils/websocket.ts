@@ -232,7 +232,7 @@ export class MebelPlaceWebSocket extends WebSocketClient {
 }
 
 // Создание экземпляра WebSocket клиента
-const WS_URL = process.env.REACT_APP_WS_URL || 'wss://mebelplace.com.kz';
+const WS_URL = (typeof window !== 'undefined' ? 'wss://mebelplace.com.kz' : 'wss://mebelplace.com.kz');
 export const wsClient = new MebelPlaceWebSocket(WS_URL);
 
 // Утилиты для работы с WebSocket

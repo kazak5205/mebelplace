@@ -3,9 +3,9 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Filter, MapPin, Clock, DollarSign, User } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
-import { Order } from '../types'
+import type { Order } from '@shared/types'
 import { orderService } from '../services/orderService'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
 
 const OrdersPage: React.FC = () => {
@@ -52,7 +52,7 @@ const OrdersPage: React.FC = () => {
   const loadOrders = async () => {
     try {
       setLoading(true)
-      const response = await orderService.getOrders({ region: regionFilter || undefined })
+      const response = await orderService.getOrders({ region: regionFilter || undefined }) as any
       setOrders(response.orders)
     } catch (error) {
       console.error('Failed to load orders:', error)

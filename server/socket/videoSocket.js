@@ -60,13 +60,12 @@ const setupVideoSocket = (io) => {
           [videoId]
         );
 
-        // Broadcast to all users watching this video
-        io.to(`video_${videoId}`).emit('video_like_updated', {
+        // Broadcast to all users watching this video (синхронизировано с client/mobile)
+        io.to(`video_${videoId}`).emit('video_liked', {
           videoId,
-          likes: videoResult.rows[0].likes,
-          isLiked,
           userId: socket.user.id,
-          username: socket.user.username
+          isLiked,
+          likesCount: videoResult.rows[0].likes
         });
 
         console.log(`❤️ Video ${videoId} ${isLiked ? 'liked' : 'unliked'} by ${socket.user.username}`);
@@ -104,10 +103,19 @@ const setupVideoSocket = (io) => {
 
         comment.user = userResult.rows[0];
 
-        // Broadcast to all users watching this video
+        // Broadcast to all users watching this video (синхронизировано с client/mobile)
         io.to(`video_${videoId}`).emit('new_comment', {
-          comment,
-          videoId
+          videoId,
+          comment: {
+            id: comment.id,
+            content: comment.content,
+            author: {
+              id: socket.user.id,
+              name: comment.user.username || `${comment.user.first_name} ${comment.user.last_name}`,
+              avatar: comment.user.avatar
+            },
+            createdAt: comment.created_at
+          }
         });
 
         console.log(`💬 New comment on video ${videoId} by ${socket.user.username}`);
@@ -335,4 +343,20 @@ const setupVideoSocket = (io) => {
 };
 
 module.exports = { setupVideoSocket };
+
+      console.log(`🎬 Video socket disconnected: ${socket.user?.username}`);
+    });
+  });
+};
+
+module.exports = { setupVideoSocket };
+
+
+      console.log(`🎬 Video socket disconnected: ${socket.user?.username}`);
+    });
+  });
+};
+
+module.exports = { setupVideoSocket };
+
 

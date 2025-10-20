@@ -1,51 +1,155 @@
-import { Routes, Route } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import React from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
+import { AuthProvider } from '@shared/contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
-import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/Layout'
+import { ProtectedRoute } from '@shared/routing/ProtectedRoute'
+
+// Pages
 import HomePage from './pages/HomePage'
-import ChatListPage from './pages/ChatListPage'
-import ChatPage from './pages/ChatPage'
+import MasterChannelPage from './pages/MasterChannelPage'
 import OrdersPage from './pages/OrdersPage'
 import CreateOrderPage from './pages/CreateOrderPage'
 import OrderResponsesPage from './pages/OrderResponsesPage'
 import OrderRespondPage from './pages/OrderRespondPage'
+import ChatListPage from './pages/ChatListPage'
+import ChatPage from './pages/ChatPage'
 import ProfilePage from './pages/ProfilePage'
-import MasterChannelPage from './pages/MasterChannelPage'
 import AdminPage from './pages/AdminPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import TermsOfServicePage from './pages/TermsOfServicePage'
 
-function App() {
+// Auth components
+import LoginForm from './components/auth/LoginForm'
+import RegisterForm from './components/auth/RegisterForm'
+
+// Admin components для отдельных роутов
+import AdminDashboard from './components/admin/AdminDashboard'
+import VideoManagement from './components/admin/VideoManagement'
+import UserManagement from './components/admin/UserManagement'
+import AnalyticsDashboard from './components/admin/AnalyticsDashboard'
+import CategoryManagement from './components/admin/CategoryManagement'
+import AuditLog from './components/admin/AuditLog'
+
+const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="min-h-screen"
-        >
-          <Layout>
-            <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/register" element={<RegisterForm />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
+
+            {/* Main app routes with Layout */}
+            <Route element={<Layout />}>
+              {/* Home - can be viewed without auth */}
               <Route path="/" element={<HomePage />} />
-              <Route path="/chat" element={<ChatListPage />} />
-              <Route path="/chat/:id" element={<ChatPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/orders/create" element={<CreateOrderPage />} />
-              <Route path="/orders/:id/responses" element={<OrderResponsesPage />} />
-              <Route path="/orders/:id/respond" element={<OrderRespondPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
+              
+              {/* Master channel - public */}
               <Route path="/master/:id" element={<MasterChannelPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/privacy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms" element={<TermsOfServicePage />} />
-            </Routes>
-          </Layout>
-        </motion.div>
-      </SocketProvider>
-    </AuthProvider>
+
+              {/* Protected routes */}
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } />
+
+              {/* Orders */}
+              <Route path="/orders" element={
+                <ProtectedRoute>
+                  <OrdersPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/orders/create" element={
+                <ProtectedRoute allowedRoles={['client', 'admin']}>
+                  <CreateOrderPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/orders/:id/responses" element={
+                <ProtectedRoute>
+                  <OrderResponsesPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/orders/:id/respond" element={
+                <ProtectedRoute allowedRoles={['master', 'admin']}>
+                  <OrderRespondPage />
+                </ProtectedRoute>
+              } />
+
+              {/* Chat */}
+              <Route path="/chat" element={
+                <ProtectedRoute>
+                  <ChatListPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/chat/:id" element={
+                <ProtectedRoute>
+                  <ChatPage />
+                </ProtectedRoute>
+              } />
+
+              {/* Admin routes - старый формат (табы через state) */}
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+
+              {/* Admin routes - новые подстраницы */}
+              <Route path="/admin/dashboard" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/videos" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/users" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/orders" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/analytics" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/categories" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/audit" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+            </Route>
+
+            {/* 404 */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+
+          {/* Toast notifications */}
+          <Toaster position="top-right" richColors closeButton />
+        </SocketProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 
 export default App
+

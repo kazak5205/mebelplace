@@ -16,7 +16,7 @@ import {
   Chip,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
 import { apiService } from '../../services/apiService';
 
 const { width } = Dimensions.get('window');
@@ -108,7 +108,7 @@ const HomeScreen = ({ navigation }: any) => {
               icon="account"
               style={styles.roleChip}
             >
-              {user?.role === 'customer' ? 'Покупатель' : 'Поставщик'}
+              {user?.role === 'client' ? 'Клиент' : 'Мастер'}
             </Chip>
           </Card.Content>
         </Card>

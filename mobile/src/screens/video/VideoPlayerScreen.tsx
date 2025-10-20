@@ -8,6 +8,7 @@ import {
   Animated,
   PanResponder,
   Vibration,
+  Share,
 } from 'react-native';
 import Video from 'react-native-video';
 import {
@@ -20,7 +21,7 @@ import {
   Button,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { apiService } from '../../services/apiService';
 import * as Haptics from 'expo-haptics';
@@ -43,6 +44,7 @@ interface VideoData {
   isLiked: boolean;
   comments: any[];
   createdAt: string;
+  duration?: number;
 }
 
 const VideoPlayerScreen = ({ route, navigation }: any) => {
@@ -116,7 +118,7 @@ const VideoPlayerScreen = ({ route, navigation }: any) => {
       setIsLoading(true);
       const response = await apiService.getVideoById(videoId);
       if (response.success) {
-        setVideo(response.data);
+        setVideo(response.data as VideoData);
       }
     } catch (error) {
       console.error('Error loading video:', error);
@@ -169,6 +171,45 @@ const VideoPlayerScreen = ({ route, navigation }: any) => {
   const handleSkipVideo = () => {
     // Пропуск видео - переходим к следующему
     handleNextVideo();
+  };
+
+  const handleShare = async () => {
+    if (!video) return;
+    
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
+      const result = await Share.share({
+        message: `Посмотри это видео на MebelPlace!\n\n${video.title}\n\nhttps://mebelplace.com.kz/video/${video.id}`,
+        url: `https://mebelplace.com.kz/video/${video.id}`,
+        title: video.title,
+      });
+
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          // Shared with activity type of result.activityType
+          console.log('Shared via:', result.activityType);
+        } else {
+          // Shared
+          console.log('Video shared successfully');
+          
+          // Track share event
+          emit('video_shared', {
+            videoId: video.id,
+            userId: user?.id,
+            timestamp: new Date().toISOString(),
+          });
+          
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // Dismissed
+        console.log('Share dismissed');
+      }
+    } catch (error: any) {
+      console.error('Error sharing video:', error);
+      Alert.alert('Ошибка', error.message || 'Не удалось поделиться видео');
+    }
   };
 
   const handleDoubleTap = () => {
@@ -279,23 +320,23 @@ const VideoPlayerScreen = ({ route, navigation }: any) => {
             setIsPlaying(true);
             setIsBuffering(false);
           }}
-          onBuffer={(data) => {
+          onBuffer={(data: any) => {
             setIsBuffering(data.isBuffering);
             if (data.buffered && data.buffered.length > 0) {
               const buffered = data.buffered[0];
-              const progress = (buffered.end - buffered.start) / video.duration * 100;
+              const progress = (buffered.end - buffered.start) / (video?.duration || 1) * 100;
               setBufferProgress(progress);
             }
           }}
-          onProgress={(data) => {
+          onProgress={(data: any) => {
             // Показываем прогресс буферизации
             if (data.buffered && data.buffered.length > 0) {
               const buffered = data.buffered[0];
-              const progress = (buffered.end - buffered.start) / video.duration * 100;
+              const progress = (buffered.end - buffered.start) / (video?.duration || 1) * 100;
               setBufferProgress(progress);
             }
           }}
-          onError={(error) => {
+          onError={(error: any) => {
             console.error('Video error:', error);
             Alert.alert('Ошибка', 'Ошибка воспроизведения видео');
           }}
@@ -365,9 +406,7 @@ const VideoPlayerScreen = ({ route, navigation }: any) => {
                 icon="share-outline"
                 iconColor="white"
                 size={32}
-                onPress={() => {
-                  // TODO: Реализовать шаринг
-                }}
+                onPress={handleShare}
               />
               <Text style={styles.actionText}>Поделиться</Text>
             </View>

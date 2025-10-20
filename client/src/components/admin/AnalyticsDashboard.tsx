@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/api';
+import { adminService } from '../../services/adminService';
 
 interface AnalyticsData {
   period: string;
@@ -24,10 +24,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get('/admin/analytics/videos', {
+      const response = await adminService.getAnalytics('videos', {
         period: selectedPeriod,
         groupBy: selectedGroupBy
-      });
+      }) as any;
       setAnalytics(response.data);
     } catch (error) {
       console.error('Failed to load analytics:', error);

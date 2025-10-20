@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import Header from './Header'
 import Sidebar from './Sidebar'
 import Footer from './Footer'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 
 interface LayoutProps {
   children: React.ReactNode

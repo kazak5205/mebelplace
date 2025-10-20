@@ -1,6 +1,6 @@
-// API Configuration
+// API Configuration (синхронизировано с shared/config.ts)
 export const API_CONFIG = {
-  BASE_URL: 'https://mebelplace.com.kz/api/v1',
+  BASE_URL: 'https://mebelplace.com.kz/api',
   SOCKET_URL: 'https://mebelplace.com.kz',
   TIMEOUT: 10000,
 };
@@ -56,10 +56,10 @@ export const MESSAGE_TYPES = {
   VOICE: 'voice',
 } as const;
 
-// User Roles
+// User Roles (синхронизировано с shared/types.ts)
 export const USER_ROLES = {
-  CUSTOMER: 'customer',
-  SUPPLIER: 'supplier',
+  CLIENT: 'client',      // было CUSTOMER
+  MASTER: 'master',      // было SUPPLIER
   ADMIN: 'admin',
 } as const;
 
@@ -87,21 +87,21 @@ export const VALIDATION = {
   MAX_MESSAGE_LENGTH: 1000,
 } as const;
 
-// Colors
+// Colors (синхронизировано с shared/design-system/tokens.ts)
 export const COLORS = {
-  PRIMARY: '#2196F3',
-  SECONDARY: '#FF9800',
-  SUCCESS: '#4CAF50',
-  WARNING: '#FF9800',
-  ERROR: '#F44336',
-  INFO: '#2196F3',
-  LIGHT: '#F5F5F5',
-  DARK: '#212121',
+  PRIMARY: '#f97316',    // Orange (было #2196F3 синий)
+  SECONDARY: '#ea580c',  // Orange dark
+  SUCCESS: '#22c55e',
+  WARNING: '#f59e0b',
+  ERROR: '#ef4444',
+  INFO: '#3b82f6',
+  LIGHT: '#f8fafc',
+  DARK: '#0f0f0f',
   WHITE: '#FFFFFF',
   BLACK: '#000000',
-  GRAY: '#9E9E9E',
-  LIGHT_GRAY: '#E0E0E0',
-  DARK_GRAY: '#616161',
+  GRAY: '#6b7280',
+  LIGHT_GRAY: '#e5e7eb',
+  DARK_GRAY: '#374151',
 } as const;
 
 // Animation Durations

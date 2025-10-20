@@ -17,7 +17,7 @@ import {
   ActivityIndicator,
   SegmentedButtons,
 } from 'react-native-paper';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
 
 const RegisterScreen = ({ navigation }: any) => {
   const [formData, setFormData] = useState({
@@ -26,7 +26,7 @@ const RegisterScreen = ({ navigation }: any) => {
     password: '',
     confirmPassword: '',
     phone: '',
-    role: 'customer' as 'customer' | 'supplier',
+    role: 'client' as 'client' | 'master',
   });
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
@@ -123,8 +123,8 @@ const RegisterScreen = ({ navigation }: any) => {
                   value={formData.role}
                   onValueChange={(value) => handleInputChange('role', value)}
                   buttons={[
-                    { value: 'customer', label: 'Покупатель' },
-                    { value: 'supplier', label: 'Поставщик' },
+                    { value: 'client', label: 'Покупатель' },
+                    { value: 'master', label: 'Поставщик' },
                   ]}
                   style={styles.segmentedButtons}
                 />

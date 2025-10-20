@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Send, DollarSign, Calendar, MessageSquare } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 
 const OrderRespondPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()

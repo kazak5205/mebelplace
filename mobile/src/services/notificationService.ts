@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { apiService } from './apiService';
+import type { Notification } from '@shared/types';
 
 // Настройка обработчика уведомлений
 Notifications.setNotificationHandler({

@@ -17,7 +17,7 @@ import {
   ActivityIndicator,
   SegmentedButtons,
 } from 'react-native-paper';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
 import { apiService } from '../../services/apiService';
 
 const categories = [

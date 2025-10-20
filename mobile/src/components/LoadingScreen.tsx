@@ -17,7 +17,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
 }) => {
   return (
     <LinearGradient
-      colors={['#2196F3', '#1976D2']}
+      colors={['#f97316', '#ea580c']}
       style={styles.container}
     >
       <View style={styles.content}>

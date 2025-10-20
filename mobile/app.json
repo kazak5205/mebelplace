@@ -9,24 +9,43 @@
     "splash": {
       "image": "./assets/512x512.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2196F3"
+      "backgroundColor": "#f97316"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
+    "scheme": "mebelplace",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mebelplace.mobile",
-      "icon": "./assets/180x180.png"
+      "icon": "./assets/180x180.png",
+      "associatedDomains": ["applinks:mebelplace.com.kz"]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/512x512.png",
-        "backgroundColor": "#2196F3"
+        "backgroundColor": "#f97316"
       },
       "package": "com.mebelplace.mobile",
       "icon": "./assets/192x192.png",
-      "versionCode": 1
+      "versionCode": 1,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "mebelplace.com.kz",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "mebelplace"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/48x48.png"

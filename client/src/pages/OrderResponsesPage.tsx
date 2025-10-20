@@ -5,7 +5,7 @@ import { ArrowLeft, Check, X, Star, Clock, DollarSign, MessageCircle } from 'luc
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
 import { chatService } from '../services/chatService'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 
 const OrderResponsesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -30,8 +30,8 @@ const OrderResponsesPage: React.FC = () => {
         orderService.getOrderResponses(id!)
       ])
       
-      setOrder(orderResponse)
-      setResponses(responsesResponse.responses)
+      setOrder(orderResponse as any)
+      setResponses((responsesResponse as any).responses)
     } catch (error) {
       console.error('Failed to load order and responses:', error)
     } finally {
@@ -42,10 +42,10 @@ const OrderResponsesPage: React.FC = () => {
   const handleAcceptResponse = async (responseId: string) => {
     try {
       setAcceptingResponse(responseId)
-      const result = await orderService.acceptResponse(id!, responseId)
+      const result = await orderService.acceptResponse(id!, responseId) as any
       
       // Обновляем статус заказа
-      setOrder(prev => ({ ...prev, status: 'accepted' }))
+      setOrder((prev: any) => ({ ...prev, status: 'accepted' }))
       
       // Удаляем принятый отклик из списка
       setResponses(prev => prev.filter(r => r.id !== responseId))
@@ -223,7 +223,7 @@ const OrderResponsesPage: React.FC = () => {
                       whileTap={{ scale: 0.95 }}
                       onClick={async () => {
                         try {
-                          const chat = await chatService.createChatWithUser(response.master?.id)
+                          const chat = await chatService.createChatWithUser(response.master?.id) as any
                           navigate(`/chat/${chat.id}`)
                         } catch (e) {
                           console.error('Failed to start chat:', e)

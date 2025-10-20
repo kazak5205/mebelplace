@@ -1,48 +1,77 @@
--- Рекомендуемые индексы для оптимизации VideoService
--- Выполните эти команды в вашей PostgreSQL базе данных
+-- ============================================
+-- MebelPlace Database Indexes
+-- Оптимизация производительности запросов
+-- ============================================
 
--- Индексы для таблицы videos
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_active_public ON videos(is_active, is_public) WHERE is_active = true AND is_public = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_created_at ON videos(created_at DESC) WHERE is_active = true AND is_public = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_author_id ON videos(author_id) WHERE is_active = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_category ON videos(category) WHERE is_active = true AND is_public = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_views ON videos(views DESC) WHERE is_active = true AND is_public = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_likes ON videos(likes DESC) WHERE is_active = true AND is_public = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_trending ON videos((likes + views * 0.1) DESC, created_at DESC) WHERE is_active = true AND is_public = true AND created_at > NOW() - INTERVAL '7 days';
+-- ============================================
+-- USERS INDEXES
+-- ============================================
 
--- Полнотекстовый поиск для videos
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_search ON videos USING gin(to_tsvector('english', title || ' ' || COALESCE(description, '')));
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_tags ON videos USING gin(tags);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_role_active ON users(role, is_active);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_location ON users(location_city, location_region);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_rating ON users(rating DESC) WHERE rating > 0;
 
--- Индексы для таблицы video_likes
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_likes_video_user ON video_likes(video_id, user_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_likes_video_id ON video_likes(video_id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_likes_user_id ON video_likes(user_id);
+-- ============================================
+-- VIDEOS INDEXES
+-- ============================================
 
--- Индексы для таблицы video_comments
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_comments_video_active ON video_comments(video_id, is_active) WHERE is_active = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_comments_parent_id ON video_comments(parent_id) WHERE parent_id IS NOT NULL AND is_active = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_comments_created_at ON video_comments(created_at DESC) WHERE is_active = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_comments_user_id ON video_comments(user_id) WHERE is_active = true;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_author_active ON videos(author_id, is_active);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_category_active ON videos(category, is_active);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_created_views ON videos(created_at DESC, views DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_engagement ON videos((likes + comments + shares)) WHERE is_active = TRUE;
 
--- Индексы для таблицы video_views (если используется)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_views_video_created ON video_views(video_id, created_at DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_views_user_created ON video_views(user_id, created_at DESC) WHERE user_id IS NOT NULL;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_views_ip_created ON video_views(ip_address, created_at DESC) WHERE ip_address IS NOT NULL;
+-- Composite index for feed queries
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_feed ON videos(is_active, admin_priority DESC, created_at DESC) 
+  WHERE is_public = TRUE AND processing_status = 'completed';
 
--- Индексы для таблицы users (если используется в JOIN'ах)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_id ON users(id);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_username ON users(username);
+-- ============================================
+-- ORDERS INDEXES
+-- ============================================
 
--- Статистика для оптимизатора запросов
-ANALYZE videos;
-ANALYZE video_likes;
-ANALYZE video_comments;
-ANALYZE video_views;
-ANALYZE users;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_status_active ON orders(status, is_active);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_location_status ON orders(city, region, status);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_price_range ON orders(price) WHERE price IS NOT NULL;
 
--- Комментарии к индексам:
--- 1. CONCURRENTLY - создает индексы без блокировки таблицы
--- 2. WHERE условия - создают частичные индексы только для нужных данных
--- 3. gin индексы - для полнотекстового поиска и массивов
--- 4. Композитные индексы - для сложных запросов с несколькими условиями
+-- Composite index for master's order feed
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_master_feed ON orders(status, created_at DESC) 
+  WHERE is_active = TRUE AND status = 'pending';
+
+-- ============================================
+-- MESSAGES INDEXES
+-- ============================================
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_chat_created ON messages(chat_id, created_at DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_unread ON messages(chat_id, is_read) WHERE is_read = FALSE;
+
+-- ============================================
+-- NOTIFICATIONS INDEXES
+-- ============================================
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read, created_at DESC);
+
+-- ============================================
+-- PERFORMANCE ANALYTICS INDEXES
+-- ============================================
+
+-- For trending videos calculation
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_views_recent ON video_views(video_id, created_at DESC) 
+  WHERE created_at > NOW() - INTERVAL '7 days';
+
+-- For user engagement metrics
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_video_likes_recent ON video_likes(user_id, created_at DESC) 
+  WHERE created_at > NOW() - INTERVAL '30 days';
+
+-- ============================================
+-- FULL TEXT SEARCH OPTIMIZATION
+-- ============================================
+
+-- Create GiST indexes for better performance
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_videos_search_gist ON videos USING GIST (to_tsvector('russian', title || ' ' || COALESCE(description, '')));
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_search_gist ON users USING GIST (to_tsvector('russian', username || ' ' || COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')));
+
+-- ============================================
+-- COMPLETION MESSAGE
+-- ============================================
+
+SELECT 'Database indexes created successfully!' as status;

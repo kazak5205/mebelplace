@@ -17,42 +17,14 @@ import {
   Divider,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
 import { apiService } from '../../services/apiService';
-
-interface OrderDetails {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  budget?: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  customer: {
-    id: string;
-    username: string;
-    avatar?: string;
-    phone?: string;
-  };
-  responses: Array<{
-    id: string;
-    supplier: {
-      id: string;
-      username: string;
-      avatar?: string;
-    };
-    message: string;
-    price?: number;
-    timeline?: string;
-    createdAt: string;
-  }>;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Order } from '@shared/types';
 
 const OrderDetailsScreen = ({ route, navigation }: any) => {
   const { orderId } = route.params;
   const { user } = useAuth();
-  const [order, setOrder] = useState<OrderDetails | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isResponding, setIsResponding] = useState(false);
 
@@ -144,7 +116,7 @@ const OrderDetailsScreen = ({ route, navigation }: any) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return '#FF9800';
-      case 'in_progress': return '#2196F3';
+      case 'in_progress': return '#3b82f6';
       case 'completed': return '#4CAF50';
       case 'cancelled': return '#F44336';
       default: return '#666';
@@ -192,8 +164,8 @@ const OrderDetailsScreen = ({ route, navigation }: any) => {
     );
   }
 
-  const isCustomer = user?.id === order.customer.id;
-  const canRespond = !isCustomer && user?.role === 'supplier' && order.status === 'pending';
+  const isClient = user?.id === order.client.id;
+  const canRespond = !isClient && user?.role === 'master' && order.status === 'pending';
 
   return (
     <ScrollView style={styles.container}>
@@ -236,20 +208,20 @@ const OrderDetailsScreen = ({ route, navigation }: any) => {
           </Card.Content>
         </Card>
 
-        {/* Customer Info */}
-        <Card style={styles.customerCard}>
+        {/* Client Info */}
+        <Card style={styles.clientCard}>
           <Card.Content>
             <Title style={styles.sectionTitle}>Заказчик</Title>
-            <View style={styles.customerInfo}>
+            <View style={styles.clientInfo}>
               <Avatar.Image
                 size={50}
-                source={{ uri: order.customer.avatar }}
-                style={styles.customerAvatar}
+                source={{ uri: order.client.avatar }}
+                style={styles.clientAvatar}
               />
-              <View style={styles.customerDetails}>
-                <Text style={styles.customerName}>{order.customer.username}</Text>
-                {order.customer.phone && (
-                  <Text style={styles.customerPhone}>{order.customer.phone}</Text>
+              <View style={styles.clientDetails}>
+                <Text style={styles.clientName}>{order.client.name}</Text>
+                {order.client.phone && (
+                  <Text style={styles.clientPhone}>{order.client.phone}</Text>
                 )}
               </View>
             </View>
@@ -271,13 +243,13 @@ const OrderDetailsScreen = ({ route, navigation }: any) => {
                   <View style={styles.responseItem}>
                     <Avatar.Image
                       size={40}
-                      source={{ uri: response.supplier.avatar }}
+                      source={{ uri: response.master.avatar }}
                       style={styles.responseAvatar}
                     />
                     <View style={styles.responseContent}>
                       <View style={styles.responseHeader}>
                         <Text style={styles.responseAuthor}>
-                          {response.supplier.username}
+                          {response.master.name}
                         </Text>
                         <Text style={styles.responseDate}>
                           {formatDate(response.createdAt)}
@@ -300,7 +272,7 @@ const OrderDetailsScreen = ({ route, navigation }: any) => {
                         </Text>
                       )}
                       
-                      {isCustomer && order.status === 'pending' && (
+                      {isClient && order.status === 'pending' && (
                         <Button
                           mode="contained"
                           onPress={() => handleAcceptResponse(response.id)}
@@ -403,7 +375,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  customerCard: {
+  clientCard: {
     marginBottom: 16,
     elevation: 2,
   },
@@ -412,22 +384,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
   },
-  customerInfo: {
+  clientInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  customerAvatar: {
+  clientAvatar: {
     marginRight: 12,
   },
-  customerDetails: {
+  clientDetails: {
     flex: 1,
   },
-  customerName: {
+  clientName: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  customerPhone: {
+  clientPhone: {
     fontSize: 14,
     color: '#666',
   },

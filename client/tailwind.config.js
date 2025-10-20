@@ -1,19 +1,22 @@
 /** @type {import('tailwindcss').Config} */
+// Синхронизировано с shared/design-system/tokens.ts
 export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    "../shared/components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       colors: {
+        // Primary Orange (из shared/design-system/tokens.ts)
         orange: {
           50: '#fff7ed',
           100: '#ffedd5',
           200: '#fed7aa',
           300: '#fdba74',
           400: '#fb923c',
-          500: '#f97316',
+          500: '#f97316',  // Main brand color
           600: '#ea580c',
           700: '#c2410c',
           800: '#9a3412',
@@ -25,12 +28,34 @@ export default {
           200: '#fed7aa',
           300: '#fdba74',
           400: '#fb923c',
-          500: '#f97316',
+          500: '#f97316',  // Main brand color
           600: '#ea580c',
           700: '#c2410c',
           800: '#9a3412',
           900: '#7c2d12',
         },
+        // Semantic colors (из shared)
+        success: {
+          DEFAULT: '#22c55e',
+          light: '#86efac',
+          dark: '#16a34a',
+        },
+        error: {
+          DEFAULT: '#ef4444',
+          light: '#fca5a5',
+          dark: '#dc2626',
+        },
+        warning: {
+          DEFAULT: '#f59e0b',
+          light: '#fde047',
+          dark: '#d97706',
+        },
+        info: {
+          DEFAULT: '#3b82f6',
+          light: '#93c5fd',
+          dark: '#2563eb',
+        },
+        // Glass effects
         glass: {
           white: 'rgba(255, 255, 255, 0.1)',
           black: 'rgba(0, 0, 0, 0.1)',

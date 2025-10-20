@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/api';
+import { adminService } from '../../services/adminService';
 
 interface Video {
   id: string;
@@ -56,7 +56,7 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
         limit: 20,
         ...filters
       };
-      const response = await apiService.get('/admin/videos', params);
+      const response = await adminService.videos.list(params) as any;
       setVideos(response.data.videos);
       setTotalPages(response.data.pagination.pages);
     } catch (error) {
@@ -87,7 +87,7 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
       }
       formData.append('isFeatured', uploadForm.isFeatured.toString());
 
-      await apiService.upload('/admin/videos/upload', formData);
+      await adminService.uploadVideo(formData);
       
       setShowUploadModal(false);
       setUploadForm({
@@ -109,9 +109,7 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
 
   const handleStatusChange = async (videoId: string, field: 'isActive' | 'isPublic', value: boolean) => {
     try {
-      await apiService.put(`/admin/videos/${videoId}/status`, {
-        [field]: value
-      });
+      await adminService.updateVideoStatus(videoId, value ? 'active' : 'inactive');
       loadVideos();
     } catch (error) {
       console.error('Failed to update video status:', error);
@@ -120,10 +118,7 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
 
   const handlePriorityUpdate = async (videoId: string, priorityOrder: number, isFeatured: boolean) => {
     try {
-      await apiService.put(`/admin/videos/${videoId}/priority`, {
-        priorityOrder,
-        isFeatured
-      });
+      await adminService.updateVideoPriority(videoId, priorityOrder);
       loadVideos();
     } catch (error) {
       console.error('Failed to update video priority:', error);
@@ -134,7 +129,7 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
     if (!confirm('Вы уверены, что хотите удалить это видео?')) return;
     
     try {
-      await apiService.delete(`/admin/videos/${videoId}`);
+      await adminService.deleteVideo(videoId);
       loadVideos();
     } catch (error) {
       console.error('Failed to delete video:', error);

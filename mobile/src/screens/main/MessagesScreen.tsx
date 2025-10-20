@@ -16,7 +16,7 @@ import {
   Badge,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { apiService } from '../../services/apiService';
 
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   unreadBadge: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#f97316',
     marginLeft: 8,
   },
   emptyContainer: {

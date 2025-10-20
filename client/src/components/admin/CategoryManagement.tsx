@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/api';
+import { adminService } from '../../services/adminService';
 
 interface Category {
   id: string;
@@ -36,8 +36,8 @@ const CategoryManagement: React.FC<CategoryManagementProps> = () => {
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get('/admin/categories');
-      setCategories(response.data);
+      const response = await adminService.getCategories() as any;
+      setCategories(response.data || response);
     } catch (error) {
       console.error('Failed to load categories:', error);
     } finally {
@@ -48,7 +48,7 @@ const CategoryManagement: React.FC<CategoryManagementProps> = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiService.post('/admin/categories', formData);
+      await adminService.createCategory(formData);
       setShowCreateModal(false);
       setFormData({
         name: '',
@@ -69,7 +69,7 @@ const CategoryManagement: React.FC<CategoryManagementProps> = () => {
     if (!editingCategory) return;
     
     try {
-      await apiService.put(`/admin/categories/${editingCategory.id}`, formData);
+      await adminService.updateCategory(editingCategory.id, formData);
       setEditingCategory(null);
       setFormData({
         name: '',
@@ -89,7 +89,7 @@ const CategoryManagement: React.FC<CategoryManagementProps> = () => {
     if (!confirm('Вы уверены, что хотите удалить эту категорию?')) return;
     
     try {
-      await apiService.delete(`/admin/categories/${categoryId}`);
+      await adminService.deleteCategory(categoryId);
       loadCategories();
     } catch (error) {
       console.error('Failed to delete category:', error);

@@ -10,7 +10,7 @@ import {
   Video,
   Settings
 } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 
 const Sidebar: React.FC = () => {
   const { user } = useAuth()

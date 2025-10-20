@@ -175,7 +175,7 @@ const MediaSelectionScreen = ({ navigation, route }: any) => {
       
       {selectedMedia?.id === item.id && (
         <View style={styles.selectedOverlay}>
-          <Ionicons name="checkmark-circle" size={24} color="#2196F3" />
+          <Ionicons name="checkmark-circle" size={24} color="#f97316" />
         </View>
       )}
     </TouchableOpacity>
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   selectedMediaItem: {
     borderWidth: 2,
-    borderColor: '#2196F3',
+    borderColor: '#f97316',
   },
   mediaPreview: {
     width: '100%',

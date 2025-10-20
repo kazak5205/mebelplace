@@ -1,0 +1,21 @@
+{
+  "name": "@mebelplace/shared",
+  "version": "1.0.0",
+  "description": "Shared code for MebelPlace web and mobile apps",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.22",
+    "@types/react": "^18.3.26",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { apiService } from '../services/api';
+import { useAuth } from '@shared/contexts/AuthContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AdminDashboard from '../components/admin/AdminDashboard';
 import VideoManagement from '../components/admin/VideoManagement';
 import UserManagement from '../components/admin/UserManagement';
@@ -12,7 +12,22 @@ interface AdminPageProps {}
 
 const AdminPage: React.FC<AdminPageProps> = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Определяем активный таб из URL
+  const getActiveTabFromPath = () => {
+    const path = location.pathname;
+    if (path.includes('/videos')) return 'videos';
+    if (path.includes('/users')) return 'users';
+    if (path.includes('/orders')) return 'orders';
+    if (path.includes('/analytics')) return 'analytics';
+    if (path.includes('/categories')) return 'categories';
+    if (path.includes('/audit')) return 'audit';
+    return 'dashboard';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getActiveTabFromPath());
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -46,13 +61,34 @@ const AdminPage: React.FC<AdminPageProps> = () => {
     );
   }
 
+  useEffect(() => {
+    // Обновляем активный таб при изменении URL
+    setActiveTab(getActiveTabFromPath());
+  }, [location.pathname]);
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    // Обновляем URL
+    const paths: Record<string, string> = {
+      dashboard: '/admin',
+      videos: '/admin/videos',
+      users: '/admin/users',
+      orders: '/admin/orders',
+      analytics: '/admin/analytics',
+      categories: '/admin/categories',
+      audit: '/admin/audit',
+    };
+    navigate(paths[tabId] || '/admin');
+  };
+
   const tabs = [
     { id: 'dashboard', name: 'Дашборд', icon: '📊' },
     { id: 'videos', name: 'Видео', icon: '🎥' },
     { id: 'users', name: 'Пользователи', icon: '👥' },
+    { id: 'orders', name: 'Заявки', icon: '📋' },
     { id: 'analytics', name: 'Аналитика', icon: '📈' },
     { id: 'categories', name: 'Категории', icon: '📂' },
-    { id: 'audit', name: 'Аудит', icon: '📋' }
+    { id: 'audit', name: 'Аудит', icon: '🔍' }
   ];
 
   const renderContent = () => {
@@ -63,6 +99,11 @@ const AdminPage: React.FC<AdminPageProps> = () => {
         return <VideoManagement />;
       case 'users':
         return <UserManagement />;
+      case 'orders':
+        return <div className="p-6">
+          <h2 className="text-2xl font-bold mb-4">Управление заявками</h2>
+          <p className="text-gray-600">Здесь будет управление заявками</p>
+        </div>;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'categories':
@@ -85,7 +126,7 @@ const AdminPage: React.FC<AdminPageProps> = () => {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500">
-                Привет, {user?.firstName} {user?.lastName}
+                Привет, {user?.name}
               </span>
               <button
                 onClick={() => {
@@ -109,10 +150,10 @@ const AdminPage: React.FC<AdminPageProps> = () => {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`w-full flex items-center px-4 py-3 text-left text-sm font-medium rounded-md transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-500'
+                      ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { MessageCircle, Search, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import GlassCard from '../components/GlassCard'
-import { Chat } from '../types'
+import type { Chat } from '@shared/types'
 import { chatService } from '../services/chatService'
 import { useSocket } from '../contexts/SocketContext'
 
@@ -37,7 +37,7 @@ const ChatListPage: React.FC = () => {
   const loadChats = async () => {
     try {
       setLoading(true)
-      const response = await chatService.getChats()
+      const response = await chatService.getChats() as any
       setChats(response)
     } catch (error) {
       console.error('Failed to load chats:', error)

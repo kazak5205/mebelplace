@@ -17,25 +17,9 @@ import {
   Searchbar,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
 import { apiService } from '../../services/apiService';
-
-interface Order {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  budget?: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  customer: {
-    id: string;
-    username: string;
-    avatar?: string;
-  };
-  responses: any[];
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Order } from '@shared/types';
 
 const OrdersScreen = ({ navigation }: any) => {
   const { user } = useAuth();
@@ -50,7 +34,7 @@ const OrdersScreen = ({ navigation }: any) => {
   const statusOptions = [
     { key: 'all', label: 'Все', color: '#666' },
     { key: 'pending', label: 'Ожидает', color: '#FF9800' },
-    { key: 'in_progress', label: 'В работе', color: '#2196F3' },
+    { key: 'in_progress', label: 'В работе', color: '#3b82f6' },
     { key: 'completed', label: 'Завершено', color: '#4CAF50' },
     { key: 'cancelled', label: 'Отменено', color: '#F44336' },
   ];
@@ -144,7 +128,7 @@ const OrdersScreen = ({ navigation }: any) => {
         <View style={styles.orderInfo}>
           <View style={styles.infoItem}>
             <Ionicons name="person" size={16} color="#666" />
-            <Text style={styles.infoText}>{item.customer.username}</Text>
+            <Text style={styles.infoText}>{item.client.name}</Text>
           </View>
           
           <View style={styles.infoItem}>
@@ -355,7 +339,7 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#f97316',
   },
 });
 

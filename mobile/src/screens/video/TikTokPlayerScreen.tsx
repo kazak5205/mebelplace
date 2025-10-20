@@ -18,32 +18,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { apiService } from '../../services/apiService';
+import type { Video as VideoType } from '@shared/types';
 
 const { width, height } = Dimensions.get('window');
-
-interface VideoItem {
-  id: string;
-  title: string;
-  description: string;
-  video_url: string;
-  thumbnail_url?: string;
-  author_id: string;
-  likes: number;
-  views: number;
-  comments_count: number;
-  is_liked?: boolean;
-  author?: {
-    username: string;
-    avatar?: string;
-  };
-  tags?: string[];
-  created_at: string;
-}
 
 const TikTokPlayerScreen = ({ route, navigation }: any) => {
   const { videos: initialVideos, initialIndex = 0 } = route.params || {};
   
-  const [videos, setVideos] = useState<VideoItem[]>(initialVideos || []);
+  const [videos, setVideos] = useState<VideoType[]>(initialVideos || []);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);

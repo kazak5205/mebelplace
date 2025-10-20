@@ -1,6 +1,6 @@
 // Environment configuration
 export const ENV = {
-  API_URL: process.env.EXPO_PUBLIC_API_URL || 'https://mebelplace.com.kz/api/v1',
+  API_URL: process.env.EXPO_PUBLIC_API_URL || 'https://mebelplace.com.kz/api',
   SOCKET_URL: process.env.EXPO_PUBLIC_SOCKET_URL || 'https://mebelplace.com.kz',
   PROJECT_ID: process.env.EXPO_PUBLIC_PROJECT_ID || 'mebelplace-mobile-app',
   IS_DEV: __DEV__,

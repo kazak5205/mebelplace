@@ -1,15 +1,16 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
 import { Alert } from 'react-native';
 import { API_CONFIG } from '../config/environment';
+import type { WebSocketEvents } from '@shared/types';
 
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   emit: (event: string, data?: any) => void;
-  on: (event: string, callback: (data: any) => void) => void;
-  off: (event: string, callback?: (data: any) => void) => void;
+  on: (event: keyof WebSocketEvents | string, callback: (data: any) => void) => void;
+  off: (event: keyof WebSocketEvents | string, callback?: (data: any) => void) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);

@@ -1,45 +1,36 @@
-import { apiService } from './api'
-import { User } from '../types'
+/**
+ * Auth Service implementation for client using shared authApi
+ */
+import { apiClient } from './api';
+import { authApi, userApi } from '@shared/utils/api';
+import type { User } from '@shared/types';
+import type { RegisterData, AuthService } from '@shared/contexts/AuthContext';
 
-interface LoginResponse {
-  user: User
-  token: string
-}
+const baseAuthService = authApi(apiClient);
+const baseUserService = userApi(apiClient);
 
-interface RegisterData {
-  email: string
-  password: string
-  name: string
-  role: 'client' | 'master'
-  specialties?: string[]
-  location?: {
-    city: string
-    region: string
+class ClientAuthService implements AuthService {
+  async login(email: string, password: string): Promise<{ token: string; user: User }> {
+    return baseAuthService.login(email, password);
   }
-}
 
-export const authService = {
-  async login(email: string, password: string): Promise<LoginResponse> {
-    return apiService.post<LoginResponse>('/auth/login', { email, password })
-  },
-
-  async register(userData: RegisterData): Promise<LoginResponse> {
-    return apiService.post<LoginResponse>('/auth/register', userData)
-  },
+  async register(userData: RegisterData): Promise<{ token: string; user: User }> {
+    return baseAuthService.register(userData);
+  }
 
   async getCurrentUser(): Promise<User> {
-    return apiService.get<User>('/auth/me')
-  },
+    return baseAuthService.getMe();
+  }
 
   async updateUser(userData: Partial<User>): Promise<User> {
-    return apiService.put<User>('/auth/profile', userData)
-  },
-
-  async refreshToken(): Promise<{ token: string }> {
-    return apiService.post<{ token: string }>('/auth/refresh')
-  },
+    // Get current user ID from token or context
+    const currentUser = await baseAuthService.getMe();
+    return baseUserService.update(currentUser.id, userData);
+  }
 
   async logout(): Promise<void> {
-    return apiService.post<void>('/auth/logout')
+    return baseAuthService.logout();
   }
 }
+
+export const authService = new ClientAuthService();

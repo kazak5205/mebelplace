@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Bell, Search, User, LogOut, Settings } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 import { Link } from 'react-router-dom'
 
 const Header: React.FC = () => {

@@ -19,14 +19,15 @@ import {
   ActivityIndicator,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@shared/contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { notificationService } from '../../services/notificationService';
 
 const ProfileScreen = ({ navigation }: any) => {
   const { user, logout, updateProfile } = useAuth();
+  const { isDark, themeMode, setThemeMode } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     // Инициализируем уведомления при загрузке профиля
@@ -71,23 +72,19 @@ const ProfileScreen = ({ navigation }: any) => {
   };
 
   const handleDarkModeToggle = (value: boolean) => {
-    setDarkMode(value);
-    // TODO: Реализовать переключение темы
+    setThemeMode(value ? 'dark' : 'light');
   };
 
   const handleEditProfile = () => {
-    // TODO: Реализовать редактирование профиля
-    Alert.alert('Редактирование профиля', 'Функция в разработке');
+    navigation.navigate('EditProfile');
   };
 
   const handleSettings = () => {
-    // TODO: Реализовать настройки
-    Alert.alert('Настройки', 'Функция в разработке');
+    navigation.navigate('Settings');
   };
 
   const handleHelp = () => {
-    // TODO: Реализовать помощь
-    Alert.alert('Помощь', 'Функция в разработке');
+    navigation.navigate('Help');
   };
 
   const handleAbout = () => {
@@ -124,17 +121,17 @@ const ProfileScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
             
-            <Title style={styles.username}>{user?.username}</Title>
+            <Title style={styles.username}>{user?.name}</Title>
             <Paragraph style={styles.email}>{user?.email}</Paragraph>
             
             <View style={styles.roleContainer}>
               <Ionicons 
-                name={user?.role === 'customer' ? 'person' : 'storefront'} 
+                name={user?.role === 'client' ? 'person' : user?.role === 'master' ? 'storefront' : 'shield'} 
                 size={16} 
-                color="#2196F3" 
+                color="#f97316" 
               />
               <Text style={styles.roleText}>
-                {user?.role === 'customer' ? 'Покупатель' : 'Поставщик'}
+                {user?.role === 'client' ? 'Клиент' : user?.role === 'master' ? 'Мастер' : 'Администратор'}
               </Text>
             </View>
             
@@ -199,7 +196,7 @@ const ProfileScreen = ({ navigation }: any) => {
               left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
               right={() => (
                 <Switch
-                  value={darkMode}
+                  value={isDark}
                   onValueChange={handleDarkModeToggle}
                 />
               )}
@@ -293,7 +290,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#f97316',
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -318,7 +315,7 @@ const styles = StyleSheet.create({
   roleText: {
     marginLeft: 6,
     fontSize: 14,
-    color: '#2196F3',
+    color: '#f97316',
     fontWeight: '500',
   },
   editButton: {
@@ -343,7 +340,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2196F3',
+    color: '#f97316',
   },
   statLabel: {
     fontSize: 12,

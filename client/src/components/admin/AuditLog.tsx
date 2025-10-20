@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/api';
+import { adminService } from '../../services/adminService';
 
 interface AuditLogEntry {
   id: string;
@@ -42,7 +42,7 @@ const AuditLog: React.FC<AuditLogProps> = () => {
         limit: 50,
         ...filters
       };
-      const response = await apiService.get('/admin/audit-log', params);
+      const response = await adminService.getAuditLog(params) as any;
       setLogs(response.data.logs);
       setTotalPages(response.data.pagination.pages);
     } catch (error) {

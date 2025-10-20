@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, MapPin, DollarSign, Calendar, Tag } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 
 const CreateOrderPage: React.FC = () => {
   const navigate = useNavigate()
@@ -54,7 +54,7 @@ const CreateOrderPage: React.FC = () => {
       })
 
       const results = await Promise.all(uploadPromises)
-      const newImages = results.flat()
+      const newImages = results.flat() as string[]
       setFormData(prev => ({ ...prev, images: [...prev.images, ...newImages] }))
     } catch (error) {
       console.error('Failed to upload images:', error)

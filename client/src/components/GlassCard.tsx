@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { GlassCardProps } from '../types'
+import type { GlassCardProps } from '@shared/types'
 import { clsx } from 'clsx'
 import { animations } from '../utils/animations'
 

@@ -13,11 +13,11 @@ import {
   UserPlus,
   Bookmark
 } from 'lucide-react'
-import { Video } from '../types'
+import type { Video } from '@shared/types'
 import { useNavigate } from 'react-router-dom'
 import { videoService } from '../services/videoService'
 import { useSocket } from '../contexts/SocketContext'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 
 interface VideoPlayerProps {
   videos: Video[]
@@ -136,7 +136,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const loadComments = async () => {
     if (!currentVideo) return
     try {
-      const response = await videoService.getComments(currentVideo.id)
+      const response = await videoService.getComments(currentVideo.id) as any
       setComments(response.comments || response)
     } catch (error) {
       console.error('Failed to load comments:', error)
@@ -248,7 +248,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     try {
       setIsSubmittingComment(true)
-      const comment = await videoService.addComment(currentVideo.id, newComment.trim())
+      const comment = await videoService.addComment(currentVideo.id, newComment.trim()) as any
       setComments(prev => [comment, ...prev])
       setNewComment('')
       
@@ -270,7 +270,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     try {
       setIsSubmittingComment(true)
-      const comment = await videoService.addComment(currentVideo.id, replyText.trim(), parentId)
+      const comment = await videoService.addComment(currentVideo.id, replyText.trim(), parentId) as any
       
       setComments(prev => prev.map(commentItem => {
         if (commentItem.id === parentId) {

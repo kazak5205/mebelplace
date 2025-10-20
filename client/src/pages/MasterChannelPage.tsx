@@ -3,10 +3,10 @@ import { motion } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Play, Heart, MessageCircle, Eye, Share2, Star, MapPin, Calendar, Upload, X } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
-import { Video, User } from '../types'
+import type { Video, User } from '@shared/types'
 import { videoService } from '../services/videoService'
 import { useSocket } from '../contexts/SocketContext'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 
 const MasterChannelPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -55,7 +55,7 @@ const MasterChannelPage: React.FC = () => {
   const loadMasterVideos = async () => {
     try {
       setLoading(true)
-      const response = await videoService.getVideos({ masterId: id, limit: 50 })
+      const response = await videoService.getVideos({ masterId: id, limit: 50 }) as any
       setVideos(response.videos)
       if (response.videos.length > 0) {
         setMaster(response.videos[0].master)

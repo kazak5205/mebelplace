@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { User, Mail, MapPin, Star, Edit3, Camera, Save, X } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@shared/contexts/AuthContext'
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth()
@@ -39,7 +39,7 @@ const ProfilePage: React.FC = () => {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof typeof prev],
+          ...(prev as any)[parent],
           [child]: value
         }
       }))

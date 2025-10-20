@@ -63,10 +63,16 @@ class ChatSocket {
             replyTo
           });
 
-          // Отправляем сообщение всем участникам чата
+          // Отправляем сообщение всем участникам чата (синхронизировано с client/mobile)
           this.io.to(chatId).emit('new_message', {
-            ...message,
-            senderName: socket.userName
+            chatId,
+            message: {
+              ...message,
+              sender: {
+                id: socket.userId,
+                name: socket.userName
+              }
+            }
           });
 
           // Обновляем статус сообщения
@@ -201,3 +207,15 @@ class ChatSocket {
 }
 
 module.exports = ChatSocket;
+    });
+  }
+}
+
+module.exports = ChatSocket;
+
+    });
+  }
+}
+
+module.exports = ChatSocket;
+

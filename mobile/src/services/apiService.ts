@@ -1,66 +1,67 @@
-import axios, { AxiosResponse } from 'axios';
+/**
+ * Mobile API service using shared API utilities
+ */
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ApiClient, videoApi, orderApi, chatApi, userApi, authApi, notificationApi } from '@shared/utils/api';
 import { API_CONFIG } from '../config/environment';
+import { navigateToLogin } from '../utils/navigationRef';
 
-const BASE_URL = API_CONFIG.BASE_URL;
+// Create API client with AsyncStorage token management
+export const apiClient = new ApiClient({
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+  getToken: async () => {
+    try {
+      return await AsyncStorage.getItem('authToken');
+    } catch {
+      return null;
+    }
+  },
+  onUnauthorized: async () => {
+    try {
+      await AsyncStorage.removeItem('authToken');
+      // Навигируем на экран логина
+      navigateToLogin();
+    } catch (error) {
+      console.error('Error clearing auth token:', error);
+    }
+  },
+});
 
-interface ApiResponse<T = any> {
-  success: boolean;
-  data: T;
-  message: string;
-  timestamp: string;
-}
+// Create API service instances
+const video = videoApi(apiClient);
+const order = orderApi(apiClient);
+const chat = chatApi(apiClient);
+const user = userApi(apiClient);
+const auth = authApi(apiClient);
+const notification = notificationApi(apiClient);
 
+// Legacy-compatible API service class
 class ApiService {
-  private api = axios.create({
-    baseURL: BASE_URL,
-    timeout: 10000,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  constructor() {
-    this.setupInterceptors();
+  // Token management
+  async setAuthToken(token: string) {
+    try {
+      await AsyncStorage.setItem('authToken', token);
+    } catch (error) {
+      console.error('Error setting auth token:', error);
+    }
   }
 
-  private setupInterceptors() {
-    // Request interceptor
-    this.api.interceptors.request.use(
-      (config) => {
-        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-        return config;
-      },
-      (error) => {
-        console.error('API Request Error:', error);
-        return Promise.reject(error);
-      }
-    );
-
-    // Response interceptor
-    this.api.interceptors.response.use(
-      (response: AxiosResponse<ApiResponse>) => {
-        console.log(`API Response: ${response.status} ${response.config.url}`);
-        return response;
-      },
-      (error) => {
-        console.error('API Response Error:', error.response?.data || error.message);
-        return Promise.reject(error);
-      }
-    );
-  }
-
-  setAuthToken(token: string) {
-    this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  }
-
-  clearAuthToken() {
-    delete this.api.defaults.headers.common['Authorization'];
+  async clearAuthToken() {
+    try {
+      await AsyncStorage.removeItem('authToken');
+    } catch (error) {
+      console.error('Error clearing auth token:', error);
+    }
   }
 
   // Auth endpoints
-  async login(email: string, password: string): Promise<ApiResponse<{ token: string; user: any }>> {
-    const response = await this.api.post('/auth/login', { email, password });
-    return response.data;
+  async login(email: string, password: string) {
+    const result = await auth.login(email, password);
+    if (result.token) {
+      await this.setAuthToken(result.token);
+    }
+    return { success: true, data: result, message: 'Login successful', timestamp: new Date().toISOString() };
   }
 
   async register(userData: {
@@ -68,140 +69,161 @@ class ApiService {
     email: string;
     password: string;
     phone?: string;
-    role: 'customer' | 'supplier';
-  }): Promise<ApiResponse<{ token: string; user: any }>> {
-    const response = await this.api.post('/auth/register', userData);
-    return response.data;
+    role: 'client' | 'master';
+  }) {
+    const result = await auth.register({
+      email: userData.email,
+      password: userData.password,
+      name: userData.username,
+      role: userData.role,
+    });
+    if (result.token) {
+      await this.setAuthToken(result.token);
+    }
+    return { success: true, data: result, message: 'Registration successful', timestamp: new Date().toISOString() };
   }
 
-  async updateProfile(userData: any): Promise<ApiResponse<any>> {
-    const response = await this.api.put('/auth/profile', userData);
-    return response.data;
+  async updateProfile(userData: any) {
+    const currentUser = await auth.getMe();
+    const result = await user.update(currentUser.id, userData);
+    return { success: true, data: result, message: 'Profile updated', timestamp: new Date().toISOString() };
   }
 
   // Notifications endpoints
-  async getNotifications(page: number = 1, limit: number = 20): Promise<ApiResponse<any[]>> {
-    const response = await this.api.get(`/notifications?page=${page}&limit=${limit}`);
-    return response.data;
+  async getNotifications(page: number = 1, limit: number = 20) {
+    const result = await notification.list();
+    return { success: true, data: result, message: 'Notifications fetched', timestamp: new Date().toISOString() };
   }
 
-  async markNotificationAsRead(notificationId: string): Promise<ApiResponse<any>> {
-    const response = await this.api.put(`/notifications/${notificationId}/read`);
-    return response.data;
+  async markNotificationAsRead(notificationId: string) {
+    const result = await notification.markRead(notificationId);
+    return { success: true, data: result, message: 'Notification marked as read', timestamp: new Date().toISOString() };
   }
 
-  async markAllNotificationsAsRead(): Promise<ApiResponse<any>> {
-    const response = await this.api.put('/notifications/read-all');
-    return response.data;
+  async markAllNotificationsAsRead() {
+    const result = await notification.markAllRead();
+    return { success: true, data: result, message: 'All notifications marked as read', timestamp: new Date().toISOString() };
   }
 
-  async getUnreadCount(): Promise<ApiResponse<{ count: number }>> {
-    const response = await this.api.get('/notifications/unread-count');
-    return response.data;
+  async getUnreadCount() {
+    // This would need a specific endpoint on backend
+    const notifications = await notification.list();
+    const unreadCount = Array.isArray(notifications) 
+      ? notifications.filter((n: any) => !n.read).length 
+      : 0;
+    return { success: true, data: { count: unreadCount }, message: 'Unread count fetched', timestamp: new Date().toISOString() };
   }
 
   // Video endpoints
-  async getVideos(page: number = 1, limit: number = 10): Promise<ApiResponse<any[]>> {
-    const response = await this.api.get(`/videos?page=${page}&limit=${limit}`);
-    return response.data;
+  async getVideos(page: number = 1, limit: number = 10) {
+    const result = await video.list({ page, limit });
+    return { success: true, data: result, message: 'Videos fetched', timestamp: new Date().toISOString() };
   }
 
-  async getVideoById(id: string): Promise<ApiResponse<any>> {
-    const response = await this.api.get(`/videos/${id}`);
-    return response.data;
+  async getVideoById(id: string) {
+    const result = await video.get(id);
+    return { success: true, data: result, message: 'Video fetched', timestamp: new Date().toISOString() };
   }
 
-  async likeVideo(id: string): Promise<ApiResponse<any>> {
-    const response = await this.api.post(`/videos/${id}/like`);
-    return response.data;
+  async likeVideo(id: string) {
+    const result = await video.like(id);
+    return { success: true, data: result, message: 'Video liked', timestamp: new Date().toISOString() };
   }
 
-  async unlikeVideo(id: string): Promise<ApiResponse<any>> {
-    const response = await this.api.delete(`/videos/${id}/like`);
-    return response.data;
+  async unlikeVideo(id: string) {
+    const result = await video.unlike(id);
+    return { success: true, data: result, message: 'Video unliked', timestamp: new Date().toISOString() };
   }
 
-  async addComment(videoId: string, text: string): Promise<ApiResponse<any>> {
-    const response = await this.api.post(`/videos/${id}/comments`, { text });
-    return response.data;
+  async addComment(videoId: string, text: string) {
+    const result = await video.addComment(videoId, text);
+    return { success: true, data: result, message: 'Comment added', timestamp: new Date().toISOString() };
   }
 
-  async getComments(videoId: string, page: number = 1, limit: number = 20): Promise<ApiResponse<any[]>> {
-    const response = await this.api.get(`/videos/${videoId}/comments?page=${page}&limit=${limit}`);
-    return response.data;
+  async getComments(videoId: string, page: number = 1, limit: number = 20) {
+    const result = await video.getComments(videoId, { page, limit });
+    return { success: true, data: result, message: 'Comments fetched', timestamp: new Date().toISOString() };
   }
 
   // Upload endpoints
-  async uploadVideo(videoData: FormData): Promise<ApiResponse<any>> {
-    const response = await this.api.post('/videos/upload', videoData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+  async uploadVideo(videoData: FormData) {
+    const result = await video.upload(videoData);
+    return { success: true, data: result, message: 'Video uploaded', timestamp: new Date().toISOString() };
   }
 
-  async uploadImage(imageData: FormData): Promise<ApiResponse<any>> {
-    const response = await this.api.post('/upload/image', imageData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+  async uploadImage(imageData: FormData) {
+    // Generic upload - would need specific endpoint
+    const result = await apiClient.upload('/upload/image', imageData);
+    return { success: true, data: result, message: 'Image uploaded', timestamp: new Date().toISOString() };
   }
 
   // Orders endpoints
-  async getOrders(page: number = 1, limit: number = 10): Promise<ApiResponse<any[]>> {
-    const response = await this.api.get(`/orders?page=${page}&limit=${limit}`);
-    return response.data;
+  async getOrders(page: number = 1, limit: number = 10) {
+    const result = await order.list({ page, limit });
+    return { success: true, data: result, message: 'Orders fetched', timestamp: new Date().toISOString() };
   }
 
-  async getOrderById(id: string): Promise<ApiResponse<any>> {
-    const response = await this.api.get(`/orders/${id}`);
-    return response.data;
+  async getOrderById(id: string) {
+    const result = await order.get(id);
+    return { success: true, data: result, message: 'Order fetched', timestamp: new Date().toISOString() };
   }
 
-  async createOrder(orderData: any): Promise<ApiResponse<any>> {
-    const response = await this.api.post('/orders', orderData);
-    return response.data;
+  async createOrder(orderData: any) {
+    const result = await order.create(orderData);
+    return { success: true, data: result, message: 'Order created', timestamp: new Date().toISOString() };
   }
 
-  async respondToOrder(orderId: string, responseData: any): Promise<ApiResponse<any>> {
-    const response = await this.api.post(`/orders/${orderId}/respond`, responseData);
-    return response.data;
+  async respondToOrder(orderId: string, responseData: any) {
+    const result = await order.createResponse(orderId, responseData);
+    return { success: true, data: result, message: 'Response created', timestamp: new Date().toISOString() };
   }
 
-  async acceptOrderResponse(orderId: string, responseId: string): Promise<ApiResponse<any>> {
-    const response = await this.api.post(`/orders/${orderId}/accept/${responseId}`);
-    return response.data;
+  async acceptOrderResponse(orderId: string, responseId: string) {
+    const result = await order.acceptResponse(orderId, responseId);
+    return { success: true, data: result, message: 'Response accepted', timestamp: new Date().toISOString() };
   }
 
   // Messages endpoints
-  async getMessages(chatId: string, page: number = 1, limit: number = 50): Promise<ApiResponse<any[]>> {
-    const response = await this.api.get(`/messages/${chatId}?page=${page}&limit=${limit}`);
-    return response.data;
+  async getMessages(chatId: string, page: number = 1, limit: number = 50) {
+    const result = await chat.getMessages(chatId, { page, limit });
+    return { success: true, data: result, message: 'Messages fetched', timestamp: new Date().toISOString() };
   }
 
-  async sendMessage(chatId: string, messageData: any): Promise<ApiResponse<any>> {
-    const response = await this.api.post(`/messages/${chatId}`, messageData);
-    return response.data;
+  async sendMessage(chatId: string, messageData: any) {
+    const result = await chat.sendMessage(
+      chatId,
+      messageData.content || messageData.text,
+      messageData.type || 'text',
+      messageData.metadata
+    );
+    return { success: true, data: result, message: 'Message sent', timestamp: new Date().toISOString() };
   }
 
   // Chats endpoints
-  async getChats(): Promise<ApiResponse<any[]>> {
-    const response = await this.api.get('/chats');
-    return response.data;
+  async getChats() {
+    const result = await chat.list();
+    return { success: true, data: result, message: 'Chats fetched', timestamp: new Date().toISOString() };
   }
 
-  async getChatById(id: string): Promise<ApiResponse<any>> {
-    const response = await this.api.get(`/chats/${id}`);
-    return response.data;
+  async getChatById(id: string) {
+    const result = await chat.get(id);
+    return { success: true, data: result, message: 'Chat fetched', timestamp: new Date().toISOString() };
   }
 
-  async createChat(participantId: string): Promise<ApiResponse<any>> {
-    const response = await this.api.post('/chats', { participantId });
-    return response.data;
+  async createChat(participantId: string) {
+    const result = await chat.create(participantId);
+    return { success: true, data: result, message: 'Chat created', timestamp: new Date().toISOString() };
   }
 }
 
 export const apiService = new ApiService();
+
+// Export individual service APIs for direct use
+export const api = {
+  video,
+  order,
+  chat,
+  user,
+  auth,
+  notification,
+};
