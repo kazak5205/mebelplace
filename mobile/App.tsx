@@ -6,7 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppNavigator from './src/navigation/AppNavigator';
-import { AuthProvider } from '@shared/contexts/AuthContext';
+import { AuthProvider } from './src/contexts/AuthContext';
 import { SocketProvider } from './src/contexts/SocketContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { navigationRef } from './src/utils/navigationRef';

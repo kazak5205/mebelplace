@@ -85,7 +85,7 @@ android {
 
     namespace 'com.mebelplace.mobile'
     defaultConfig {
-        applicationId 'com.mebelplace.mobile'
+        applicationId 'com.mebelplace.mobile3131'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

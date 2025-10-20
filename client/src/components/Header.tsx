@@ -1,26 +1,36 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bell, Search, User, LogOut, Settings } from 'lucide-react'
+import { Icon } from '@shared/components'
 import { useAuth } from '@shared/contexts/AuthContext'
 import { Link } from 'react-router-dom'
+import MobileMenu from './MobileMenu'
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-card p-4 mx-6 mt-6 mb-0"
+      className="glass-card p-4 mx-4 sm:mx-6 mt-4 sm:mt-6 mb-0"
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold gradient-text">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Mobile menu button */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="lg:hidden glass-button p-2 mr-2"
+          >
+            <Icon name="MENU" size={20} />
+          </button>
+          <h1 className="text-xl sm:text-2xl font-bold gradient-text">
             MebelPlace
           </h1>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -80,6 +90,12 @@ const Header: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Mobile Menu */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+      />
     </motion.header>
   )
 }

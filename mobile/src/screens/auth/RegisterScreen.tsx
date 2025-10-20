@@ -9,67 +9,75 @@ import {
 } from 'react-native';
 import {
   Text,
-  TextInput,
-  Button,
   Card,
   Title,
   Paragraph,
   ActivityIndicator,
-  SegmentedButtons,
+  RadioButton,
+  Checkbox,
 } from 'react-native-paper';
-import { useAuth } from '@shared/contexts/AuthContext';
+import { Button, Input } from '../../components/ui';
+import { useAuth } from '../../contexts/AuthContext';
+import { registerSchema, type RegisterFormData } from '@shared/utils/validation';
 
 const RegisterScreen = ({ navigation }: any) => {
-  const [formData, setFormData] = useState({
-    username: '',
+  const [formData, setFormData] = useState<RegisterFormData>({
+    name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
-    phone: '',
-    role: 'client' as 'client' | 'master',
+    role: 'client',
+    acceptTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Partial<RegisterFormData>>({});
   const { register } = useAuth();
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const validateForm = () => {
+    try {
+      registerSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error: any) {
+      const fieldErrors: Partial<RegisterFormData> = {};
+      error.errors?.forEach((err: any) => {
+        if (err.path?.[0]) {
+          fieldErrors[err.path[0] as keyof RegisterFormData] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
   };
 
   const handleRegister = async () => {
-    const { username, email, password, confirmPassword, phone, role } = formData;
-
-    if (!username || !email || !password || !confirmPassword) {
-      Alert.alert('Ошибка', 'Пожалуйста, заполните все обязательные поля');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Ошибка', 'Пароли не совпадают');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Ошибка', 'Пароль должен содержать минимум 6 символов');
+    if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
     try {
-      const success = await register({
-        username,
-        email,
-        password,
-        phone: phone || undefined,
-        role,
+      await register({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        role: formData.role,
       });
-      
-      if (!success) {
-        Alert.alert('Ошибка', 'Не удалось создать аккаунт. Возможно, email уже используется.');
-      }
-    } catch (error) {
-      Alert.alert('Ошибка', 'Произошла ошибка при регистрации');
+      Alert.alert('Успех', 'Регистрация прошла успешно!');
+    } catch (error: any) {
+      Alert.alert('Ошибка', error.message || 'Произошла ошибка при регистрации');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateField = (field: keyof RegisterFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -78,97 +86,114 @@ const RegisterScreen = ({ navigation }: any) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.title}>Создать аккаунт</Title>
-              <Paragraph style={styles.subtitle}>
-                Зарегистрируйтесь в MebelPlace
-              </Paragraph>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title style={styles.title}>Регистрация</Title>
+            <Paragraph style={styles.subtitle}>
+              Создайте аккаунт для работы с MebelPlace
+            </Paragraph>
 
-              <TextInput
-                label="Имя пользователя *"
-                value={formData.username}
-                onChangeText={(value) => handleInputChange('username', value)}
-                mode="outlined"
-                style={styles.input}
-                autoCapitalize="none"
-              />
+            <Input
+              label="Имя *"
+              value={formData.name}
+              onChangeText={(text) => updateField('name', text)}
+              error={errors.name}
+              style={styles.input}
+            />
 
-              <TextInput
-                label="Email *"
-                value={formData.email}
-                onChangeText={(value) => handleInputChange('email', value)}
-                mode="outlined"
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
+            <Input
+              label="Email (опционально)"
+              value={formData.email}
+              onChangeText={(text) => updateField('email', text)}
+              error={errors.email}
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
-              <TextInput
-                label="Телефон"
-                value={formData.phone}
-                onChangeText={(value) => handleInputChange('phone', value)}
-                mode="outlined"
-                style={styles.input}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-              />
+            <Input
+              label="Телефон (опционально)"
+              value={formData.phone}
+              onChangeText={(text) => updateField('phone', text)}
+              error={errors.phone}
+              style={styles.input}
+              keyboardType="phone-pad"
+            />
 
-              <View style={styles.roleContainer}>
-                <Text style={styles.roleLabel}>Тип аккаунта *</Text>
-                <SegmentedButtons
-                  value={formData.role}
-                  onValueChange={(value) => handleInputChange('role', value)}
-                  buttons={[
-                    { value: 'client', label: 'Покупатель' },
-                    { value: 'master', label: 'Поставщик' },
-                  ]}
-                  style={styles.segmentedButtons}
-                />
+            <Input
+              label="Пароль *"
+              value={formData.password}
+              onChangeText={(text) => updateField('password', text)}
+              error={errors.password}
+              style={styles.input}
+              secureTextEntry
+            />
+
+            <Input
+              label="Подтверждение пароля *"
+              value={formData.confirmPassword}
+              onChangeText={(text) => updateField('confirmPassword', text)}
+              error={errors.confirmPassword}
+              style={styles.input}
+              secureTextEntry
+            />
+
+            <View style={styles.roleContainer}>
+              <Text style={styles.roleLabel}>Роль *</Text>
+              <View style={styles.radioGroup}>
+                <View style={styles.radioItem}>
+                  <RadioButton
+                    value="client"
+                    status={formData.role === 'client' ? 'checked' : 'unchecked'}
+                    onPress={() => updateField('role', 'client')}
+                  />
+                  <Text style={styles.radioLabel}>Клиент</Text>
+                </View>
+                <View style={styles.radioItem}>
+                  <RadioButton
+                    value="master"
+                    status={formData.role === 'master' ? 'checked' : 'unchecked'}
+                    onPress={() => updateField('role', 'master')}
+                  />
+                  <Text style={styles.radioLabel}>Мастер</Text>
+                </View>
               </View>
+              {errors.role && <Text style={styles.errorText}>{errors.role}</Text>}
+            </View>
 
-              <TextInput
-                label="Пароль *"
-                value={formData.password}
-                onChangeText={(value) => handleInputChange('password', value)}
-                mode="outlined"
-                style={styles.input}
-                secureTextEntry
-                autoComplete="password"
+            <View style={styles.checkboxContainer}>
+              <Checkbox
+                status={formData.acceptTerms ? 'checked' : 'unchecked'}
+                onPress={() => updateField('acceptTerms', !formData.acceptTerms)}
               />
+              <Text style={styles.checkboxLabel}>
+                Я принимаю условия использования и политику конфиденциальности
+              </Text>
+            </View>
+            {errors.acceptTerms && <Text style={styles.errorText}>{errors.acceptTerms}</Text>}
 
-              <TextInput
-                label="Подтвердите пароль *"
-                value={formData.confirmPassword}
-                onChangeText={(value) => handleInputChange('confirmPassword', value)}
-                mode="outlined"
-                style={styles.input}
-                secureTextEntry
-                autoComplete="password"
-              />
+            <Button
+              variant="primary"
+              onPress={handleRegister}
+              loading={isLoading}
+              disabled={isLoading}
+              style={styles.registerButton}
+              fullWidth
+            >
+              {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
+            </Button>
 
-              <Button
-                mode="contained"
-                onPress={handleRegister}
-                style={styles.button}
-                disabled={isLoading}
-              >
-                {isLoading ? <ActivityIndicator color="white" /> : 'Зарегистрироваться'}
-              </Button>
-
-              <Button
-                mode="text"
-                onPress={() => navigation.navigate('Login')}
-                style={styles.linkButton}
-              >
-                Уже есть аккаунт? Войти
-              </Button>
-            </Card.Content>
-          </Card>
-        </View>
+            <Button
+              variant="ghost"
+              onPress={() => navigation.navigate('Login')}
+              style={styles.loginButton}
+              fullWidth
+            >
+              Уже есть аккаунт? Войти
+            </Button>
+          </Card.Content>
+        </Card>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -179,12 +204,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  scrollContainer: {
+  scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-  },
-  content: {
-    padding: 20,
+    padding: 16,
   },
   card: {
     elevation: 4,
@@ -192,8 +215,7 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
     marginBottom: 8,
-    fontSize: 24,
-    fontWeight: 'bold',
+    color: '#f97316',
   },
   subtitle: {
     textAlign: 'center',
@@ -201,25 +223,51 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 12,
+    marginBottom: 8,
+    marginLeft: 12,
   },
   roleContainer: {
-    marginBottom: 16,
+    marginVertical: 16,
   },
   roleLabel: {
     fontSize: 16,
+    fontWeight: '500',
     marginBottom: 8,
+    color: '#333',
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  radioItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radioLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: 16,
+  },
+  checkboxLabel: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
     color: '#666',
   },
-  segmentedButtons: {
-    marginBottom: 8,
-  },
-  button: {
-    marginTop: 8,
-    marginBottom: 16,
+  registerButton: {
+    marginTop: 16,
     paddingVertical: 8,
   },
-  linkButton: {
+  loginButton: {
     marginTop: 8,
   },
 });

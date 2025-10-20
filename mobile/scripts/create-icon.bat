@@ -44,3 +44,4 @@ echo - Professional design
 echo - All required sizes (40x40 to 1024x1024)
 
 pause
+

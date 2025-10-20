@@ -11,6 +11,10 @@ export { Avatar } from './Avatar';
 export { Divider } from './Divider';
 export { EmptyState } from './EmptyState';
 
+// Export icons
+export { Icon } from '../icons/Icon';
+export * from '../icons';
+
 // Export all types
 export type { ButtonProps } from './Button';
 export type { InputProps } from './Input';

@@ -55,11 +55,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen flex">
-      <Sidebar />
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Mobile: Hidden sidebar, Desktop: Visible */}
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
+      
       <div className="flex-1 flex flex-col">
         <Header />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 sm:p-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

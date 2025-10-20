@@ -33,9 +33,9 @@ const darkTheme = {
   ...MD3DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: '#64B5F6',
-    secondary: '#FFD54F',
-    tertiary: '#81C784',
+    primary: '#f97316', // Brand orange - synced with web
+    secondary: '#fb923c', // Lighter orange
+    tertiary: '#22c55e', // Success green
   },
 };
 

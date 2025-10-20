@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",
+    "lucide-react": "^0.294.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

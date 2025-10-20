@@ -395,21 +395,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           />
 
           {/* Правая панель действий (TikTok style) */}
-          <div className="absolute right-4 bottom-24 flex flex-col items-center space-y-6">
+          <div className="absolute right-2 sm:right-4 bottom-16 sm:bottom-24 flex flex-col items-center space-y-4 sm:space-y-6">
             {/* Аватар автора */}
             <div className="relative">
               <button
                 onClick={() => currentVideo.master?.id && navigate(`/master/${currentVideo.master.id}`)}
-                className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold border-2 border-white"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold border-2 border-white"
                 aria-label="Канал мастера"
               >
                 {currentVideo.master?.name?.charAt(0).toUpperCase() || 'M'}
               </button>
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center"
+                className="absolute -bottom-1 sm:-bottom-2 left-1/2 -translate-x-1/2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-red-500 flex items-center justify-center"
               >
-                <UserPlus className="w-4 h-4 text-white" />
+                <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
               </motion.button>
             </div>
 
@@ -419,9 +419,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onClick={handleLike}
               className="flex flex-col items-center space-y-1"
             >
-              <div className={`p-2 rounded-full ${videoState.isLiked ? 'bg-red-500' : 'bg-black/30 backdrop-blur-sm'}`}>
+              <div className={`p-1.5 sm:p-2 rounded-full ${videoState.isLiked ? 'bg-red-500' : 'bg-black/30 backdrop-blur-sm'}`}>
                 <Heart 
-                  className={`w-7 h-7 ${videoState.isLiked ? 'text-white fill-white' : 'text-white'}`}
+                  className={`w-5 h-5 sm:w-7 sm:h-7 ${videoState.isLiked ? 'text-white fill-white' : 'text-white'}`}
                 />
               </div>
               <span className="text-white text-xs font-semibold">
@@ -435,8 +435,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onClick={() => setShowComments(true)}
               className="flex flex-col items-center space-y-1"
             >
-              <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                <MessageCircle className="w-7 h-7 text-white" />
+              <div className="p-1.5 sm:p-2 rounded-full bg-black/30 backdrop-blur-sm">
+                <MessageCircle className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </div>
               <span className="text-white text-xs font-semibold">
                 {formatCount(currentVideo.commentsCount)}
@@ -449,10 +449,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onClick={handleShare}
               className="flex flex-col items-center space-y-1"
             >
-              <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                <Share2 className="w-7 h-7 text-white" />
+              <div className="p-1.5 sm:p-2 rounded-full bg-black/30 backdrop-blur-sm">
+                <Share2 className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </div>
-              <span className="text-white text-xs font-semibold">
+              <span className="text-white text-xs font-semibold hidden sm:block">
                 Поделиться
               </span>
             </motion.button>
@@ -462,8 +462,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               whileTap={{ scale: 0.8 }}
               className="flex flex-col items-center space-y-1"
             >
-              <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                <Bookmark className="w-7 h-7 text-white" />
+              <div className="p-1.5 sm:p-2 rounded-full bg-black/30 backdrop-blur-sm">
+                <Bookmark className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </div>
             </motion.button>
 
@@ -473,19 +473,19 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onClick={toggleMute}
               className="flex flex-col items-center"
             >
-              <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
+              <div className="p-1.5 sm:p-2 rounded-full bg-black/30 backdrop-blur-sm">
                 {isMuted ? (
-                  <VolumeX className="w-6 h-6 text-white" />
+                  <VolumeX className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 ) : (
-                  <Volume2 className="w-6 h-6 text-white" />
+                  <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 )}
               </div>
             </motion.button>
           </div>
 
           {/* Нижняя информация о видео */}
-          <div className="absolute left-0 right-0 bottom-0 p-4 pb-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-            <div className="max-w-md">
+          <div className="absolute left-0 right-0 bottom-0 p-3 sm:p-4 pb-16 sm:pb-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+            <div className="max-w-sm sm:max-w-md">
               <div className="flex items-center space-x-2 mb-3">
                 <button
                   onClick={() => currentVideo.master?.id && navigate(`/master/${currentVideo.master.id}`)}
@@ -497,12 +497,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <span className="text-white/70 text-sm">{formatTimeAgo(currentVideo.createdAt)}</span>
               </div>
 
-              <h3 className="text-white font-semibold text-lg mb-2 line-clamp-2">
+              <h3 className="text-white font-semibold text-base sm:text-lg mb-2 line-clamp-2">
                 {currentVideo.title}
               </h3>
 
               {currentVideo.description && (
-                <p className="text-white/90 text-sm mb-3 line-clamp-2">
+                <p className="text-white/90 text-xs sm:text-sm mb-3 line-clamp-2">
                   {currentVideo.description}
                 </p>
               )}

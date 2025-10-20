@@ -17,7 +17,7 @@
     "scheme": "mebelplace",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mebelplace.mobile",
+      "bundleIdentifier": "com.mebelplace.mobile3131",
       "icon": "./assets/180x180.png",
       "associatedDomains": ["applinks:mebelplace.com.kz"]
     },
@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/512x512.png",
         "backgroundColor": "#f97316"
       },
-      "package": "com.mebelplace.mobile",
+      "package": "com.mebelplace.mobile3131",
       "icon": "./assets/192x192.png",
       "versionCode": 1,
       "intentFilters": [

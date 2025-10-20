@@ -258,3 +258,4 @@ adb install path/to/app.apk
 - `android/app/build/outputs/apk/release/`
 - `android/app/build/outputs/bundle/release/`
 
+

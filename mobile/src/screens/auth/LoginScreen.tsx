@@ -16,7 +16,7 @@ import {
   Paragraph,
   ActivityIndicator,
 } from 'react-native-paper';
-import { useAuth } from '@shared/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');

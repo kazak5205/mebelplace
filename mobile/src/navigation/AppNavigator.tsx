@@ -2,7 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@shared/contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { getTabs, getRedirectPath } from '@shared/routing/routes';
 import LoadingScreen from '../components/LoadingScreen';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
