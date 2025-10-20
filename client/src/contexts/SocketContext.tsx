@@ -32,7 +32,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const newSocket = io('https://mebelplace.com.kz', {
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://mebelplace.com.kz'
+      const newSocket = io(socketUrl, {
         auth: {
           token: localStorage.getItem('authToken')
         },

@@ -98,7 +98,7 @@ mobile/
 ## 🔧 Конфигурация
 
 ### API Endpoints
-Все API запросы идут на `https://mebelplace.com.kz/api/v1/`
+Все API запросы идут на `https://mebelplace.com.kz/api/`
 
 ### WebSocket
 Подключение к `https://mebelplace.com.kz` для real-time обновлений

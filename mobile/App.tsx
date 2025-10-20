@@ -6,20 +6,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppNavigator from './src/navigation/AppNavigator';
-import { AuthProvider } from './src/contexts/AuthContext';
+import { AuthProvider } from '@shared/contexts/AuthContext';
 import { SocketProvider } from './src/contexts/SocketContext';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { navigationRef } from './src/utils/navigationRef';
-import { initDeepLinking } from './src/utils/deepLinking';
-
 function AppContent() {
   const { theme, navigationTheme, isDark } = useTheme();
-  
-  useEffect(() => {
-    // Инициализация deep linking
-    const subscription = initDeepLinking();
-    return () => subscription?.remove();
-  }, []);
   
   return (
     <PaperProvider theme={theme}>

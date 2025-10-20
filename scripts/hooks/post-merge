@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# After merging or pulling, push fast-forwarded branch to keep remote updated
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+# Skip if running in CI
+if [[ "${CI:-}" == "true" ]]; then
+  exit 0
+fi
+
+# If local is ahead of upstream, push
+upstream="@{u}"
+if git rev-parse --abbrev-ref "$upstream" >/dev/null 2>&1; then
+  if ! git merge-base --is-ancestor "$upstream" HEAD; then
+    # local is not ahead; nothing to push
+    exit 0
+  fi
+fi
+
+git push origin "$branch" >/dev/null 2>&1 || true
+
+

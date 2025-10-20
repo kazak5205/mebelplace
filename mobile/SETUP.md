@@ -18,7 +18,7 @@ npm install
 ### 2. Настройка переменных окружения
 Создайте файл `.env` в корне папки `mobile`:
 ```env
-EXPO_PUBLIC_API_URL=https://mebelplace.com.kz/api/v1
+EXPO_PUBLIC_API_URL=https://mebelplace.com.kz/api
 EXPO_PUBLIC_SOCKET_URL=https://mebelplace.com.kz
 EXPO_PUBLIC_PROJECT_ID=your-expo-project-id
 ```
@@ -114,7 +114,7 @@ mobile/
 ## API Интеграция
 
 Приложение интегрировано с backend API:
-- **Base URL**: `https://mebelplace.com.kz/api/v1`
+- **Base URL**: `https://mebelplace.com.kz/api`
 - **WebSocket**: `https://mebelplace.com.kz`
 - **Аутентификация**: JWT токены
 - **Файлы**: Загрузка через multipart/form-data

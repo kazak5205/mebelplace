@@ -124,13 +124,13 @@ npm run preview
 Создайте файл `.env.local`:
 
 ```env
-VITE_API_URL=https://mebelplace.com.kz/api/v1
+VITE_API_URL=https://mebelplace.com.kz/api
 VITE_SOCKET_URL=https://mebelplace.com.kz
 ```
 
 ### API Endpoints
 
-Все API запросы идут на `https://mebelplace.com.kz/api/v1` согласно правилам проекта.
+Все API запросы идут на `https://mebelplace.com.kz/api` согласно правилам проекта.
 
 ## 📱 Страницы
 

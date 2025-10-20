@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Push last commit to current branch
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+# Skip if running in CI
+if [[ "${CI:-}" == "true" ]]; then
+  exit 0
+fi
+
+# If there is nothing new to push, exit quietly
+upstream="@{u}"
+if git rev-parse --abbrev-ref "$upstream" >/dev/null 2>&1; then
+  if git diff --quiet --exit-code "$upstream"..HEAD; then
+    exit 0
+  fi
+fi
+
+git push origin "$branch" >/dev/null 2>&1 || true
+
+
