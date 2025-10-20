@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "MebelPlace",
+    "slug": "mebelplace-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/512x512.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/512x512.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2196F3"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mebelplace.mobile",
+      "icon": "./assets/180x180.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/512x512.png",
+        "backgroundColor": "#2196F3"
+      },
+      "package": "com.mebelplace.mobile",
+      "icon": "./assets/192x192.png",
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/48x48.png"
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-av",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/96x96.png",
+          "color": "#ffffff"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "mebelplace-mobile-app"
+      }
+    }
+  }
+}

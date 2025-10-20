@@ -1,0 +1,98 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!env.example
+
+# Build outputs
+dist/
+build/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-*
+
+# Server
+server/uploads/videos/*
+server/uploads/thumbnails/*
+server/uploads/avatars/*
+server/uploads/chat-files/*
+server/uploads/order-photos/*
+!server/uploads/**/.gitkeep
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Docker
+.dockerignore
+
+# PM2
+.pm2/
+ecosystem.config.js.backup
+
+# SSL/Certificates (don't commit private keys)
+*.key
+*.pem
+*.crt
+!*.example.key
+!*.example.pem
+!*.example.crt
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Testing
+coverage/
+.nyc_output/
+
+# Mobile
+mobile/.expo/
+mobile/.expo-shared/
+mobile/dist/
+mobile/web-build/
+
+# Client build
+client/dist/
+
+# System files
+*.pid
+*.seed
+*.pid.lock
+

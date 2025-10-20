@@ -1,0 +1,55 @@
+{
+  "name": "mebelplace-mvp",
+  "version": "1.0.0",
+  "description": "MebelPlace MVP - Platform for masters and clients",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "mobile": "cd mobile && npm run android",
+    "build": "npm run build:client && npm run build:mobile",
+    "build:client": "cd client && npm run build",
+    "build:mobile": "cd mobile && npm run build:android",
+    "build:apk": "./scripts/build-apk.sh",
+    "start": "cd server && npm start",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install && cd ../mobile && npm install",
+    "docker:build": "docker build -t mebelplace-mvp .",
+    "docker:run": "docker run -p 3001:3001 -p 80:80 -p 443:443 mebelplace-mvp",
+    "deploy": "./scripts/deploy.sh",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "cd server && npm test",
+    "test:client": "cd client && npm test",
+    "lint": "npm run lint:server && npm run lint:client && npm run lint:mobile",
+    "lint:server": "cd server && npm run lint",
+    "lint:client": "cd client && npm run lint",
+    "lint:mobile": "cd mobile && npm run lint",
+    "clean": "rm -rf node_modules server/node_modules client/node_modules mobile/node_modules",
+    "setup": "npm run install-all && npm run build",
+    "health": "curl -f https://mebelplace.com.kz/api/health || echo 'Server not responding'"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mebelplace/mvp.git"
+  },
+  "keywords": [
+    "furniture",
+    "masters",
+    "clients",
+    "video",
+    "chat",
+    "orders",
+    "notifications",
+    "mvp"
+  ],
+  "author": "MebelPlace Team",
+  "license": "MIT"
+}
