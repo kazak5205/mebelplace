@@ -41,20 +41,22 @@ const AdminDashboard: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
 
   useEffect(() => {
+      const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await adminService.getDashboard(selectedPeriod) as any;
+        setData(response || null);
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod]);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      const response = await adminService.getDashboard(selectedPeriod) as any;
-      setData(response.data);
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {

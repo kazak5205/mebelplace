@@ -18,6 +18,10 @@ const { initDatabase } = require('./config/database');
 const { setupSocket } = require('./config/socket');
 
 const app = express();
+
+// Trust proxy для работы за nginx
+app.set('trust proxy', 1);
+
 const server = createServer(app);
 const io = new Server(server, {
   cors: {

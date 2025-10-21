@@ -25,7 +25,6 @@ const Sidebar: React.FC = () => {
       label: 'Чаты',
       href: '/chat',
       icon: MessageCircle,
-      badge: 3,
     },
     {
       label: 'Заявки',

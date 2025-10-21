@@ -57,7 +57,7 @@ class VideoService {
     if (!videoData.title || videoData.title.trim().length === 0) {
       errors.push('Title is required');
     }
-    if (!videoData.authorId || !Number.isInteger(videoData.authorId)) {
+    if (!videoData.authorId) {
       errors.push('Valid author ID is required');
     }
     if (!videoData.videoUrl || !videoData.videoUrl.trim()) {

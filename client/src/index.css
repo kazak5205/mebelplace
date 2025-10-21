@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
+}
+
 @layer base {
   :root {
     --bg-primary: #0f0f0f;
@@ -10,8 +25,8 @@
     --text-secondary: rgba(255, 255, 255, 0.7);
     --accent-primary: #f97316;
     --accent-secondary: #ea580c;
-    --glass-bg: rgba(255, 255, 255, 0.1);
-    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-bg: rgba(0, 0, 0, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.3);
   }
 
   [data-theme="light"] {
@@ -21,12 +36,8 @@
     --text-secondary: rgba(15, 15, 15, 0.7);
     --accent-primary: #f97316;
     --accent-secondary: #ea580c;
-    --glass-bg: rgba(249, 115, 22, 0.1);
-    --glass-border: rgba(249, 115, 22, 0.2);
-  }
-  
-  * {
-    @apply border-border;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(249, 115, 22, 0.3);
   }
   
   body {
@@ -45,10 +56,11 @@
 @layer components {
   .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
@@ -74,7 +86,8 @@
   
   .glass-button {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
     padding: 8px 16px;

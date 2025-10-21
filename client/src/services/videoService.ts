@@ -31,6 +31,26 @@ export const videoService = {
     baseVideoService.addComment(videoId, content, parentId),
   likeComment: (commentId: string) => baseVideoService.likeComment(commentId),
   unlikeComment: (commentId: string) => baseVideoService.unlikeComment(commentId),
+  
+  // Bookmarks
+  addBookmark: async (videoId: string) => {
+    try {
+      await apiClient.post(`/videos/${videoId}/bookmark`)
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to add bookmark:', error)
+      throw error
+    }
+  },
+  removeBookmark: async (videoId: string) => {
+    try {
+      await apiClient.delete(`/videos/${videoId}/bookmark`)
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to remove bookmark:', error)
+      throw error
+    }
+  },
 }
 
 // Export base service for direct use

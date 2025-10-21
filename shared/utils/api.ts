@@ -310,10 +310,14 @@ export const userApi = (client: ApiClient) => ({
  * Auth API methods
  */
 export const authApi = (client: ApiClient) => ({
-  login: (email: string, password: string): Promise<{ token: string; user: any }> =>
-    client.post(API_ENDPOINTS.AUTH.LOGIN, { email, password }),
-  register: (data: { email: string; password: string; name: string; role: string }): Promise<{ token: string; user: any }> =>
-    client.post(API_ENDPOINTS.AUTH.REGISTER, data),
+  login: async (email: string, password: string): Promise<{ token: string; user: any }> => {
+    const response: any = await client.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
+    return { token: response.accessToken || response.token, user: response.user };
+  },
+  register: async (data: { email: string; password: string; name: string; role: string }): Promise<{ token: string; user: any }> => {
+    const response: any = await client.post(API_ENDPOINTS.AUTH.REGISTER, data);
+    return { token: response.accessToken || response.token, user: response.user };
+  },
   logout: (): Promise<void> => client.post(API_ENDPOINTS.AUTH.LOGOUT),
   getMe: (): Promise<any> => client.get(API_ENDPOINTS.AUTH.ME),
   verify: (token: string): Promise<any> => client.post(API_ENDPOINTS.AUTH.VERIFY, { token }),

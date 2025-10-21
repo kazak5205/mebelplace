@@ -9,6 +9,7 @@ export const apiClient = new ApiClient({
   getToken: () => localStorage.getItem('authToken'),
   onUnauthorized: () => {
     localStorage.removeItem('authToken')
+    localStorage.removeItem('userData')
     window.location.href = '/login'
   },
 })

@@ -1,34 +1,74 @@
 /**
- * Unified Icon Component
+ * Unified Icon Component  
  * Works with both Lucide icons and custom brand icons
  */
 
 import React from 'react'
-import { LucideIcon } from 'lucide-react'
 import { IconProps, getIconName, ICON_NAMES, BRAND_ICONS } from './index'
 
-// Import all Lucide icons dynamically
-const iconMap = new Map<string, LucideIcon>()
+// Direct imports of commonly used Lucide icons
+import {
+  Home, Search, Bell, User, LogOut, Settings, Menu, Plus,
+  X, Upload, Video, MessageCircle, ShoppingBag, Star,
+  Send, Image, File, Check, AlertCircle, Info,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+  Heart, Share2, Eye, EyeOff, Lock, Mail, Phone
+} from 'lucide-react'
 
-// Lazy load Lucide icons
-const getLucideIcon = (iconName: string): LucideIcon | null => {
-  if (iconMap.has(iconName)) {
-    return iconMap.get(iconName)!
+const LUCIDE_ICON_MAP: Record<string, any> = {
+  'home': Home,
+  'search': Search,
+  'bell': Bell,
+  'user': User,
+  'log-out': LogOut,
+  'logout': LogOut,
+  'settings': Settings,
+  'menu': Menu,
+  'plus': Plus,
+  'x': X,
+  'upload': Upload,
+  'video': Video,
+  'message-circle': MessageCircle,
+  'messagecircle': MessageCircle,
+  'shopping-bag': ShoppingBag,
+  'star': Star,
+  'send': Send,
+  'image': Image,
+  'file': File,
+  'check': Check,
+  'alert-circle': AlertCircle,
+  'alertcircle': AlertCircle,
+  'info': Info,
+  'chevron-left': ChevronLeft,
+  'chevronleft': ChevronLeft,
+  'chevron-right': ChevronRight,
+  'chevronright': ChevronRight,
+  'chevron-down': ChevronDown,
+  'chevrondown': ChevronDown,
+  'chevron-up': ChevronUp,
+  'chevronup': ChevronUp,
+  'heart': Heart,
+  'share-2': Share2,
+  'share2': Share2,
+  'eye': Eye,
+  'eye-off': EyeOff,
+  'eyeoff': EyeOff,
+  'lock': Lock,
+  'mail': Mail,
+  'phone': Phone,
+}
+
+// Get Lucide icon by name
+const getLucideIcon = (iconName: string): React.ComponentType<any> | null => {
+  const lowerName = iconName.toLowerCase().replace(/_/g, '-')
+  const IconComponent = LUCIDE_ICON_MAP[lowerName]
+  
+  if (!IconComponent) {
+    console.warn(`Icon "${iconName}" not found in map`)
+    return null
   }
   
-  try {
-    // Dynamic import of Lucide icons
-    const iconModule = require(`lucide-react/dist/esm/icons/${iconName}`)
-    const IconComponent = iconModule[iconName] as LucideIcon
-    if (IconComponent) {
-      iconMap.set(iconName, IconComponent)
-      return IconComponent
-    }
-  } catch (error) {
-    console.warn(`Icon "${iconName}" not found in Lucide React`)
-  }
-  
-  return null
+  return IconComponent
 }
 
 // Brand icon components (placeholder - replace with actual SVG components)
@@ -82,6 +122,8 @@ export const Icon: React.FC<IconProps> = ({
   'aria-hidden': ariaHidden = false,
   ...props
 }) => {
+  // Ensure size is always a number
+  const iconSize = Number(size) || 24
   const iconName = getIconName(name)
   
   // Check if it's a brand icon
@@ -89,7 +131,7 @@ export const Icon: React.FC<IconProps> = ({
     return (
       <BrandIcon
         name={iconName}
-        size={size}
+        size={iconSize}
         className={className}
         {...props}
       />
@@ -104,7 +146,7 @@ export const Icon: React.FC<IconProps> = ({
     return (
       <div
         className={`inline-flex items-center justify-center ${className}`}
-        style={{ width: size, height: size }}
+        style={{ width: iconSize, height: iconSize }}
         aria-label={ariaLabel}
         aria-hidden={ariaHidden}
         {...props}
@@ -116,7 +158,7 @@ export const Icon: React.FC<IconProps> = ({
   
   return (
     <LucideIconComponent
-      size={size}
+      size={iconSize}
       className={className}
       color={color}
       strokeWidth={strokeWidth}

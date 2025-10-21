@@ -1,12 +1,12 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
-const { upload } = require('../middleware/upload');
+const { imageUpload } = require('../middleware/upload');
 const notificationService = require('../services/notificationService');
 const router = express.Router();
 
 // POST /api/orders/create - Создание заявки
-router.post('/create', authenticateToken, upload.array('images', 5), async (req, res) => {
+router.post('/create', authenticateToken, imageUpload.array('images', 5), async (req, res) => {
   try {
     const { title, description, category, location, region, budget, deadline } = req.body;
     const clientId = req.user.id;
@@ -42,14 +42,20 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
 
     const order = result.rows[0];
 
-    // Уведомление мастерам о новой заявке
-    const mastersResult = await pool.query(
-      'SELECT id FROM users WHERE role = $1 AND is_active = true',
-      ['master']
-    );
+    // Уведомление мастерам о новой заявке (optional - skip if service not ready)
+    try {
+      const mastersResult = await pool.query(
+        'SELECT id FROM users WHERE role = $1 AND is_active = true',
+        ['master']
+      );
 
-    for (const master of mastersResult.rows) {
-      await notificationService.notifyNewOrder(master.id, order.title, req.user.username);
+      for (const master of mastersResult.rows) {
+        if (notificationService && typeof notificationService.notifyNewOrder === 'function') {
+          await notificationService.notifyNewOrder(master.id, order.title, req.user.username);
+        }
+      }
+    } catch (notifError) {
+      console.warn('Notification error (non-critical):', notifError.message);
     }
 
     res.status(201).json({
@@ -82,11 +88,11 @@ router.get('/feed', authenticateToken, async (req, res) => {
         u.first_name as client_first_name,
         u.last_name as client_last_name,
         u.avatar as client_avatar,
-        COUNT(or.id) as response_count
-      FROM orders o
-      LEFT JOIN users u ON o.client_id = u.id
-      LEFT JOIN order_responses or ON o.id = or.order_id AND or.is_active = true
-      WHERE o.is_active = true
+      COUNT(ord_resp.id) as response_count
+    FROM orders o
+    LEFT JOIN users u ON o.client_id = u.id
+    LEFT JOIN order_responses ord_resp ON o.id = ord_resp.order_id AND ord_resp.is_active = true
+    WHERE o.is_active = true
     `;
     
     const params = [];
@@ -147,6 +153,28 @@ router.get('/feed', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/orders/regions - Получить список регионов Казахстана
+router.get('/regions', async (req, res) => {
+  try {
+    const { KZ_REGIONS } = require('../../shared/utils/regions');
+
+    res.json({
+      success: true,
+      data: KZ_REGIONS,
+      message: 'Regions retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get regions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve regions',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // GET /api/orders/:id - Получить заявку
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
@@ -187,15 +215,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
     // Получить отклики на заявку
     const responsesResult = await pool.query(`
       SELECT 
-        or.*,
+        ord_resp.*,
         u.username as master_username,
         u.first_name as master_first_name,
         u.last_name as master_last_name,
         u.avatar as master_avatar
-      FROM order_responses or
-      LEFT JOIN users u ON or.master_id = u.id
-      WHERE or.order_id = $1 AND or.is_active = true
-      ORDER BY or.created_at DESC
+      FROM order_responses ord_resp
+      LEFT JOIN users u ON ord_resp.master_id = u.id
+      WHERE ord_resp.order_id = $1 AND ord_resp.is_active = true
+      ORDER BY ord_resp.created_at DESC
     `, [orderId]);
 
     order.responses = responsesResult.rows;
@@ -541,28 +569,6 @@ router.get('/categories', async (req, res) => {
   }
 });
 
-// GET /api/orders/regions - Получить список регионов Казахстана
-router.get('/regions', async (req, res) => {
-  try {
-    const { KZ_REGIONS } = require('../../shared/utils/regions');
-
-    res.json({
-      success: true,
-      data: KZ_REGIONS,
-      message: 'Regions retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get regions error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve regions',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
 // GET /api/orders/:id/responses - Получить отклики на заявку
 router.get('/:id/responses', authenticateToken, async (req, res) => {
   try {
@@ -586,17 +592,17 @@ router.get('/:id/responses', authenticateToken, async (req, res) => {
     // Получаем отклики
     const responsesResult = await pool.query(`
       SELECT 
-        or.*,
+        ord_resp.*,
         u.username,
         u.avatar,
         u.first_name,
         u.last_name,
         u.phone,
         u.email
-      FROM order_responses or
-      LEFT JOIN users u ON or.master_id = u.id
-      WHERE or.order_id = $1 AND or.is_active = true
-      ORDER BY or.created_at DESC
+      FROM order_responses ord_resp
+      LEFT JOIN users u ON ord_resp.master_id = u.id
+      WHERE ord_resp.order_id = $1 AND ord_resp.is_active = true
+      ORDER BY ord_resp.created_at DESC
     `, [orderId]);
 
     res.json({
@@ -794,6 +800,116 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
       success: false,
       message: 'Failed to accept response',
       timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// POST /api/orders/:id/accept - Принять отклик мастера
+router.post('/:id/accept', authenticateToken, async (req, res) => {
+  try {
+    const { id: orderId } = req.params;
+    const { responseId } = req.body;
+    const clientId = req.user.id;
+
+    if (!responseId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Response ID is required'
+      });
+    }
+
+    // Проверяем что заявка принадлежит клиенту
+    const orderCheck = await pool.query(
+      'SELECT * FROM orders WHERE id = $1 AND client_id = $2',
+      [orderId, clientId]
+    );
+
+    if (orderCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to accept responses for this order'
+      });
+    }
+
+    // Получаем отклик
+    const responseResult = await pool.query(
+      'SELECT * FROM order_responses WHERE id = $1 AND order_id = $2',
+      [responseId, orderId]
+    );
+
+    if (responseResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Response not found'
+      });
+    }
+
+    const response = responseResult.rows[0];
+    const masterId = response.master_id;
+
+    // Начинаем транзакцию
+    await pool.query('BEGIN');
+
+    try {
+      // 1. Принимаем отклик
+      await pool.query(
+        'UPDATE order_responses SET is_accepted = true, updated_at = NOW() WHERE id = $1',
+        [responseId]
+      );
+
+      // 2. Обновляем статус заявки
+      await pool.query(
+        'UPDATE orders SET status = $1, master_id = $2, updated_at = NOW() WHERE id = $3',
+        ['in_progress', masterId, orderId]
+      );
+
+      // 3. Создаём или находим чат между клиентом и мастером
+      const chatCheck = await pool.query(
+        `SELECT c.id FROM chats c
+         INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = $1
+         INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id = $2
+         WHERE c.type = 'private'
+         LIMIT 1`,
+        [clientId, masterId]
+      );
+
+      let chatId;
+      if (chatCheck.rows.length > 0) {
+        chatId = chatCheck.rows[0].id;
+      } else {
+        // Создаём новый чат
+        const chatResult = await pool.query(
+          `INSERT INTO chats (type, creator_id, created_at, updated_at)
+           VALUES ('private', $1, NOW(), NOW())
+           RETURNING id`,
+          [clientId]
+        );
+        chatId = chatResult.rows[0].id;
+        
+        // Добавляем участников чата
+        await pool.query(
+          `INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
+           VALUES ($1, $2, 'member', NOW()), ($1, $3, 'member', NOW())`,
+          [chatId, clientId, masterId]
+        );
+      }
+
+      await pool.query('COMMIT');
+
+      res.json({
+        success: true,
+        chatId,
+        message: 'Response accepted successfully'
+      });
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('Accept response error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to accept response'
     });
   }
 });

@@ -28,18 +28,21 @@ const AdminPage: React.FC<AdminPageProps> = () => {
   };
   
   const [activeTab, setActiveTab] = useState(getActiveTabFromPath());
-  const [isLoading, setIsLoading] = useState(true);
 
+  // Redirect if not admin (only once when user loads)
   useEffect(() => {
-    // Check if user is admin
-    if (user?.role !== 'admin') {
-      window.location.href = '/';
-      return;
+    if (user && user.role !== 'admin') {
+      navigate('/');
     }
-    setIsLoading(false);
-  }, [user]);
+  }, [user?.id]); // Only depend on user ID
 
-  if (isLoading) {
+  // Update active tab when URL changes
+  useEffect(() => {
+    setActiveTab(getActiveTabFromPath());
+  }, [location.pathname]);
+
+  // Show loading while user data is being fetched
+  if (!user) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -50,7 +53,8 @@ const AdminPage: React.FC<AdminPageProps> = () => {
     );
   }
 
-  if (user?.role !== 'admin') {
+  // Show access denied if not admin
+  if (user.role !== 'admin') {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -60,11 +64,6 @@ const AdminPage: React.FC<AdminPageProps> = () => {
       </div>
     );
   }
-
-  useEffect(() => {
-    // Обновляем активный таб при изменении URL
-    setActiveTab(getActiveTabFromPath());
-  }, [location.pathname]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -131,7 +130,8 @@ const AdminPage: React.FC<AdminPageProps> = () => {
               <button
                 onClick={() => {
                   localStorage.removeItem('token');
-                  window.location.href = '/';
+                  localStorage.removeItem('refreshToken');
+                  navigate('/login');
                 }}
                 className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
               >

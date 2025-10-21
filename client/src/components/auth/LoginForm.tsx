@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
+import { useToast } from '../Toast';
 import { Icon, ICON_NAMES } from '@shared/components';
 import { loginSchema, type LoginFormData, detectInputType } from '@shared/utils/validation';
 import { Button } from '@shared/components/Button';
@@ -14,6 +14,7 @@ export const LoginForm: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [inputType, setInputType] = useState<'email' | 'phone' | 'unknown'>('unknown');
 
   const {
@@ -38,11 +39,11 @@ export const LoginForm: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
+      setLoginError(null);
       await login(data.emailOrPhone, data.password);
-      toast.success('Успешный вход!');
       navigate('/');
     } catch (error: any) {
-      toast.error(error.message || 'Ошибка входа');
+      setLoginError('Данные неверные');
     }
   };
 
@@ -148,6 +149,12 @@ export const LoginForm: React.FC = () => {
       >
         Войти
       </Button>
+
+      {loginError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-center font-medium">
+          {loginError}
+        </div>
+      )}
 
       <div className="text-center text-sm text-gray-600 dark:text-gray-400">
         Нет аккаунта?{' '}

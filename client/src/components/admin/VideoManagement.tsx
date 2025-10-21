@@ -57,8 +57,8 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
         ...filters
       };
       const response = await adminService.videos.list(params) as any;
-      setVideos(response.data.videos);
-      setTotalPages(response.data.pagination.pages);
+      setVideos(response.videos || []);
+      setTotalPages(response.pagination?.pages || 1);
     } catch (error) {
       console.error('Failed to load videos:', error);
     } finally {

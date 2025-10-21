@@ -1,5 +1,7 @@
 /**
  * Mobile API service using shared API utilities
+ * 
+ * This service is synchronized with the web version and uses shared API client
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiClient, videoApi, orderApi, chatApi, userApi, authApi, notificationApi } from '@shared/utils/api';
@@ -20,6 +22,7 @@ export const apiClient = new ApiClient({
   onUnauthorized: async () => {
     try {
       await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.removeItem('refreshToken');
       // Навигируем на экран логина
       navigateToLogin();
     } catch (error) {
@@ -28,7 +31,7 @@ export const apiClient = new ApiClient({
   },
 });
 
-// Create API service instances
+// Create API service instances (for direct use)
 const video = videoApi(apiClient);
 const order = orderApi(apiClient);
 const chat = chatApi(apiClient);
@@ -36,7 +39,18 @@ const user = userApi(apiClient);
 const auth = authApi(apiClient);
 const notification = notificationApi(apiClient);
 
+// Export individual service APIs for direct use
+export const api = {
+  video,
+  order,
+  chat,
+  user,
+  auth,
+  notification,
+};
+
 // Legacy-compatible API service class
+// Delegates to new services but maintains old interface
 class ApiService {
   // Token management
   async setAuthToken(token: string) {
@@ -50,9 +64,31 @@ class ApiService {
   async clearAuthToken() {
     try {
       await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.removeItem('refreshToken');
     } catch (error) {
       console.error('Error clearing auth token:', error);
     }
+  }
+  
+  // Direct HTTP methods for backward compatibility
+  async get(url: string, params?: any) {
+    const result = await apiClient.get(url, params);
+    return { success: true, data: result, message: 'Success', timestamp: new Date().toISOString() };
+  }
+  
+  async post(url: string, data?: any) {
+    const result = await apiClient.post(url, data);
+    return { success: true, data: result, message: 'Success', timestamp: new Date().toISOString() };
+  }
+  
+  async put(url: string, data?: any) {
+    const result = await apiClient.put(url, data);
+    return { success: true, data: result, message: 'Success', timestamp: new Date().toISOString() };
+  }
+  
+  async delete(url: string) {
+    const result = await apiClient.delete(url);
+    return { success: true, data: result, message: 'Success', timestamp: new Date().toISOString() };
   }
 
   // Auth endpoints
@@ -114,116 +150,113 @@ class ApiService {
     return { success: true, data: { count: unreadCount }, message: 'Unread count fetched', timestamp: new Date().toISOString() };
   }
 
-  // Video endpoints
+  // Video endpoints - delegate to videoService
   async getVideos(page: number = 1, limit: number = 10) {
-    const result = await video.list({ page, limit });
-    return { success: true, data: result, message: 'Videos fetched', timestamp: new Date().toISOString() };
+    // Import dynamically to avoid circular dependency
+    const { videoService } = await import('./videoService');
+    return videoService.getVideos({ page, limit });
   }
 
   async getVideoById(id: string) {
-    const result = await video.get(id);
-    return { success: true, data: result, message: 'Video fetched', timestamp: new Date().toISOString() };
+    const { videoService } = await import('./videoService');
+    return videoService.getVideo(id);
   }
 
   async likeVideo(id: string) {
-    const result = await video.like(id);
-    return { success: true, data: result, message: 'Video liked', timestamp: new Date().toISOString() };
+    const { videoService } = await import('./videoService');
+    return videoService.likeVideo(id);
   }
 
   async unlikeVideo(id: string) {
-    const result = await video.unlike(id);
-    return { success: true, data: result, message: 'Video unliked', timestamp: new Date().toISOString() };
+    const { videoService } = await import('./videoService');
+    return videoService.unlikeVideo(id);
   }
 
   async addComment(videoId: string, text: string) {
-    const result = await video.addComment(videoId, text);
-    return { success: true, data: result, message: 'Comment added', timestamp: new Date().toISOString() };
+    const { videoService } = await import('./videoService');
+    return videoService.addComment(videoId, text);
   }
 
   async getComments(videoId: string, page: number = 1, limit: number = 20) {
-    const result = await video.getComments(videoId, { page, limit });
-    return { success: true, data: result, message: 'Comments fetched', timestamp: new Date().toISOString() };
+    const { videoService } = await import('./videoService');
+    return videoService.getComments(videoId, { page, limit });
   }
 
   // Upload endpoints
   async uploadVideo(videoData: FormData) {
-    const result = await video.upload(videoData);
-    return { success: true, data: result, message: 'Video uploaded', timestamp: new Date().toISOString() };
+    const { videoService } = await import('./videoService');
+    return videoService.uploadVideo(videoData);
   }
 
   async uploadImage(imageData: FormData) {
-    // Generic upload - would need specific endpoint
     const result = await apiClient.upload('/upload/image', imageData);
     return { success: true, data: result, message: 'Image uploaded', timestamp: new Date().toISOString() };
   }
 
-  // Orders endpoints
+  // Orders endpoints - delegate to orderService
   async getOrders(page: number = 1, limit: number = 10) {
-    const result = await order.list({ page, limit });
-    return { success: true, data: result, message: 'Orders fetched', timestamp: new Date().toISOString() };
+    const { orderService } = await import('./orderService');
+    return orderService.getOrders({ page, limit });
   }
 
   async getOrderById(id: string) {
-    const result = await order.get(id);
-    return { success: true, data: result, message: 'Order fetched', timestamp: new Date().toISOString() };
+    const { orderService } = await import('./orderService');
+    return orderService.getOrder(id);
   }
 
   async createOrder(orderData: any) {
-    const result = await order.create(orderData);
-    return { success: true, data: result, message: 'Order created', timestamp: new Date().toISOString() };
+    const { orderService } = await import('./orderService');
+    return orderService.createOrder(orderData);
   }
 
   async respondToOrder(orderId: string, responseData: any) {
-    const result = await order.createResponse(orderId, responseData);
-    return { success: true, data: result, message: 'Response created', timestamp: new Date().toISOString() };
+    const { orderService } = await import('./orderService');
+    return orderService.createResponse(orderId, responseData);
   }
 
   async acceptOrderResponse(orderId: string, responseId: string) {
-    const result = await order.acceptResponse(orderId, responseId);
-    return { success: true, data: result, message: 'Response accepted', timestamp: new Date().toISOString() };
+    const { orderService } = await import('./orderService');
+    return orderService.acceptResponse(orderId, responseId);
   }
 
-  // Messages endpoints
+  // Messages endpoints - delegate to chatService
   async getMessages(chatId: string, page: number = 1, limit: number = 50) {
-    const result = await chat.getMessages(chatId, { page, limit });
-    return { success: true, data: result, message: 'Messages fetched', timestamp: new Date().toISOString() };
+    const { chatService } = await import('./chatService');
+    return chatService.getMessages(chatId, { page, limit });
   }
 
   async sendMessage(chatId: string, messageData: any) {
-    const result = await chat.sendMessage(
+    const { chatService } = await import('./chatService');
+    return chatService.sendMessage(
       chatId,
       messageData.content || messageData.text,
       messageData.type || 'text',
       messageData.metadata
     );
-    return { success: true, data: result, message: 'Message sent', timestamp: new Date().toISOString() };
   }
 
-  // Chats endpoints
+  // Chats endpoints - delegate to chatService
   async getChats() {
-    const result = await chat.list();
-    return { success: true, data: result, message: 'Chats fetched', timestamp: new Date().toISOString() };
+    const { chatService } = await import('./chatService');
+    return chatService.getChats();
   }
 
   async getChatById(id: string) {
-    const result = await chat.get(id);
-    return { success: true, data: result, message: 'Chat fetched', timestamp: new Date().toISOString() };
+    const { chatService } = await import('./chatService');
+    return chatService.getChat(id);
   }
 
   async createChat(participantId: string) {
-    const result = await chat.create(participantId);
-    return { success: true, data: result, message: 'Chat created', timestamp: new Date().toISOString() };
+    const { chatService } = await import('./chatService');
+    return chatService.createChat(participantId);
   }
 }
 
 export const apiService = new ApiService();
 
-// Export individual service APIs for direct use
-export const api = {
-  video,
-  order,
-  chat,
-  user,
-  auth,
-  notification,
-};
+// Re-export services for backward compatibility
+export { videoService } from './videoService';
+export { orderService } from './orderService';
+export { chatService } from './chatService';
+export { authService } from './authService';
+export { userService } from './userService';

@@ -40,8 +40,8 @@ const UserManagement: React.FC<UserManagementProps> = () => {
         ...filters
       };
       const response = await adminService.users.list(params) as any;
-      setUsers(response.data.users);
-      setTotalPages(response.data.pagination.pages);
+      setUsers(response.users || []);
+      setTotalPages(response.pagination?.pages || 1);
     } catch (error) {
       console.error('Failed to load users:', error);
     } finally {

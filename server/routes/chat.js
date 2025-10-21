@@ -1,7 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
-const { upload } = require('../middleware/upload');
+const { generalFileUpload } = require('../middleware/upload');
 const notificationService = require('../services/notificationService');
 const router = express.Router();
 
@@ -275,7 +275,7 @@ router.get('/:id/messages', authenticateToken, async (req, res) => {
 });
 
 // POST /api/chat/:id/message - Отправить сообщение
-router.post('/:id/message', authenticateToken, upload.single('file'), async (req, res) => {
+router.post('/:id/message', authenticateToken, generalFileUpload.single('file'), async (req, res) => {
   try {
     const chatId = req.params.id;
     const userId = req.user.id;

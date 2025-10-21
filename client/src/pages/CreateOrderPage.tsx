@@ -65,16 +65,27 @@ const CreateOrderPage: React.FC = () => {
     e.preventDefault()
     if (!user) return
 
+    // Read from DOM directly for better compatibility with testing
+    const form = e.currentTarget as HTMLFormElement
+    const formDataDOM = new FormData(form)
+    
+    const title = formDataDOM.get('title') as string || formData.title
+    const description = formDataDOM.get('description') as string || formData.description
+    const category = formDataDOM.get('category') as string || formData.category
+    const region = formDataDOM.get('region') as string || formData.region
+    const city = formDataDOM.get('city') as string || formData.city
+    const address = formDataDOM.get('address') as string || formData.address
+
     try {
       setLoading(true)
       await orderService.createOrder({
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
+        title,
+        description,
+        category,
         location: {
-          city: formData.city,
-          region: formData.region,
-          address: formData.address
+          city,
+          region,
+          address
         },
         images: formData.images
       })

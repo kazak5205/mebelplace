@@ -207,15 +207,4 @@ class ChatSocket {
 }
 
 module.exports = ChatSocket;
-    });
-  }
-}
-
-module.exports = ChatSocket;
-
-    });
-  }
-}
-
-module.exports = ChatSocket;
 

@@ -1,11 +1,12 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'sonner'
-import { AuthProvider } from '@shared/contexts/AuthContext'
+import { AuthProvider, createLocalStorageAdapter } from '@shared/contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/Layout'
 import { ProtectedRoute } from '@shared/routing/ProtectedRoute'
+import { authService } from './services/authService'
+import OnboardingModal from './components/OnboardingModal'
 
 // Pages
 import HomePage from './pages/HomePage'
@@ -24,6 +25,7 @@ import TermsOfServicePage from './pages/TermsOfServicePage'
 // Auth components
 import LoginForm from './components/auth/LoginForm'
 import RegisterForm from './components/auth/RegisterForm'
+import SmsVerification from './components/auth/SmsVerification'
 
 // Admin components для отдельных роутов
 import AdminDashboard from './components/admin/AdminDashboard'
@@ -33,15 +35,19 @@ import AnalyticsDashboard from './components/admin/AnalyticsDashboard'
 import CategoryManagement from './components/admin/CategoryManagement'
 import AuditLog from './components/admin/AuditLog'
 
+const storageAdapter = createLocalStorageAdapter();
+
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <AuthProvider>
+      <AuthProvider storage={storageAdapter} authService={authService}>
         <SocketProvider>
+          <OnboardingModal />
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
+            <Route path="/verify-sms" element={<SmsVerification />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsOfServicePage />} />
 
@@ -67,7 +73,7 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               } />
               <Route path="/orders/create" element={
-                <ProtectedRoute allowedRoles={['client', 'admin']}>
+                <ProtectedRoute allowedRoles={['client', 'user', 'admin']}>
                   <CreateOrderPage />
                 </ProtectedRoute>
               } />
@@ -141,10 +147,7 @@ const App: React.FC = () => {
 
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-
-          {/* Toast notifications */}
-          <Toaster position="top-right" richColors closeButton />
+            </Routes>
         </SocketProvider>
       </AuthProvider>
     </ThemeProvider>

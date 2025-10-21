@@ -1,6 +1,7 @@
 /**
  * Mobile-specific AuthContext
  * Wraps shared AuthContext with React Native specific implementations
+ * SYNCHRONIZED WITH WEB VERSION - uses real authService
  */
 
 import React, { ReactNode } from 'react';
@@ -10,97 +11,37 @@ import {
   createAsyncStorageAdapter,
   type AuthService 
 } from '@shared/contexts/AuthContext';
+import { authService as realAuthService } from '../services/authService';
 
-// Mock AuthService implementation for mobile
-// Replace with actual API calls
+// Real AuthService implementation using our authService
 const createAuthService = (): AuthService => ({
   async login(email: string, password: string) {
-    // TODO: Replace with actual API call
-    const response = await fetch('https://mebelplace.com.kz/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
-    
-    const data = await response.json();
+    const result = await realAuthService.login(email, password);
     return {
-      token: data.token,
-      user: data.user,
+      token: result.data.token,
+      user: result.data.user,
     };
   },
 
   async register(userData: any) {
-    // TODO: Replace with actual API call
-    const response = await fetch('https://mebelplace.com.kz/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Registration failed');
-    }
-    
-    const data = await response.json();
+    const result = await realAuthService.register(userData);
     return {
-      token: data.token,
-      user: data.user,
+      token: result.data.token,
+      user: result.data.user,
     };
   },
 
   async getCurrentUser() {
-    // TODO: Replace with actual API call
-    const response = await fetch('https://mebelplace.com.kz/api/auth/me', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`,
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to get user');
-    }
-    
-    return await response.json();
+    return await realAuthService.getCurrentUser();
   },
 
   async updateUser(userData: any) {
-    // TODO: Replace with actual API call
-    const response = await fetch('https://mebelplace.com.kz/api/auth/profile', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`,
-      },
-      body: JSON.stringify(userData),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to update user');
-    }
-    
-    return await response.json();
+    const result = await realAuthService.updateUser(userData);
+    return result.data || result;
   },
 
   async logout() {
-    // TODO: Replace with actual API call
-    const response = await fetch('https://mebelplace.com.kz/api/auth/logout', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${await AsyncStorage.getItem('authToken')}`,
-      },
-    });
-    
-    // Always clear local storage even if server request fails
-    await AsyncStorage.removeItem('authToken');
+    await realAuthService.logout();
     await AsyncStorage.removeItem('userData');
   },
 });

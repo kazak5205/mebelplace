@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { useNavigate } from 'react-router-dom'
 import { Icon, ICON_NAMES } from '@shared/components'
 import { registerSchema, type RegisterFormData, detectInputType } from '@shared/utils/validation'
 import { Button } from '@shared/components/Button'
@@ -10,6 +11,7 @@ import { useAuth } from '@shared/contexts/AuthContext'
 
 const RegisterForm: React.FC = () => {
   const { register: registerUser } = useAuth()
+  const navigate = useNavigate()
   const [inputType, setInputType] = useState<'email' | 'phone' | 'unknown'>('unknown')
 
   const {
@@ -40,14 +42,42 @@ const RegisterForm: React.FC = () => {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
+      // Generate username from name or email
+      const username = data.name?.replace(/\s+/g, '').toLowerCase() || 
+                      data.email?.split('@')[0] || 
+                      data.phone?.replace(/\D/g, '') || 
+                      'user' + Date.now()
+      
+      // Map role: 'client' -> 'user' for DB compatibility
+      const role = data.role === 'client' ? 'user' : data.role
+      
       await registerUser({
+        username,
         name: data.name,
         email: data.email,
         phone: data.phone,
         password: data.password,
-        role: data.role,
+        role: role,
       })
-      toast.success('Регистрация прошла успешно!')
+      
+      // If phone provided, send SMS verification code
+      if (data.phone) {
+        const smsResponse = await fetch('/api/auth/send-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: data.phone })
+        })
+        
+        if (smsResponse.ok) {
+          navigate('/verify-sms', { state: { phone: data.phone } })
+        } else {
+          toast.error('Ошибка отправки SMS')
+        }
+      } else {
+        // If no phone, just go to home
+        toast.success('Регистрация прошла успешно!')
+        navigate('/')
+      }
     } catch (error: any) {
       toast.error(error?.message || 'Ошибка регистрации')
     }

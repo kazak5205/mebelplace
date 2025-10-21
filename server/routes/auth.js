@@ -7,6 +7,7 @@ const {
   verifyRefreshToken,
   authRateLimit 
 } = require('../middleware/auth');
+const smsService = require('../services/smsService');
 const router = express.Router();
 
 // POST /api/auth/register - User registration
@@ -389,6 +390,119 @@ router.post('/reset-password', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Password reset failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/auth/me - Get current user
+const { authenticateToken } = require('../middleware/auth');
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const userResult = await pool.query(
+      'SELECT id, email, username, role, first_name, last_name, avatar, phone, is_verified, created_at FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    res.json({
+      success: true,
+      data: userResult.rows[0],
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get user',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// POST /api/auth/send-sms - Send SMS verification code
+router.post('/send-sms', authRateLimit, async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const code = smsService.generateCode();
+    await smsService.sendVerificationCode(phone, code);
+
+    res.json({
+      success: true,
+      message: 'SMS code sent',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Send SMS error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send SMS',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// POST /api/auth/verify-sms - Verify SMS code
+router.post('/verify-sms', authRateLimit, async (req, res) => {
+  try {
+    const { phone, code } = req.body;
+
+    if (!phone || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone and code are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const verification = await smsService.verifyCode(phone, code);
+
+    if (!verification.success) {
+      return res.status(400).json({
+        success: false,
+        message: verification.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Mark user as verified
+    await pool.query(
+      'UPDATE users SET is_verified = true WHERE phone = $1',
+      [phone]
+    );
+
+    res.json({
+      success: true,
+      verified: true,
+      message: 'Phone verified',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Verify SMS error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify SMS',
       timestamp: new Date().toISOString()
     });
   }

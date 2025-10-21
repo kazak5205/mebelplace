@@ -9,10 +9,19 @@ COPY server/ ./
 
 # Stage 2: Build frontend
 FROM node:18-alpine AS frontend-builder
+WORKDIR /app
+# Copy shared modules and install dependencies
+COPY shared ./shared
+WORKDIR /app/shared
+RUN if [ -f package.json ]; then npm install --production; fi
+# Copy and build frontend
+WORKDIR /app
+COPY client/package*.json ./frontend/
 WORKDIR /app/frontend
-COPY client/package*.json ./
 RUN npm ci
-COPY client/ ./
+WORKDIR /app
+COPY client ./frontend
+WORKDIR /app/frontend
 RUN npm run build
 
 # Stage 3: Build mobile (Android APK)
@@ -43,8 +52,8 @@ RUN npm install
 # Copy frontend build
 COPY --from=frontend-builder /app/frontend/dist ./public
 
-# Copy mobile APK
-COPY --from=mobile-builder /app/mobile/android/app/build/outputs/apk/release/app-release.apk ./mobile/mebelplace.apk
+# Copy mobile APK (commented out for now - build separately if needed)
+# COPY --from=mobile-builder /app/mobile/android/app/build/outputs/apk/release/app-release.apk ./mobile/mebelplace.apk
 
 # Copy nginx config
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
@@ -54,6 +63,9 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create upload directories
 RUN mkdir -p /app/uploads/videos /app/uploads/thumbnails /app/uploads/avatars /app/uploads/order-photos /app/uploads/chat-files
+
+# Create log directories
+RUN mkdir -p /var/log/supervisor /var/log/nginx
 
 # Create startup script
 COPY docker/scripts/start.sh /app/start.sh

@@ -30,7 +30,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Требуется авторизация, но пользователь не залогинен
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+    return <Navigate to={redirectTo} state={{ from: location.pathname }} replace />;
   }
 
   // Проверяем роль пользователя

@@ -55,11 +55,21 @@ const MasterChannelPage: React.FC = () => {
   const loadMasterVideos = async () => {
     try {
       setLoading(true)
-      const response = await videoService.getVideos({ masterId: id, limit: 50 }) as any
-      setVideos(response.videos)
-      if (response.videos.length > 0) {
-        setMaster(response.videos[0].master)
-        setSelectedVideo(response.videos[0])
+      const response = await videoService.getVideos({ author_id: id, limit: 50 }) as any
+      const masterVideos = response.data?.videos || response.videos || response || []
+      setVideos(masterVideos)
+      
+      // Получаем данные мастера из первого видео
+      if (masterVideos.length > 0 && masterVideos[0].username) {
+        setMaster({
+          id,
+          username: masterVideos[0].username,
+          firstName: masterVideos[0].firstName || masterVideos[0].first_name,
+          lastName: masterVideos[0].lastName || masterVideos[0].last_name,
+          avatar: masterVideos[0].avatar,
+          role: 'master'
+        } as User)
+        setSelectedVideo(masterVideos[0])
       }
     } catch (error) {
       console.error('Failed to load master videos:', error)
@@ -179,11 +189,11 @@ const MasterChannelPage: React.FC = () => {
 
         <div className="flex items-start space-x-6">
           <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-            {master.name.charAt(0).toUpperCase()}
+            {(master.username || master.firstName || 'M').charAt(0).toUpperCase()}
           </div>
 
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-white mb-2">{master.name}</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">{master.username || master.firstName || 'Мастер'}</h2>
             <p className="text-white/70 mb-4">{master.specialties?.join(', ')}</p>
 
             <div className="flex items-center space-x-6 text-sm text-white/70">

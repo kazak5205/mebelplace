@@ -30,8 +30,13 @@ const OrderResponsesPage: React.FC = () => {
         orderService.getOrderResponses(id!)
       ])
       
+      // Force rebuild: v3.2.0-ARRAY-FIX
       setOrder(orderResponse as any)
-      setResponses((responsesResponse as any).responses)
+      const responsesData = Array.isArray(responsesResponse) 
+        ? responsesResponse 
+        : (responsesResponse as any).data || (responsesResponse as any).responses || []
+      console.log('Responses loaded:', responsesData.length, responsesData)
+      setResponses(responsesData)
     } catch (error) {
       console.error('Failed to load order and responses:', error)
     } finally {

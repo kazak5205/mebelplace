@@ -4,14 +4,13 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  Volume2,
-  VolumeX,
-  X,
   Send,
   ThumbsUp,
   Reply,
   UserPlus,
-  Bookmark
+  Bookmark,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react'
 import type { Video } from '@shared/types'
 import { useNavigate } from 'react-router-dom'
@@ -35,7 +34,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const navigate = useNavigate()
   const { user } = useAuth()
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
-  const [isMuted, setIsMuted] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
   const [newComment, setNewComment] = useState('')
@@ -43,6 +41,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [videoStates, setVideoStates] = useState<Record<string, { isLiked: boolean, likesCount: number }>>({})
+  const [bookmarkedVideos, setBookmarkedVideos] = useState<Set<string>>(new Set())
   
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
@@ -55,7 +54,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const currentVideo = videos[currentIndex]
   
   // Проверка: может ли пользователь комментировать это видео
-  const canComment = !user || user.role !== 'master' || currentVideo?.master?.id === user.id
+  const canComment = !user || user.role !== 'master' || currentVideo?.authorId === user.id
 
   useEffect(() => {
     if (onVideoChange && currentVideo) {
@@ -188,11 +187,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }
 
-  const toggleMute = () => {
-    videoRefs.current.forEach(video => {
-      if (video) video.muted = !isMuted
+  const handleBookmark = () => {
+    if (!currentVideo) return
+    setBookmarkedVideos(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(currentVideo.id)) {
+        newSet.delete(currentVideo.id)
+      } else {
+        newSet.add(currentVideo.id)
+      }
+      return newSet
     })
-    setIsMuted(!isMuted)
   }
 
   const handleLike = async () => {
@@ -355,22 +360,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }
 
   const videoState = videoStates[currentVideo.id] || {
-    isLiked: currentVideo.isLiked,
-    likesCount: currentVideo.likesCount
+    isLiked: currentVideo.isLiked || false,
+    likesCount: currentVideo.likeCount || currentVideo.likes || 0
   }
 
   return (
-    <div ref={containerRef} className="fixed inset-0 bg-black z-50 overflow-hidden">
-      {/* Close Button */}
-      <motion.button
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        onClick={onClose}
-        className="absolute top-4 left-4 z-50 p-2 rounded-full bg-black/30 backdrop-blur-sm text-white"
-      >
-        <X className="w-6 h-6" />
-      </motion.button>
-
+    <div ref={containerRef} className="fixed inset-0 bg-black z-40 overflow-hidden">
       {/* Вертикальная лента видео (TikTok style) */}
       <motion.div
         drag="y"
@@ -387,23 +382,50 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             src={currentVideo.videoUrl}
             className="h-full w-full object-contain"
             loop={false}
-            muted={isMuted}
+            muted={true}
             playsInline
             autoPlay
             onClick={handleVideoClick}
             onDoubleClick={handleDoubleTap}
           />
 
+          {/* Левая панель: Навигация вверх/вниз */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col space-y-4">
+            {/* Предыдущее видео */}
+            {currentIndex > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setCurrentIndex(prev => prev - 1)}
+                className="p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
+                aria-label="Предыдущее видео"
+              >
+                <ChevronUp className="w-6 h-6 text-white" />
+              </motion.button>
+            )}
+            
+            {/* Следующее видео */}
+            {currentIndex < videos.length - 1 && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setCurrentIndex(prev => prev + 1)}
+                className="p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
+                aria-label="Следующее видео"
+              >
+                <ChevronDown className="w-6 h-6 text-white" />
+              </motion.button>
+            )}
+          </div>
+
           {/* Правая панель действий (TikTok style) */}
           <div className="absolute right-2 sm:right-4 bottom-16 sm:bottom-24 flex flex-col items-center space-y-4 sm:space-y-6">
             {/* Аватар автора */}
             <div className="relative">
               <button
-                onClick={() => currentVideo.master?.id && navigate(`/master/${currentVideo.master.id}`)}
+                onClick={() => currentVideo.authorId && navigate(`/master/${currentVideo.authorId}`)}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold border-2 border-white"
                 aria-label="Канал мастера"
               >
-                {currentVideo.master?.name?.charAt(0).toUpperCase() || 'M'}
+                {currentVideo.username?.charAt(0).toUpperCase() || currentVideo.firstName?.charAt(0).toUpperCase() || 'M'}
               </button>
               <motion.button
                 whileTap={{ scale: 0.9 }}
@@ -439,7 +461,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <MessageCircle className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </div>
               <span className="text-white text-xs font-semibold">
-                {formatCount(currentVideo.commentsCount)}
+                {formatCount(currentVideo.commentCount || 0)}
               </span>
             </motion.button>
 
@@ -460,25 +482,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             {/* Сохранить */}
             <motion.button
               whileTap={{ scale: 0.8 }}
+              onClick={handleBookmark}
               className="flex flex-col items-center space-y-1"
             >
-              <div className="p-1.5 sm:p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                <Bookmark className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
-              </div>
-            </motion.button>
-
-            {/* Звук */}
-            <motion.button
-              whileTap={{ scale: 0.8 }}
-              onClick={toggleMute}
-              className="flex flex-col items-center"
-            >
-              <div className="p-1.5 sm:p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                {isMuted ? (
-                  <VolumeX className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                ) : (
-                  <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                )}
+              <div className={`p-1.5 sm:p-2 rounded-full ${bookmarkedVideos.has(currentVideo.id) ? 'bg-yellow-500' : 'bg-black/30 backdrop-blur-sm'}`}>
+                <Bookmark className={`w-5 h-5 sm:w-7 sm:h-7 ${bookmarkedVideos.has(currentVideo.id) ? 'text-white fill-white' : 'text-white'}`} />
               </div>
             </motion.button>
           </div>
@@ -488,10 +496,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <div className="max-w-sm sm:max-w-md">
               <div className="flex items-center space-x-2 mb-3">
                 <button
-                  onClick={() => currentVideo.master?.id && navigate(`/master/${currentVideo.master.id}`)}
+                  onClick={() => currentVideo.authorId && navigate(`/master/${currentVideo.authorId}`)}
                   className="text-white font-bold hover:underline"
                 >
-                  @{currentVideo.master?.name || 'Master'}
+                  @{currentVideo.username || currentVideo.firstName || 'Master'}
                 </button>
                 <span className="text-white/70 text-sm">•</span>
                 <span className="text-white/70 text-sm">{formatTimeAgo(currentVideo.createdAt)}</span>

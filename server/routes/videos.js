@@ -6,9 +6,12 @@ const videoService = require('../services/videoService');
 const router = express.Router();
 
 // Configure multer for video uploads
+const path = require('path');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/videos/');
+    // Volume монтируется как /app/uploads (без /server)
+    const uploadPath = '/app/uploads/videos';
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -42,6 +45,7 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
     }
 
     const { title, description, category, tags } = req.body;
+    console.log('[VIDEO UPLOAD] User:', JSON.stringify(req.user));
     const videoData = {
       title,
       description,
@@ -49,10 +53,11 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
       thumbnailUrl: null, // Will be generated
       duration: 0, // Will be calculated
       fileSize: req.file.size,
-      authorId: req.user.id,
+      authorId: req.user?.id || req.user?.userId,
       category: category || 'general',
       tags: tags ? tags.split(',').map(tag => tag.trim()) : []
     };
+    console.log('[VIDEO UPLOAD] VideoData:', JSON.stringify(videoData));
 
     const video = await videoService.createVideo(videoData);
     
@@ -131,7 +136,7 @@ router.get('/feed', async (req, res) => {
     const allVideos = result.rows;
 
     // Get admin-selected videos for insertion
-    const adminVideosQuery = `
+    let adminVideosQuery = `
       SELECT 
         v.*,
         u.username,
@@ -218,10 +223,39 @@ router.get('/feed', async (req, res) => {
       }
     }
 
+    // Map snake_case to camelCase for frontend
+    const mappedVideos = pageVideos.map(video => ({
+      id: video.id,
+      title: video.title,
+      description: video.description,
+      videoUrl: video.video_url,
+      thumbnailUrl: video.thumbnail_url,
+      duration: video.duration,
+      fileSize: video.file_size,
+      authorId: video.author_id,
+      username: video.username,
+      firstName: video.first_name,
+      lastName: video.last_name,
+      avatar: video.avatar,
+      category: video.category,
+      tags: video.tags,
+      views: video.views,
+      likes: video.likes,
+      likeCount: video.like_count || 0,
+      commentCount: video.comment_count || 0,
+      isLiked: video.is_liked || false,
+      isFeatured: video.is_featured || false,
+      priorityOrder: video.priority_order,
+      isPublic: video.is_public,
+      isActive: video.is_active,
+      createdAt: video.created_at,
+      updatedAt: video.updated_at,
+    }));
+
     res.json({
       success: true,
       data: {
-        videos: pageVideos,
+        videos: mappedVideos,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

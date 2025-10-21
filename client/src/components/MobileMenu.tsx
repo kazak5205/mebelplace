@@ -12,7 +12,8 @@ interface MobileMenuProps {
 const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth()
 
-  const navigationItems = [
+  // Разные пункты меню для авторизованных и неавторизованных
+  const navigationItems = user ? [
     {
       label: 'Главная',
       href: '/',
@@ -22,19 +23,18 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
       label: 'Чаты',
       href: '/chat',
       icon: 'MESSAGE_CIRCLE',
-      badge: 3,
     },
     {
       label: 'Заявки',
       href: '/orders',
       icon: 'FILE_TEXT',
     },
-    ...(user?.role === 'client' ? [{
+    ...(user.role === 'client' ? [{
       label: 'Создать заявку',
       href: '/orders/create',
       icon: 'PLUS',
     }] : []),
-    ...(user?.role === 'master' ? [{
+    ...(user.role === 'master' ? [{
       label: 'Мой канал',
       href: `/master/${user.id}`,
       icon: 'VIDEO',
@@ -43,6 +43,22 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
       label: 'Профиль',
       href: '/profile',
       icon: 'USER',
+    },
+  ] : [
+    {
+      label: 'Главная',
+      href: '/',
+      icon: 'HOME',
+    },
+    {
+      label: 'Войти',
+      href: '/login',
+      icon: 'USER',
+    },
+    {
+      label: 'Регистрация',
+      href: '/register',
+      icon: 'PLUS',
     },
   ]
 

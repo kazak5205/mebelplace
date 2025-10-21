@@ -9,6 +9,15 @@ export default defineConfig({
     alias: {
       '@shared': path.resolve(__dirname, '../shared'),
     },
+    dedupe: ['react', 'react-dom', 'react-router-dom'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/shared/, /node_modules/],
+    },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'sonner'],
   },
   server: {
     port: 5173,

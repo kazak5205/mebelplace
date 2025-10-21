@@ -28,7 +28,7 @@ const initDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         username VARCHAR(100) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
-        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'master', 'admin')),
+        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'client', 'master', 'admin')),
         first_name VARCHAR(100),
         last_name VARCHAR(100),
         avatar VARCHAR(500),

@@ -8,6 +8,7 @@ import { orderService } from '../services/orderService'
 import { useAuth } from '@shared/contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
 
+// Force rebuild: v2.0.1-FINAL-PROD
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([])
   const [regions, setRegions] = useState<string[]>([])
@@ -34,7 +35,7 @@ const OrdersPage: React.FC = () => {
     on('new_order_response', (data) => {
       setOrders(prev => prev.map(order => 
         order.id === data.orderId 
-          ? { ...order, responses: [...order.responses, data.response] }
+          ? { ...order, response_count: String(Number(order.response_count || 0) + 1) }
           : order
       ))
     })
@@ -52,10 +53,20 @@ const OrdersPage: React.FC = () => {
   const loadOrders = async () => {
     try {
       setLoading(true)
-      const response = await orderService.getOrders({ region: regionFilter || undefined }) as any
-      setOrders(response.orders)
+      const params = regionFilter ? { region: regionFilter } : {}
+      const response = await orderService.getOrders(params) as any
+      const ordersData = response.data?.orders || response.orders || []
+      
+      // Parse location JSON string if needed
+      const parsedOrders = ordersData.map((order: any) => ({
+        ...order,
+        location: typeof order.location === 'string' ? JSON.parse(order.location) : order.location
+      }))
+      
+      setOrders(parsedOrders)
     } catch (error) {
       console.error('Failed to load orders:', error)
+      setOrders([])
     } finally {
       setLoading(false)
     }
@@ -108,7 +119,7 @@ const OrdersPage: React.FC = () => {
         className="flex items-center justify-between"
       >
         <h1 className="text-3xl font-bold gradient-text">Заявки</h1>
-        {user?.role === 'client' && (
+        {(user?.role === 'client' || user?.role === 'user') && (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -228,41 +239,38 @@ const OrdersPage: React.FC = () => {
                     </div>
                     <div className="flex items-center space-x-2 text-white/70">
                       <Clock className="w-5 h-5" />
-                      <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                      <span>{new Date(order.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      {order.master ? (
+                      {order.master_id ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/master/${order.master!.id}`)
+                            navigate(`/master/${order.master_id}`)
                           }}
                           className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold"
                           aria-label="Канал мастера"
                         >
-                          {order.master.name.charAt(0).toUpperCase()}
+                          {(order.client_username || 'M').charAt(0).toUpperCase()}
                         </button>
                       ) : (
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                          {order.client.name.charAt(0).toUpperCase()}
+                          {(order.client_username || 'C').charAt(0).toUpperCase()}
                         </div>
                       )}
                       <div>
-                        <p className="font-medium text-sm text-white">{order.master ? order.master.name : order.client.name}</p>
-                        <p className="text-xs text-white/60">{order.master ? 'Мастер' : 'Клиент'}</p>
+                        <p className="font-medium text-sm text-white">{order.client_username || 'Пользователь'}</p>
+                        <p className="text-xs text-white/60">{order.master_id ? 'Мастер' : 'Клиент'}</p>
                       </div>
                     </div>
 
-                    {order.responses.length > 0 && (
+                    {order.response_count && Number(order.response_count) > 0 && (
                       <div className="text-right">
                         <p className="text-sm font-medium text-white">
-                          {order.responses.length} откликов
-                        </p>
-                        <p className="text-xs text-white/60">
-                          {order.responses.filter(r => r.status === 'accepted').length} принято
+                          {order.response_count} откликов
                         </p>
                       </div>
                     )}
@@ -270,7 +278,7 @@ const OrdersPage: React.FC = () => {
 
                   {/* Action Buttons */}
                   <div className="flex justify-end space-x-3 mt-4">
-                    {order.responses.length > 0 && (
+                    {order.response_count && Number(order.response_count) > 0 && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
