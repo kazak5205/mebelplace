@@ -3,6 +3,9 @@ import { motion } from 'framer-motion'
 import { SocketProvider } from './contexts/SocketContext'
 import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import HomePage from './pages/HomePage'
 import ChatListPage from './pages/ChatListPage'
 import ChatPage from './pages/ChatPage'
@@ -27,16 +30,24 @@ function App() {
           transition={{ duration: 0.5 }}
           className="min-h-screen"
         >
-          <Layout>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              
-              {/* Messenger */}
-              <Route path="/user/messenger" element={<ChatListPage />} />
-              <Route path="/user/messenger/:id" element={<ChatPage />} />
-              {/* Legacy routes - redirect */}
-              <Route path="/chat" element={<ChatListPage />} />
-              <Route path="/chat/:id" element={<ChatPage />} />
+          <Routes>
+            {/* Auth Pages - NO Layout */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            
+            {/* All other pages - WITH Layout */}
+            <Route path="/*" element={
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  
+                  {/* Messenger */}
+                  <Route path="/user/messenger" element={<ChatListPage />} />
+                  <Route path="/user/messenger/:id" element={<ChatPage />} />
+                  {/* Legacy routes - redirect */}
+                  <Route path="/chat" element={<ChatListPage />} />
+                  <Route path="/chat/:id" element={<ChatPage />} />
               
               {/* Orders - Master */}
               <Route path="/orders" element={<OrdersPage />} />
@@ -58,11 +69,13 @@ function App() {
               {/* Admin */}
               <Route path="/admin" element={<AdminPage />} />
               
-              {/* Legal */}
-              <Route path="/privacy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms" element={<TermsOfServicePage />} />
-            </Routes>
-          </Layout>
+                  {/* Legal */}
+                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                  <Route path="/terms" element={<TermsOfServicePage />} />
+                </Routes>
+              </Layout>
+            } />
+          </Routes>
         </motion.div>
       </SocketProvider>
     </AuthProvider>

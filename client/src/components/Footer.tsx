@@ -29,19 +29,19 @@ const Footer = () => {
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
             <Link
               to="/privacy"
-              className="text-gray-400 hover:text-purple-400 transition-colors duration-200"
+              className="text-gray-400 hover:text-orange-400 transition-colors duration-200"
             >
               Политика конфиденциальности
             </Link>
             <Link
               to="/terms"
-              className="text-gray-400 hover:text-purple-400 transition-colors duration-200"
+              className="text-gray-400 hover:text-orange-400 transition-colors duration-200"
             >
               Пользовательское соглашение
             </Link>
             <a
               href="mailto:support@mebelplace.com.kz"
-              className="text-gray-400 hover:text-purple-400 transition-colors duration-200"
+              className="text-gray-400 hover:text-orange-400 transition-colors duration-200"
             >
               Поддержка
             </a>
@@ -53,7 +53,7 @@ const Footer = () => {
               href="https://mebelplace.com.kz"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-purple-400 transition-colors duration-200"
+              className="text-gray-400 hover:text-orange-400 transition-colors duration-200"
             >
               <svg
                 className="w-5 h-5"

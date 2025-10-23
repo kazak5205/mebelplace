@@ -24,35 +24,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     )
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-8 max-w-md w-full mx-4"
-          >
-            <h1 className="text-2xl font-bold text-center mb-6 gradient-text">
-              Добро пожаловать в MebelPlace
-            </h1>
-            <p className="text-center text-white/70 mb-8">
-              Пожалуйста, войдите в систему для продолжения
-            </p>
-            <div className="space-y-4">
-              <button className="w-full glass-button">
-                Войти
-              </button>
-              <button className="w-full glass-button">
-                Зарегистрироваться
-              </button>
-            </div>
-          </motion.div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
+  // Allow guest users to access the main app with limited functionality
+  // Guest users can: watch videos, like, comment, create orders, create video ads
+  // Guest users cannot: access messenger, profile, order management
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">

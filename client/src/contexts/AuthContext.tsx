@@ -10,8 +10,8 @@ interface AuthContextType {
   isMaster: boolean
   isAdmin: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (userData: Partial<User> & { password: string }) => Promise<void>
-  logout: () => void
+  register: (userData: { email: string; username: string; password: string; firstName?: string; lastName?: string; role?: 'user' | 'master' | 'admin' }) => Promise<void>
+  logout: () => Promise<void>
   updateUser: (userData: Partial<User>) => Promise<void>
 }
 
@@ -36,14 +36,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem('authToken')
-        if (token) {
-          const userData = await authService.getCurrentUser()
-          setUser(userData)
+        const accessToken = localStorage.getItem('accessToken')
+        const refreshToken = localStorage.getItem('refreshToken')
+        
+        if (accessToken && refreshToken) {
+          // Получаем данные текущего пользователя
+          // Если accessToken истек, api.ts автоматически обновит через refreshToken
+          try {
+            const userData = await authService.getCurrentUser()
+            setUser(userData)
+          } catch (error) {
+            console.error('Failed to get current user:', error)
+            // Если не получилось - очищаем токены
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
+          }
         }
       } catch (error) {
         console.error('Auth initialization failed:', error)
-        localStorage.removeItem('authToken')
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
       } finally {
         setIsLoading(false)
       }
@@ -55,33 +67,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       const response = await authService.login(email, password)
-      localStorage.setItem('authToken', response.token)
+      // Токены уже сохранены в authService.login
       setUser(response.user)
     } catch (error) {
       throw error
     }
   }
 
-  const register = async (userData: Partial<User> & { password: string }) => {
+  const register = async (userData: { email: string; username: string; password: string; firstName?: string; lastName?: string; role?: 'user' | 'master' | 'admin' }) => {
     try {
       const response = await authService.register(userData)
-      localStorage.setItem('authToken', response.token)
+      // Токены уже сохранены в authService.register
       setUser(response.user)
     } catch (error) {
       throw error
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('authToken')
-    setUser(null)
+  const logout = async () => {
+    try {
+      await authService.logout()
+      // Токены уже удалены в authService.logout
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Всё равно очищаем токены локально
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+    } finally {
+      setUser(null)
+    }
   }
 
   const updateUser = async (userData: Partial<User>) => {
     try {
-      const updatedUser = await authService.updateUser(userData)
+      const updatedUser = await authService.updateProfile({
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        avatar: userData.avatar
+      })
       setUser(updatedUser)
     } catch (error) {
+      console.error('Failed to update user:', error)
       throw error
     }
   }
@@ -90,7 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isLoading,
     isAuthenticated: !!user,
-    isClient: user?.role === 'client',
+    isClient: user?.role === 'user', // Роль 'user' (не 'client')
     isMaster: user?.role === 'master',
     isAdmin: user?.role === 'admin',
     login,

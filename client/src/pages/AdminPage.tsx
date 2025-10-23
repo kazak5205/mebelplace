@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { apiService } from '../services/api';
 import AdminDashboard from '../components/admin/AdminDashboard';
 import VideoManagement from '../components/admin/VideoManagement';
 import UserManagement from '../components/admin/UserManagement';

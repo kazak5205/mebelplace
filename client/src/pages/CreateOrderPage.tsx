@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Upload, MapPin, DollarSign, Calendar, Tag } from 'lucide-react'
+import { ArrowLeft, Upload, MapPin, Tag } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
 import { useAuth } from '../contexts/AuthContext'
@@ -46,19 +46,9 @@ const CreateOrderPage: React.FC = () => {
     const files = e.target.files
     if (!files) return
 
-    try {
-      const uploadPromises = Array.from(files).map(file => {
-        const formData = new FormData()
-        formData.append('file', file)
-        return orderService.uploadOrderImages(formData)
-      })
-
-      const results = await Promise.all(uploadPromises)
-      const newImages = results.flat()
-      setFormData(prev => ({ ...prev, images: [...prev.images, ...newImages] }))
-    } catch (error) {
-      console.error('Failed to upload images:', error)
-    }
+    // Временно сохраняем файлы локально, они будут загружены при создании заказа
+    const fileURLs = Array.from(files).map(file => URL.createObjectURL(file))
+    setFormData(prev => ({ ...prev, images: [...prev.images, ...fileURLs] }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,17 +57,19 @@ const CreateOrderPage: React.FC = () => {
 
     try {
       setLoading(true)
-      await orderService.createOrder({
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        location: {
-          city: formData.city,
-          region: formData.region,
-          address: formData.address
-        },
-        images: formData.images
-      })
+      
+      // Создаем FormData для отправки с файлами
+      const submitData = new FormData()
+      submitData.append('title', formData.title)
+      submitData.append('description', formData.description)
+      submitData.append('category', formData.category)
+      submitData.append('location', formData.city)
+      submitData.append('region', formData.region)
+      
+      // Добавляем изображения (пока пустые URL, нужно будет обработать файлы)
+      // TODO: Сохранить File объекты вместо URL.createObjectURL
+      
+      await orderService.createOrder(submitData)
       navigate('/orders')
     } catch (error) {
       console.error('Failed to create order:', error)

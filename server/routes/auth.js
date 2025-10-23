@@ -261,6 +261,186 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
+// GET /api/auth/me - Get current user
+router.get('/me', async (req, res) => {
+  try {
+    // Получаем токен из заголовка
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const token = authHeader.substring(7);
+    const jwt = require('jsonwebtoken');
+    
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      // Получаем пользователя из БД
+      const result = await pool.query(
+        'SELECT id, email, username, first_name, last_name, phone, avatar, role, is_active, is_verified, created_at FROM users WHERE id = $1 AND is_active = true',
+        [decoded.userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      const user = result.rows[0];
+
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          phone: user.phone,
+          avatar: user.avatar,
+          role: user.role,
+          isActive: user.is_active,
+          isVerified: user.is_verified,
+          createdAt: user.created_at
+        },
+        message: 'User retrieved successfully',
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (jwtError) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get user',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// PUT /api/auth/profile - Update user profile
+router.put('/profile', async (req, res) => {
+  try {
+    // Получаем токен из заголовка
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const token = authHeader.substring(7);
+    const jwt = require('jsonwebtoken');
+    
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      const { firstName, lastName, phone, avatar } = req.body;
+
+      // Формируем запрос на обновление только тех полей, которые переданы
+      const updates = [];
+      const values = [];
+      let paramCount = 0;
+
+      if (firstName !== undefined) {
+        updates.push(`first_name = $${++paramCount}`);
+        values.push(firstName);
+      }
+      if (lastName !== undefined) {
+        updates.push(`last_name = $${++paramCount}`);
+        values.push(lastName);
+      }
+      if (phone !== undefined) {
+        updates.push(`phone = $${++paramCount}`);
+        values.push(phone);
+      }
+      if (avatar !== undefined) {
+        updates.push(`avatar = $${++paramCount}`);
+        values.push(avatar);
+      }
+
+      if (updates.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No fields to update',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      updates.push(`updated_at = NOW()`);
+      values.push(decoded.userId);
+
+      const result = await pool.query(`
+        UPDATE users 
+        SET ${updates.join(', ')}
+        WHERE id = $${++paramCount} AND is_active = true
+        RETURNING id, email, username, first_name, last_name, phone, avatar, role, is_verified, created_at, updated_at
+      `, values);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      const user = result.rows[0];
+
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          phone: user.phone,
+          avatar: user.avatar,
+          role: user.role,
+          isVerified: user.is_verified,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at
+        },
+        message: 'Profile updated successfully',
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (jwtError) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // POST /api/auth/logout - User logout
 router.post('/logout', async (req, res) => {
   try {

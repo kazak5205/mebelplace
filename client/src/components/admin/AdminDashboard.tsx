@@ -139,7 +139,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm font-medium">Всего просмотров</p>

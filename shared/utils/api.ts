@@ -1,331 +1,402 @@
-// Общие утилиты для работы с API
+// Единый API service для client и mobile
+// Используется с axios
 
-import { ApiResponse, ApiError } from '../types';
+import { getApiConfig, getCurrentEnvironment } from '../config';
+import type { ApiResponse, PaginationResponse } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://mebelplace.com.kz/api';
+export interface ApiClientConfig {
+  baseURL?: string;
+  timeout?: number;
+  headers?: Record<string, string>;
+  getToken?: () => string | null;
+  onUnauthorized?: () => void;
+}
 
 export class ApiClient {
-  private baseUrl: string;
-  private token: string | null = null;
+  private baseURL: string;
+  private timeout: number;
+  private headers: Record<string, string>;
+  private getToken?: () => string | null;
+  private onUnauthorized?: () => void;
 
-  constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl;
-  }
-
-  setToken(token: string | null) {
-    this.token = token;
-  }
-
-  private async request<T = any>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
+  constructor(config?: ApiClientConfig) {
+    const apiConfig = getApiConfig(getCurrentEnvironment());
     
-    const headers: HeadersInit = {
+    this.baseURL = config?.baseURL || apiConfig.API_URL;
+    this.timeout = config?.timeout || apiConfig.TIMEOUT;
+    this.headers = config?.headers || {
       'Content-Type': 'application/json',
-      ...options.headers,
     };
-
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'API request failed');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('API request error:', error);
-      throw error;
-    }
+    this.getToken = config?.getToken;
+    this.onUnauthorized = config?.onUnauthorized;
   }
 
-  async get<T = any>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
-    const url = params ? `${endpoint}?${new URLSearchParams(params).toString()}` : endpoint;
-    return this.request<T>(url, { method: 'GET' });
-  }
-
-  async post<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  async put<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, {
-      method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
-    });
-  }
-
-  async delete<T = any>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
-  }
-
-  async upload<T = any>(
-    endpoint: string,
-    formData: FormData,
-    onProgress?: (progress: number) => void
-  ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
+  private getAuthHeaders(): Record<string, string> {
+    const headers = { ...this.headers };
     
-    const headers: HeadersInit = {};
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    if (this.getToken) {
+      const token = this.getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+    
+    return headers;
+  }
+
+  private async handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      if (response.status === 401 && this.onUnauthorized) {
+        this.onUnauthorized();
+      }
+      
+      const error = await response.json().catch(() => ({
+        success: false,
+        message: response.statusText,
+      }));
+      
+      throw new Error(error.message || 'Request failed');
     }
 
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
+    const data: ApiResponse<T> = await response.json();
+    return data.data;
+  }
 
-      if (onProgress) {
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
-            onProgress(progress);
-          }
-        });
-      }
-
-      xhr.addEventListener('load', () => {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(data);
-          } else {
-            reject(new Error(data.message || 'Upload failed'));
-          }
-        } catch (error) {
-          reject(new Error('Invalid response format'));
-        }
-      });
-
-      xhr.addEventListener('error', () => {
-        reject(new Error('Upload failed'));
-      });
-
-      xhr.open('POST', url);
-      
-      if (this.token) {
-        xhr.setRequestHeader('Authorization', `Bearer ${this.token}`);
-      }
-
-      xhr.send(formData);
+  async get<T>(url: string, params?: Record<string, any>): Promise<T> {
+    const queryString = params 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    
+    const response = await fetch(`${this.baseURL}${url}${queryString}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
     });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async post<T>(url: string, data?: any): Promise<T> {
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async put<T>(url: string, data?: any): Promise<T> {
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async patch<T>(url: string, data?: any): Promise<T> {
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async delete<T>(url: string): Promise<T> {
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async upload<T>(url: string, formData: FormData, onProgress?: (progress: number) => void): Promise<T> {
+    const headers = this.getAuthHeaders();
+    // Remove Content-Type for FormData (browser will set it automatically with boundary)
+    delete headers['Content-Type'];
+
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    return this.handleResponse<T>(response);
   }
 }
 
-export const apiClient = new ApiClient();
-
-// Утилиты для работы с токенами
-export const tokenUtils = {
-  getToken(): string | null {
-    return localStorage.getItem('accessToken');
+// API Endpoints
+export const API_ENDPOINTS = {
+  // Auth
+  AUTH: {
+    LOGIN: '/auth/login',
+    REGISTER: '/auth/register',
+    LOGOUT: '/auth/logout',
+    REFRESH: '/auth/refresh',
+    ME: '/auth/me',
+    VERIFY: '/auth/verify',
   },
-
-  setToken(token: string): void {
-    localStorage.setItem('accessToken', token);
+  
+  // Users
+  USERS: {
+    LIST: '/users',
+    GET: (id: string) => `/users/${id}`,
+    UPDATE: (id: string) => `/users/${id}`,
+    DELETE: (id: string) => `/users/${id}`,
+    AVATAR: (id: string) => `/users/${id}/avatar`,
   },
-
-  removeToken(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+  
+  // Videos
+  VIDEOS: {
+    LIST: '/videos',
+    GET: (id: string) => `/videos/${id}`,
+    CREATE: '/videos',
+    UPDATE: (id: string) => `/videos/${id}`,
+    DELETE: (id: string) => `/videos/${id}`,
+    LIKE: (id: string) => `/videos/${id}/like`,
+    COMMENT: (id: string) => `/videos/${id}/comments`,
+    TRENDING: '/videos/trending',
+    MASTER: (masterId: string) => `/videos/master/${masterId}`,
   },
-
-  getRefreshToken(): string | null {
-    return localStorage.getItem('refreshToken');
+  
+  // Orders
+  ORDERS: {
+    LIST: '/orders',
+    GET: (id: string) => `/orders/${id}`,
+    CREATE: '/orders',
+    UPDATE: (id: string) => `/orders/${id}`,
+    DELETE: (id: string) => `/orders/${id}`,
+    RESPOND: (id: string) => `/orders/${id}/responses`,
+    RESPONSES: (id: string) => `/orders/${id}/responses`,
+    ACCEPT: (id: string, responseId: string) => `/orders/${id}/responses/${responseId}/accept`,
   },
-
-  setRefreshToken(token: string): void {
-    localStorage.setItem('refreshToken', token);
+  
+  // Chats
+  CHATS: {
+    LIST: '/chats',
+    GET: (id: string) => `/chats/${id}`,
+    CREATE: '/chats',
+    MESSAGES: (id: string) => `/chats/${id}/messages`,
+    SEND_MESSAGE: (id: string) => `/chats/${id}/messages`,
+    MARK_READ: (id: string) => `/chats/${id}/read`,
   },
-
-  isTokenExpired(token: string): boolean {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  }
-};
-
-// Утилиты для обработки ошибок
-export const errorUtils = {
-  handleApiError(error: any): ApiError {
-    if (error.response) {
-      return {
-        success: false,
-        message: error.response.data?.message || 'API request failed',
-        code: error.response.status.toString(),
-        details: error.response.data,
-        timestamp: new Date().toISOString(),
-      };
-    }
-
-    if (error.request) {
-      return {
-        success: false,
-        message: 'Network error. Please check your internet connection.',
-        code: 'NETWORK_ERROR',
-        timestamp: new Date().toISOString(),
-      };
-    }
-
-    return {
-      success: false,
-      message: error.message || 'An unexpected error occurred',
-      code: 'UNKNOWN_ERROR',
-      timestamp: new Date().toISOString(),
-    };
-  }
-};
-
-// Утилиты для форматирования данных
-export const formatUtils = {
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  
+  // Notifications
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    GET: (id: string) => `/notifications/${id}`,
+    MARK_READ: (id: string) => `/notifications/${id}/read`,
+    MARK_ALL_READ: '/notifications/read-all',
+    DELETE: (id: string) => `/notifications/${id}`,
   },
-
-  formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    }
-    
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  
+  // Admin
+  ADMIN: {
+    USERS: '/admin/users',
+    VIDEOS: '/admin/videos',
+    ORDERS: '/admin/orders',
+    STATS: '/admin/stats',
+    AUDIT: '/admin/audit-log',
   },
+} as const;
 
-  formatDate(date: string | Date): string {
-    const d = new Date(date);
-    return d.toLocaleDateString('ru-RU', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+// Helper functions for common API operations
+// ============================================================================
+// API SERVICE FACTORIES
+// ============================================================================
+
+/**
+ * Video API methods
+ */
+export const videoApi = (client: ApiClient) => ({
+  // Feed and list
+  list: (params?: any) => client.get('/videos/feed', params),
+  get: (id: string) => client.get(`/videos/${id}`),
+  trending: () => client.get('/videos/trending'),
+  
+  // Upload and manage
+  upload: (data: FormData, onProgress?: (p: number) => void) => 
+    client.upload('/videos/upload', data, onProgress),
+  update: (id: string, data: any) => client.put(`/videos/${id}`, data),
+  delete: (id: string) => client.delete(`/videos/${id}`),
+  
+  // Interactions
+  like: (id: string) => client.post(`/videos/${id}/like`),
+  unlike: (id: string) => client.delete(`/videos/${id}/like`),
+  recordView: (id: string, data: { durationWatched: number; completionRate: number }) => 
+    client.post(`/videos/${id}/view`, data),
+  
+  // Comments
+  getComments: (id: string, params?: any) => 
+    client.get(`/videos/${id}/comments`, params),
+  addComment: (videoId: string, content: string, parentId?: string) =>
+    client.post(`/videos/${videoId}/comment`, { content, parent_id: parentId }),
+  likeComment: (commentId: string) => 
+    client.post(`/videos/comments/${commentId}/like`),
+  unlikeComment: (commentId: string) => 
+    client.delete(`/videos/comments/${commentId}/like`),
+});
+
+/**
+ * Order API methods
+ */
+export const orderApi = (client: ApiClient) => ({
+  // List and get
+  list: (params?: any) => client.get('/orders/feed', params),
+  get: (id: string) => client.get(`/orders/${id}`),
+  
+  // Create and manage
+  create: (data: any) => client.post('/orders/create', data),
+  update: (id: string, data: any) => client.put(`/orders/${id}`, data),
+  delete: (id: string) => client.delete(`/orders/${id}`),
+  updateStatus: (id: string, status: string) => 
+    client.put(`/orders/${id}/status`, { status }),
+  
+  // Responses
+  createResponse: (orderId: string, data: any) => 
+    client.post(`/orders/${orderId}/responses`, data),
+  getResponses: (orderId: string) => 
+    client.get(`/orders/${orderId}/responses`),
+  acceptResponse: (orderId: string, responseId: string) => 
+    client.post(`/orders/${orderId}/accept`, { responseId }),
+  rejectResponse: (orderId: string, responseId: string) => 
+    client.put(`/orders/${orderId}/responses/${responseId}/reject`),
+  
+  // Images
+  uploadImages: (data: FormData) => 
+    client.upload('/orders/upload-images', data),
+  
+  // Regions
+  getRegions: () => client.get('/orders/regions'),
+});
+
+/**
+ * Chat API methods
+ */
+export const chatApi = (client: ApiClient) => ({
+  // List and get
+  list: () => client.get('/chats/list'),
+  get: (id: string) => client.get(`/chats/${id}`),
+  
+  // Create
+  create: (participantId: string) => 
+    client.post('/chats/create', { participants: [participantId] }),
+  createWithUser: (userId: string) => 
+    client.post('/chats/create-with-user', { participantId: userId }),
+  
+  // Messages
+  getMessages: (id: string, params?: any) => 
+    client.get(`/chats/${id}/messages`, params),
+  sendMessage: (id: string, content: string, type: string = 'text', metadata?: any) => 
+    client.post(`/chats/${id}/messages`, { content, type, metadata }),
+  
+  // Read status
+  markAsRead: (chatId: string, messageId: string) => 
+    client.put(`/chats/${chatId}/messages/${messageId}/read`),
+  markChatAsRead: (id: string) => 
+    client.put(`/chats/${id}/read`),
+  
+  // File upload
+  uploadFile: (chatId: string, file: FormData) => 
+    client.upload(`/chats/${chatId}/upload`, file),
+  
+  // Delete and block
+  deleteChat: (id: string) => 
+    client.delete(`/chats/${id}`),
+  blockUser: (chatId: string, reason?: string) => 
+    client.post(`/chats/${chatId}/block`, { reason }),
+  
+  // Support
+  getSupportChat: () => 
+    client.get('/chats/support'),
+  sendSupportMessage: (content: string, type: string = 'text') => 
+    client.post('/chats/support/messages', { content, type }),
+});
+
+/**
+ * Subscription API methods
+ */
+export const subscriptionApi = (client: ApiClient) => ({
+  get: (): Promise<any> => client.get('/subscriptions'),
+  subscribe: (channelId: string): Promise<any> => client.post('/subscriptions', { channelId }),
+  unsubscribe: (channelId: string): Promise<any> => client.delete(`/subscriptions/${channelId}`),
+  getCount: (masterId: string): Promise<any> => client.get(`/subscriptions/count/${masterId}`),
+});
+
+/**
+ * User API methods
+ */
+export const userApi = (client: ApiClient) => ({
+  get: (id: string): Promise<any> => client.get(`/users/${id}`),
+  update: (id: string, data: any): Promise<any> => client.put(`/users/${id}`, data),
+  delete: (id: string): Promise<void> => client.delete(`/users/${id}`),
+  uploadAvatar: (id: string, file: FormData): Promise<any> => 
+    client.upload(`/users/${id}/avatar`, file),
+});
+
+/**
+ * Auth API methods
+ */
+export const authApi = (client: ApiClient) => ({
+  login: async (email: string, password: string): Promise<{ token: string; user: any }> => {
+    const response: any = await client.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
+    return { token: response.accessToken || response.token, user: response.user };
   },
-
-  formatRelativeTime(date: string | Date): string {
-    const now = new Date();
-    const d = new Date(date);
-    const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
-
-    if (diffInSeconds < 60) {
-      return 'только что';
-    }
-
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} мин. назад`;
-    }
-
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) {
-      return `${diffInHours} ч. назад`;
-    }
-
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) {
-      return `${diffInDays} дн. назад`;
-    }
-
-    return this.formatDate(date);
+  register: async (data: { email: string; password: string; name: string; role: string }): Promise<{ token: string; user: any }> => {
+    const response: any = await client.post(API_ENDPOINTS.AUTH.REGISTER, data);
+    return { token: response.accessToken || response.token, user: response.user };
   },
+  logout: (): Promise<void> => client.post(API_ENDPOINTS.AUTH.LOGOUT),
+  getMe: (): Promise<any> => client.get(API_ENDPOINTS.AUTH.ME),
+  verify: (token: string): Promise<any> => client.post(API_ENDPOINTS.AUTH.VERIFY, { token }),
+  refresh: (): Promise<{ token: string }> => client.post(API_ENDPOINTS.AUTH.REFRESH),
+});
 
-  formatPhoneNumber(phone: string): string {
-    const cleaned = phone.replace(/\D/g, '');
-    
-    if (cleaned.startsWith('7') && cleaned.length === 11) {
-      return `+7 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7, 9)}-${cleaned.slice(9)}`;
-    }
-    
-    return phone;
+/**
+ * Notification API methods
+ */
+export const notificationApi = (client: ApiClient) => ({
+  list: () => client.get(API_ENDPOINTS.NOTIFICATIONS.LIST),
+  get: (id: string) => client.get(API_ENDPOINTS.NOTIFICATIONS.GET(id)),
+  markRead: (id: string) => client.post(API_ENDPOINTS.NOTIFICATIONS.MARK_READ(id)),
+  markAllRead: () => client.post(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ),
+  delete: (id: string) => client.delete(API_ENDPOINTS.NOTIFICATIONS.DELETE(id)),
+});
+
+/**
+ * Admin API methods
+ */
+export const adminApi = (client: ApiClient) => ({
+  users: {
+    list: (params?: any) => client.get(API_ENDPOINTS.ADMIN.USERS, params),
   },
-
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'KZT',
-    }).format(price);
-  }
-};
-
-// Утилиты для валидации
-export const validationUtils = {
-  isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  videos: {
+    list: (params?: any) => client.get(API_ENDPOINTS.ADMIN.VIDEOS, params),
   },
-
-  isValidPhone(phone: string): boolean {
-    const phoneRegex = /^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/;
-    return phoneRegex.test(phone);
+  orders: {
+    list: (params?: any) => client.get(API_ENDPOINTS.ADMIN.ORDERS, params),
   },
+  stats: () => client.get(API_ENDPOINTS.ADMIN.STATS),
+  auditLog: (params?: any) => client.get(API_ENDPOINTS.ADMIN.AUDIT, params),
+});
 
-  isValidPassword(password: string): boolean {
-    return password.length >= 6;
-  },
+// ============================================================================
+// LEGACY HELPERS (для обратной совместимости)
+// ============================================================================
 
-  isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-};
+export const createApiHelpers = (apiClient: ApiClient) => ({
+  auth: authApi(apiClient),
+  videos: videoApi(apiClient),
+  orders: orderApi(apiClient),
+  chats: chatApi(apiClient),
+  users: userApi(apiClient),
+  subscriptions: subscriptionApi(apiClient),
+  notifications: notificationApi(apiClient),
+  admin: adminApi(apiClient),
+});
 
-// Утилиты для работы с файлами
-export const fileUtils = {
-  getFileExtension(filename: string): string {
-    return filename.split('.').pop()?.toLowerCase() || '';
-  },
-
-  isImageFile(filename: string): boolean {
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    return imageExtensions.includes(this.getFileExtension(filename));
-  },
-
-  isVideoFile(filename: string): boolean {
-    const videoExtensions = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
-    return videoExtensions.includes(this.getFileExtension(filename));
-  },
-
-  isAudioFile(filename: string): boolean {
-    const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a'];
-    return audioExtensions.includes(this.getFileExtension(filename));
-  },
-
-  createFileUrl(file: File): string {
-    return URL.createObjectURL(file);
-  },
-
-  revokeFileUrl(url: string): void {
-    URL.revokeObjectURL(url);
-  }
-};
-
-export default apiClient;
-
+export default ApiClient;

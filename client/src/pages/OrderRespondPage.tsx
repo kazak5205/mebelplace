@@ -4,12 +4,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Send, DollarSign, Calendar, MessageSquare } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
-import { useAuth } from '../contexts/AuthContext'
 
 const OrderRespondPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
   const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Filter, MapPin, Clock, DollarSign, User } from 'lucide-react'
+import { Plus, Search, Filter, MapPin, Clock } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { Order } from '../types'
 import { orderService } from '../services/orderService'
@@ -34,7 +34,7 @@ const OrdersPage: React.FC = () => {
     on('new_order_response', (data) => {
       setOrders(prev => prev.map(order => 
         order.id === data.orderId 
-          ? { ...order, responses: [...order.responses, data.response] }
+          ? { ...order, responses: [...(order.responses || []), data.response] }
           : order
       ))
     })
@@ -108,7 +108,7 @@ const OrdersPage: React.FC = () => {
         className="flex items-center justify-between"
       >
         <h1 className="text-3xl font-bold gradient-text">Заявки</h1>
-        {user?.role === 'client' && (
+        {user?.role === 'user' && (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -185,7 +185,7 @@ const OrdersPage: React.FC = () => {
             <p className="text-white/50">
               {searchQuery || statusFilter !== 'all'
                 ? 'Попробуйте изменить фильтры'
-                : user?.role === 'client' 
+                : user?.role === 'user' 
                   ? 'Создайте свою первую заявку'
                   : 'Пока нет доступных заявок'
               }
@@ -222,10 +222,12 @@ const OrdersPage: React.FC = () => {
                         <span>{order.location.region}</span>
                       </div>
                     )}
-                    <div className="flex items-center space-x-2 text-white/70">
-                      <MapPin className="w-5 h-5" />
-                      <span>{order.location.city}</span>
-                    </div>
+                    {order.location?.city && (
+                      <div className="flex items-center space-x-2 text-white/70">
+                        <MapPin className="w-5 h-5" />
+                        <span>{order.location.city}</span>
+                      </div>
+                    )}
                     <div className="flex items-center space-x-2 text-white/70">
                       <Clock className="w-5 h-5" />
                       <span>{new Date(order.createdAt).toLocaleDateString()}</span>
@@ -243,26 +245,30 @@ const OrdersPage: React.FC = () => {
                           className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold"
                           aria-label="Канал мастера"
                         >
-                          {order.master.name.charAt(0).toUpperCase()}
+                          {(order.master?.name || order.master?.username || 'M').charAt(0).toUpperCase()}
                         </button>
-                      ) : (
+                      ) : order.client && (
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                          {order.client.name.charAt(0).toUpperCase()}
+                          {(order.client?.name || order.client?.username || 'C').charAt(0).toUpperCase()}
                         </div>
                       )}
                       <div>
-                        <p className="font-medium text-sm text-white">{order.master ? order.master.name : order.client.name}</p>
+                        <p className="font-medium text-sm text-white">
+                          {order.master 
+                            ? (order.master?.name || order.master?.username) 
+                            : (order.client?.name || order.client?.username)}
+                        </p>
                         <p className="text-xs text-white/60">{order.master ? 'Мастер' : 'Клиент'}</p>
                       </div>
                     </div>
 
-                    {order.responses.length > 0 && (
+                    {order.responses && order.responses.length > 0 && (
                       <div className="text-right">
                         <p className="text-sm font-medium text-white">
                           {order.responses.length} откликов
                         </p>
                         <p className="text-xs text-white/60">
-                          {order.responses.filter(r => r.status === 'accepted').length} принято
+                          {order.responses.filter((r: any) => r.status === 'accepted').length} принято
                         </p>
                       </div>
                     )}
@@ -270,7 +276,7 @@ const OrdersPage: React.FC = () => {
 
                   {/* Action Buttons */}
                   <div className="flex justify-end space-x-3 mt-4">
-                    {order.responses.length > 0 && (
+                    {order.responses && order.responses.length > 0 && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}

@@ -7,7 +7,7 @@ export const getOrderStatusColor = (status: OrderStatus): string => {
   const colors = {
     [ORDER_STATUSES.PENDING]: 'bg-yellow-500',
     [ORDER_STATUSES.ACCEPTED]: 'bg-blue-500',
-    [ORDER_STATUSES.IN_PROGRESS]: 'bg-purple-500',
+    [ORDER_STATUSES.IN_PROGRESS]: 'bg-orange-500',
     [ORDER_STATUSES.COMPLETED]: 'bg-green-500',
     [ORDER_STATUSES.CANCELLED]: 'bg-red-500'
   }

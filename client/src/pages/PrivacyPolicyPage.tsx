@@ -118,7 +118,7 @@ const PrivacyPolicyPage = () => {
                 <li><strong>Право на отзыв согласия:</strong> в любой момент отозвать согласие на обработку</li>
               </ul>
               <p className="mt-3">
-                Для реализации ваших прав обращайтесь по адресу: <a href="mailto:privacy@mebelplace.com.kz" className="text-purple-400 hover:text-purple-300">privacy@mebelplace.com.kz</a>
+                Для реализации ваших прав обращайтесь по адресу: <a href="mailto:privacy@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">privacy@mebelplace.com.kz</a>
               </p>
             </section>
 
@@ -138,7 +138,7 @@ const PrivacyPolicyPage = () => {
                 Платформа не предназначена для лиц младше 18 лет. Мы сознательно не собираем 
                 персональные данные детей. Если вам стало известно, что ребенок предоставил нам 
                 свои данные, просим сообщить об этом по адресу: 
-                <a href="mailto:privacy@mebelplace.com.kz" className="text-purple-400 hover:text-purple-300"> privacy@mebelplace.com.kz</a>
+                <a href="mailto:privacy@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300"> privacy@mebelplace.com.kz</a>
               </p>
             </section>
 
@@ -156,9 +156,9 @@ const PrivacyPolicyPage = () => {
               <h2 className="text-xl font-semibold text-white mb-3">12. Контактная информация</h2>
               <p className="mb-2">По вопросам, связанным с обработкой персональных данных, обращайтесь:</p>
               <ul className="list-none space-y-1 ml-4">
-                <li>Email: <a href="mailto:privacy@mebelplace.com.kz" className="text-purple-400 hover:text-purple-300">privacy@mebelplace.com.kz</a></li>
-                <li>Email: <a href="mailto:support@mebelplace.com.kz" className="text-purple-400 hover:text-purple-300">support@mebelplace.com.kz</a></li>
-                <li>Сайт: <a href="https://mebelplace.com.kz" className="text-purple-400 hover:text-purple-300">https://mebelplace.com.kz</a></li>
+                <li>Email: <a href="mailto:privacy@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">privacy@mebelplace.com.kz</a></li>
+                <li>Email: <a href="mailto:support@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">support@mebelplace.com.kz</a></li>
+                <li>Сайт: <a href="https://mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">https://mebelplace.com.kz</a></li>
               </ul>
             </section>
 

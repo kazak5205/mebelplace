@@ -25,7 +25,7 @@ const TermsOfServicePage = () => {
               <p className="mb-2">
                 Настоящее Пользовательское соглашение (далее — «Соглашение») регулирует использование 
                 платформы MebelPlace (далее — «Платформа», «Сервис»), расположенной по адресу 
-                <a href="https://mebelplace.com.kz" className="text-purple-400 hover:text-purple-300"> https://mebelplace.com.kz</a>.
+                <a href="https://mebelplace.com.kz" className="text-orange-400 hover:text-purple-300"> https://mebelplace.com.kz</a>.
               </p>
               <p>
                 Используя Платформу, вы соглашаетесь с условиями настоящего Соглашения. Если вы не согласны 
@@ -147,7 +147,7 @@ const TermsOfServicePage = () => {
               <h2 className="text-xl font-semibold text-white mb-3">8. Конфиденциальность</h2>
               <p>
                 Обработка персональных данных регулируется нашей 
-                <a href="/privacy" className="text-purple-400 hover:text-purple-300"> Политикой конфиденциальности</a>, 
+                <a href="/privacy" className="text-orange-400 hover:text-purple-300"> Политикой конфиденциальности</a>, 
                 которая является неотъемлемой частью настоящего Соглашения.
               </p>
             </section>
@@ -205,7 +205,7 @@ const TermsOfServicePage = () => {
               </p>
               <p className="mb-2">
                 11.2. Претензии к Платформе направляются по адресу: 
-                <a href="mailto:support@mebelplace.com.kz" className="text-purple-400 hover:text-purple-300"> support@mebelplace.com.kz</a>
+                <a href="mailto:support@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300"> support@mebelplace.com.kz</a>
               </p>
               <p>
                 11.3. При невозможности досудебного урегулирования споры рассматриваются в соответствии 
@@ -258,9 +258,9 @@ const TermsOfServicePage = () => {
               <h2 className="text-xl font-semibold text-white mb-3">15. Контактная информация</h2>
               <p className="mb-2">По всем вопросам обращайтесь:</p>
               <ul className="list-none space-y-1 ml-4">
-                <li>Email: <a href="mailto:support@mebelplace.com.kz" className="text-purple-400 hover:text-purple-300">support@mebelplace.com.kz</a></li>
-                <li>Email: <a href="mailto:legal@mebelplace.com.kz" className="text-purple-400 hover:text-purple-300">legal@mebelplace.com.kz</a></li>
-                <li>Сайт: <a href="https://mebelplace.com.kz" className="text-purple-400 hover:text-purple-300">https://mebelplace.com.kz</a></li>
+                <li>Email: <a href="mailto:support@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">support@mebelplace.com.kz</a></li>
+                <li>Email: <a href="mailto:legal@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">legal@mebelplace.com.kz</a></li>
+                <li>Сайт: <a href="https://mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">https://mebelplace.com.kz</a></li>
               </ul>
             </section>
 

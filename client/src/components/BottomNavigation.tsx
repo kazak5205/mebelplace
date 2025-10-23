@@ -14,10 +14,9 @@ import { useAuth } from '../contexts/AuthContext'
 const BottomNavigation: React.FC = () => {
   const { user } = useAuth()
 
-  if (!user) return null
-
-  const isMaster = user.role === 'master'
-  const isClient = user.role === 'client'
+  const isMaster = user?.role === 'master'
+  const isClient = user?.role === 'user'
+  const isGuest = !user
 
   const navItems = [
     {
@@ -32,13 +31,13 @@ const BottomNavigation: React.FC = () => {
       label: isMaster ? 'Все заявки' : 'Мои заявки',
       icon: isMaster ? CheckSquare : FileText,
       path: isMaster ? '/orders' : '/user/orders',
-      show: true
+      show: !isGuest // Guests can't access orders
     },
     {
       id: 'create',
       label: '',
       icon: Plus,
-      path: isClient ? '/orders/create' : '/create-video-ad',
+      path: isGuest ? '/orders/create' : (isClient ? '/orders/create' : '/create-video-ad'),
       show: true,
       isCenter: true
     },
@@ -47,16 +46,16 @@ const BottomNavigation: React.FC = () => {
       label: 'Мессенджер',
       icon: MessageCircle,
       path: '/user/messenger',
-      show: true
+      show: !isGuest // Guests can't access messenger
     },
     {
       id: 'profile',
       label: 'Профиль',
       icon: User,
       path: '/profile',
-      show: true
+      show: !isGuest // Guests can't access profile
     }
-  ]
+  ].filter(item => item.show)
 
   return (
     <motion.nav
@@ -76,9 +75,9 @@ const BottomNavigation: React.FC = () => {
               className={({ isActive }) =>
                 `relative flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 ${
                   item.isCenter 
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25 -mt-4' 
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25 -mt-4' 
                     : isActive
-                    ? 'text-purple-400'
+                    ? 'text-orange-400'
                     : 'text-gray-400 hover:text-gray-300'
                 }`
               }
@@ -87,7 +86,7 @@ const BottomNavigation: React.FC = () => {
                 <>
                   {item.isCenter ? (
                     <motion.div
-                      className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-lg"
+                      className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center shadow-lg"
                       whileHover={{ 
                         scale: 1.05,
                         boxShadow: "0 0 20px rgba(168, 85, 247, 0.4)" 
@@ -100,11 +99,11 @@ const BottomNavigation: React.FC = () => {
                     <>
                       <Icon 
                         size={20} 
-                        className={isActive ? 'text-purple-400' : 'text-gray-400'}
+                        className={isActive ? 'text-orange-400' : 'text-gray-400'}
                       />
                       <span className={`
                         text-xs mt-1 font-medium
-                        ${isActive ? 'text-purple-400' : 'text-gray-400'}
+                        ${isActive ? 'text-orange-400' : 'text-gray-400'}
                       `}>
                         {item.label}
                       </span>

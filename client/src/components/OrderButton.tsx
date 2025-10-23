@@ -26,15 +26,10 @@ const OrderButton: React.FC<OrderButtonProps> = ({ video, className = '' }) => {
       setLoading(true)
       const chat = await chatService.createChatWithUser(video.masterId) as any
       
-      const autoMessage = `${video.title}`
-      const metadata = {
-        videoId: video.id,
-        videoTitle: video.title,
-        videoThumbnail: video.thumbnailUrl ? `https://mebelplace.com.kz${video.thumbnailUrl}` : null
-      }
+      const autoMessage = `Здравствуйте! Интересует мебель из видео: ${video.title}`
       
-      console.log('🔍 [OrderButton] Sending message with metadata:', metadata)
-      await chatService.sendMessage(chat.id || chat.chatId, autoMessage, 'text', metadata)
+      // Отправляем сообщение без metadata, т.к. sendMessage принимает replyTo?: string
+      await chatService.sendMessage(chat.id || chat.chatId, autoMessage, 'text')
       
       navigate(`/chat/${chat.id || chat.chatId}`)
     } catch (error) {
@@ -56,7 +51,7 @@ const OrderButton: React.FC<OrderButtonProps> = ({ video, className = '' }) => {
       className={`
         relative overflow-hidden
         px-6 py-4 sm:px-8 sm:py-5
-        bg-gradient-to-r from-orange-500 to-pink-500
+        bg-gradient-to-r from-orange-500 to-orange-600
         text-white font-bold text-base sm:text-lg
         rounded-2xl shadow-lg hover:shadow-xl
         transition-all duration-300

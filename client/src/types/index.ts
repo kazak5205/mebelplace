@@ -10,11 +10,17 @@ export interface ApiResponse<T = any> {
 export interface User {
   id: string;
   email: string;
-  name: string;
+  username?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
-  role: 'client' | 'master' | 'admin';
-  isOnline: boolean;
+  role: 'user' | 'master' | 'admin'; // 'user' это обычный клиент
+  isOnline?: boolean;
+  isActive?: boolean;
+  isVerified?: boolean;
   lastSeen?: string;
+  phone?: string;
   rating?: number;
   reviewsCount?: number;
   specialties?: string[];
@@ -23,7 +29,7 @@ export interface User {
     region: string;
   };
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 // Video Types
@@ -76,22 +82,24 @@ export interface Order {
   description: string;
   category: string;
   budget?: number;
+  price?: number;
   deadline?: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  location: {
-    city: string;
-    region: string;
-    address: string;
+  region?: string;
+  status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+  location?: {
+    city?: string;
+    region?: string;
+    address?: string;
     coordinates?: {
       lat: number;
       lng: number;
     };
   };
   images: string[];
-  responses: OrderResponse[];
+  responses?: OrderResponse[];
   createdAt: string;
-  updatedAt: string;
-  client: User;
+  updatedAt?: string;
+  client?: User;
   master?: User;
 }
 

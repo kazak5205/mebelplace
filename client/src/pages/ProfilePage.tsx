@@ -9,7 +9,9 @@ const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    phone: user?.phone || '',
     email: user?.email || '',
     specialties: user?.specialties?.join(', ') || '',
     location: {
@@ -21,8 +23,10 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name,
-        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phone: user.phone || '',
+        email: user.email || '',
         specialties: user.specialties?.join(', ') || '',
         location: {
           city: user.location?.city || '',
@@ -36,13 +40,15 @@ const ProfilePage: React.FC = () => {
     const { name, value } = e.target
     if (name.includes('.')) {
       const [parent, child] = name.split('.')
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof typeof prev],
-          [child]: value
-        }
-      }))
+      if (parent === 'location') {
+        setFormData(prev => ({
+          ...prev,
+          location: {
+            ...prev.location,
+            [child]: value
+          }
+        }))
+      }
     } else {
       setFormData(prev => ({ ...prev, [name]: value }))
     }
@@ -51,18 +57,17 @@ const ProfilePage: React.FC = () => {
   const handleSave = async () => {
     try {
       setLoading(true)
+      // Обновляем только поля, которые поддерживает бэкенд
       await updateUser({
-        name: formData.name,
-        email: formData.email,
-        specialties: formData.specialties.split(',').map(s => s.trim()).filter(Boolean),
-        location: {
-          city: formData.location.city,
-          region: formData.location.region
-        }
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone
+        // email, specialties, location - пока не поддерживаются бэкендом /auth/profile
       })
       setIsEditing(false)
     } catch (error) {
       console.error('Failed to update profile:', error)
+      alert('Ошибка при обновлении профиля')
     } finally {
       setLoading(false)
     }
@@ -71,8 +76,10 @@ const ProfilePage: React.FC = () => {
   const handleCancel = () => {
     if (user) {
       setFormData({
-        name: user.name,
-        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phone: user.phone || '',
+        email: user.email || '',
         specialties: user.specialties?.join(', ') || '',
         location: {
           city: user.location?.city || '',
@@ -113,14 +120,18 @@ const ProfilePage: React.FC = () => {
           <GlassCard className="p-6 text-center">
             <div className="relative inline-block mb-4">
               <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto">
-                {user.name.charAt(0).toUpperCase()}
+                {((user.firstName || user.username || user.email).charAt(0).toUpperCase())}
               </div>
               <button className="absolute bottom-0 right-0 glass-button p-2 rounded-full">
                 <Camera className="w-4 h-4" />
               </button>
             </div>
 
-            <h2 className="text-xl font-bold text-white mb-2">{user.name}</h2>
+            <h2 className="text-xl font-bold text-white mb-2">
+              {user.firstName && user.lastName 
+                ? `${user.firstName} ${user.lastName}` 
+                : user.username || user.email}
+            </h2>
             <p className="text-white/70 mb-4">{user.role === 'master' ? 'Мастер' : 'Клиент'}</p>
 
             {user.rating && (
@@ -175,8 +186,8 @@ const ProfilePage: React.FC = () => {
                     <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
                     <input
                       type="text"
-                      name="name"
-                      value={formData.name}
+                      name="firstName"
+                      value={formData.firstName}
                       onChange={handleInputChange}
                       disabled={!isEditing}
                       className="glass-input w-full pl-12 disabled:opacity-50"
@@ -186,7 +197,41 @@ const ProfilePage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-2">
-                    Email *
+                    Фамилия
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className="glass-input w-full pl-12 disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">
+                    Телефон
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    placeholder="+7 (___) ___-__-__"
+                    className="glass-input w-full disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">
+                    Email (только для чтения)
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
@@ -194,9 +239,8 @@ const ProfilePage: React.FC = () => {
                       type="email"
                       name="email"
                       value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className="glass-input w-full pl-12 disabled:opacity-50"
+                      disabled={true}
+                      className="glass-input w-full pl-12 opacity-50 cursor-not-allowed"
                     />
                   </div>
                 </div>

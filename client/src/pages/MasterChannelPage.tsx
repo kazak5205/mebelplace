@@ -24,7 +24,7 @@ const MasterChannelPage: React.FC = () => {
     category: 'general',
     tags: ''
   })
-  const { emit, on } = useSocket()
+  const { on } = useSocket()
 
   useEffect(() => {
     if (id) {
@@ -55,7 +55,7 @@ const MasterChannelPage: React.FC = () => {
   const loadMasterVideos = async () => {
     try {
       setLoading(true)
-      const response = await videoService.getVideos({ masterId: id, limit: 50 })
+      const response = await videoService.getVideos({ author_id: id, limit: 50 })
       setVideos(response.videos)
       if (response.videos.length > 0) {
         setMaster(response.videos[0].master)
@@ -71,9 +71,9 @@ const MasterChannelPage: React.FC = () => {
   const handleLike = async (video: Video) => {
     try {
       if (video.isLiked) {
-        await videoService.unlikeVideo(video.id)
+        await videoService.toggleLike(video.id)
       } else {
-        await videoService.likeVideo(video.id)
+        await videoService.toggleLike(video.id)
       }
     } catch (error) {
       console.error('Failed to like video:', error)
@@ -179,11 +179,15 @@ const MasterChannelPage: React.FC = () => {
 
         <div className="flex items-start space-x-6">
           <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-            {master.name.charAt(0).toUpperCase()}
+            {(master.name || master.username || master.email || 'M').charAt(0).toUpperCase()}
           </div>
 
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-white mb-2">{master.name}</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              {master.firstName && master.lastName 
+                ? `${master.firstName} ${master.lastName}` 
+                : master.name || master.username || master.email}
+            </h2>
             <p className="text-white/70 mb-4">{master.specialties?.join(', ')}</p>
 
             <div className="flex items-center space-x-6 text-sm text-white/70">
@@ -251,7 +255,7 @@ const MasterChannelPage: React.FC = () => {
         >
           {selectedVideo ? (
             <GlassCard className="overflow-hidden">
-              <div className="aspect-video bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+              <div className="aspect-video bg-gradient-to-br from-orange-500/20 to-orange-600/20 flex items-center justify-center">
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -358,7 +362,7 @@ const MasterChannelPage: React.FC = () => {
                   }`}
                 >
                   <div className="flex space-x-3 p-3">
-                    <div className="w-20 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded flex items-center justify-center flex-shrink-0">
+                    <div className="w-20 h-12 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded flex items-center justify-center flex-shrink-0">
                       <Play className="w-4 h-4 text-white/70" />
                     </div>
                     <div className="flex-1 min-w-0">

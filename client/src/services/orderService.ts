@@ -1,5 +1,5 @@
 import { apiService } from './api'
-import { Order, OrderResponse } from '../types'
+import { Order } from '../types'
 
 export const orderService = {
   async getOrders(params?: {

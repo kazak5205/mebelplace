@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence, PanInfo } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
+import { motion, PanInfo } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Filter, MapPin, Clock, MessageCircle, Eye, Trash2, Pin } from 'lucide-react'
+import { Plus, Search, Filter, Clock, Eye, Trash2, Pin } from 'lucide-react'
 import { Order } from '../types'
 import { orderService } from '../services/orderService'
-import { useAuth } from '../contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
 
 const UserOrdersPage: React.FC = () => {
@@ -12,9 +11,8 @@ const UserOrdersPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [swipedOrderId, setSwipedOrderId] = useState<string | null>(null)
+  const [_swipedOrderId, setSwipedOrderId] = useState<string | null>(null) // Используется в swipe логике
   const navigate = useNavigate()
-  const { user } = useAuth()
   const { on } = useSocket()
 
   useEffect(() => {
@@ -23,13 +21,9 @@ const UserOrdersPage: React.FC = () => {
 
   useEffect(() => {
     // Socket events для real-time обновлений
-    const unsubscribe = on('message', () => {
+    on('new_order_response', () => {
       loadOrders()
     })
-    
-    return () => {
-      if (unsubscribe) unsubscribe()
-    }
   }, [on])
 
   const loadOrders = async () => {
@@ -49,10 +43,11 @@ const UserOrdersPage: React.FC = () => {
     if (!window.confirm('Удалить эту заявку?')) return
     
     try {
-      await orderService.deleteOrder(orderId)
+      // Меняем статус на cancelled вместо удаления (soft delete)
+      await orderService.updateOrderStatus(orderId, 'cancelled')
       setOrders(prev => prev.filter(o => o.id !== orderId))
     } catch (error) {
-      console.error('Failed to delete order:', error)
+      console.error('Failed to cancel order:', error)
     }
   }
 
@@ -81,7 +76,7 @@ const UserOrdersPage: React.FC = () => {
     switch (status) {
       case 'pending': return 'bg-yellow-500 text-white'
       case 'accepted': return 'bg-blue-500 text-white'
-      case 'in_progress': return 'bg-purple-500 text-white'
+      case 'in_progress': return 'bg-orange-500 text-white'
       case 'completed': return 'bg-green-500 text-white'
       case 'cancelled': return 'bg-red-500 text-white'
       default: return 'bg-gray-500 text-white'
@@ -102,7 +97,7 @@ const UserOrdersPage: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
       </div>
     )
   }
@@ -115,7 +110,7 @@ const UserOrdersPage: React.FC = () => {
           <h1 className="text-2xl font-bold">Мои заявки</h1>
           <button
             onClick={() => navigate('/orders/create')}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all"
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-lg hover:shadow-orange-500/25 transition-all"
           >
             <Plus size={20} />
             <span className="font-medium">Создать заявку</span>
@@ -131,7 +126,7 @@ const UserOrdersPage: React.FC = () => {
               placeholder="Поиск заявок..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
             />
           </div>
           <div className="relative">
@@ -139,7 +134,7 @@ const UserOrdersPage: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 appearance-none cursor-pointer"
+              className="pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-orange-500 appearance-none cursor-pointer"
             >
               <option value="all">Все статусы</option>
               <option value="pending">Открытые</option>
@@ -171,7 +166,7 @@ const UserOrdersPage: React.FC = () => {
             {!searchQuery && statusFilter === 'all' && (
               <button
                 onClick={() => navigate('/orders/create')}
-                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all"
+                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-lg hover:shadow-orange-500/25 transition-all"
               >
                 <Plus size={20} className="inline mr-2" />
                 Создать заявку
@@ -209,14 +204,14 @@ const UserOrdersPage: React.FC = () => {
                 drag="x"
                 dragConstraints={{ left: -120, right: 0 }}
                 dragElastic={0.1}
-                onDragEnd={(e, info: PanInfo) => {
+                onDragEnd={(_e, info: PanInfo) => {
                   if (info.offset.x < -60) {
                     setSwipedOrderId(order.id)
                   } else {
                     setSwipedOrderId(null)
                   }
                 }}
-                className="relative bg-gray-900 border border-gray-800 rounded-lg p-4 cursor-pointer hover:border-purple-500/50 transition-all"
+                className="relative bg-gray-900 border border-gray-800 rounded-lg p-4 cursor-pointer hover:border-orange-500/50 transition-all"
                 onClick={() => navigate(`/orders/${order.id}`)}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -251,7 +246,7 @@ const UserOrdersPage: React.FC = () => {
                         e.stopPropagation()
                         navigate(`/orders/${order.id}/responses`)
                       }}
-                      className="flex items-center space-x-2 px-4 py-2 bg-purple-500 rounded-lg hover:bg-purple-600 transition-colors"
+                      className="flex items-center space-x-2 px-4 py-2 bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
                     >
                       <Eye size={16} />
                       <span>Просмотреть отклики</span>

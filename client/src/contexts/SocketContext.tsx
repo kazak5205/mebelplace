@@ -34,7 +34,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     if (user) {
       const newSocket = io('https://mebelplace.com.kz', {
         auth: {
-          token: localStorage.getItem('authToken')
+          token: localStorage.getItem('accessToken')
         },
         transports: ['websocket']
       })

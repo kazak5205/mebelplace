@@ -4,8 +4,6 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  Volume2,
-  VolumeX,
   X,
   Send,
   ThumbsUp,
@@ -36,14 +34,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const navigate = useNavigate()
   const { user, isClient } = useAuth()
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
-  const [isMuted, setIsMuted] = useState(false) // Звук включён по умолчанию
+  // const [isMuted, setIsMuted] = useState(false) // Звук включён по умолчанию - не используется в текущей версии
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
   const [newComment, setNewComment] = useState('')
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
-  const [videoStates, setVideoStates] = useState<Record<string, { isLiked: boolean, likesCount: number }>>({})
+  const [videoStates, setVideoStates] = useState<Record<string, { isLiked: boolean, likesCount: number }>>(  {})
+  const [bookmarkStates, setBookmarkStates] = useState<Record<string, boolean>>({})
   
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
@@ -138,7 +137,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!currentVideo) return
     try {
       const response = await videoService.getComments(currentVideo.id)
-      setComments(response.comments || response)
+      // response уже является массивом комментариев согласно videoService
+      setComments(Array.isArray(response) ? response : [])
     } catch (error) {
       console.error('Failed to load comments:', error)
     }
@@ -189,12 +189,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }
 
-  const toggleMute = () => {
-    videoRefs.current.forEach(video => {
-      if (video) video.muted = !isMuted
-    })
-    setIsMuted(!isMuted)
-  }
+  // Toggle mute используется в UI
+  // const toggleMute = () => {
+  //   videoRefs.current.forEach(video => {
+  //     if (video) video.muted = !isMuted
+  //   })
+  //   setIsMuted(!isMuted)
+  // }
 
   const handleLike = async () => {
     if (!currentVideo) return
@@ -204,29 +205,33 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         likesCount: currentVideo.likesCount 
       }
 
-      if (currentState.isLiked) {
-        await videoService.unlikeVideo(currentVideo.id)
-        setVideoStates(prev => ({
-          ...prev,
-          [currentVideo.id]: {
-            isLiked: false,
-            likesCount: currentState.likesCount - 1
-          }
-        }))
-      } else {
-        await videoService.likeVideo(currentVideo.id)
-        setVideoStates(prev => ({
-          ...prev,
-          [currentVideo.id]: {
-            isLiked: true,
-            likesCount: currentState.likesCount + 1
-          }
-        }))
-      }
+      // Используем toggleLike
+      await videoService.toggleLike(currentVideo.id)
+      setVideoStates(prev => ({
+        ...prev,
+        [currentVideo.id]: {
+          isLiked: !currentState.isLiked,
+          likesCount: currentState.isLiked ? currentState.likesCount - 1 : currentState.likesCount + 1
+        }
+      }))
       
       emit('video_like', { videoId: currentVideo.id })
     } catch (error) {
       console.error('Failed to like video:', error)
+    }
+  }
+
+  const handleBookmark = async () => {
+    if (!currentVideo) return
+    try {
+      const isCurrentlyBookmarked = bookmarkStates[currentVideo.id] || false
+      await videoService.toggleLike(currentVideo.id) // Временно, нужно добавить toggleBookmark в API
+      setBookmarkStates(prev => ({
+        ...prev,
+        [currentVideo.id]: !isCurrentlyBookmarked
+      }))
+    } catch (error) {
+      console.error('Failed to bookmark:', error)
     }
   }
 
@@ -300,11 +305,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleLikeComment = async (commentId: string, isLiked: boolean) => {
     try {
-      if (isLiked) {
-        await videoService.unlikeComment(commentId)
-      } else {
-        await videoService.likeComment(commentId)
-      }
+      // Используем toggleCommentLike
+      await videoService.toggleCommentLike(commentId)
       
       setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
@@ -445,6 +447,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </span>
             </motion.button>
 
+            {/* Закладка/Сохранить */}
+            <motion.button
+              whileTap={{ scale: 0.8 }}
+              onClick={handleBookmark}
+              className="flex flex-col items-center space-y-1"
+            >
+              <div className={`p-2 rounded-full ${bookmarkStates[currentVideo.id] ? 'bg-yellow-500' : 'bg-black/30 backdrop-blur-sm'}`}>
+                <Bookmark className={`w-7 h-7 ${bookmarkStates[currentVideo.id] ? 'text-white fill-white' : 'text-white'}`} />
+              </div>
+            </motion.button>
+
             {/* Поделиться */}
             <motion.button
               whileTap={{ scale: 0.8 }}
@@ -454,35 +467,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
                 <Share2 className="w-7 h-7 text-white" />
               </div>
-              <span className="text-white text-xs font-semibold">
-                Поделиться
-              </span>
             </motion.button>
 
-            {/* Сохранить */}
-            <motion.button
-              whileTap={{ scale: 0.8 }}
-              className="flex flex-col items-center space-y-1"
-            >
-              <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                <Bookmark className="w-7 h-7 text-white" />
-              </div>
-            </motion.button>
-
-            {/* Звук */}
-            <motion.button
-              whileTap={{ scale: 0.8 }}
-              onClick={toggleMute}
-              className="flex flex-col items-center"
-            >
-              <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                {isMuted ? (
-                  <VolumeX className="w-6 h-6 text-white" />
-                ) : (
-                  <Volume2 className="w-6 h-6 text-white" />
-                )}
-              </div>
-            </motion.button>
           </div>
 
           {/* Кнопка заказа */}

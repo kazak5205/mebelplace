@@ -63,5 +63,13 @@ export const authService = {
 
   async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
     return apiService.post('/auth/reset-password', { email, code, newPassword })
+  },
+
+  async getCurrentUser(): Promise<User> {
+    return apiService.get('/auth/me')
+  },
+
+  async updateProfile(userData: { firstName?: string; lastName?: string; phone?: string; avatar?: string }): Promise<User> {
+    return apiService.put('/auth/profile', userData)
   }
 }

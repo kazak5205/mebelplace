@@ -24,11 +24,11 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get('/admin/analytics/videos', {
+      const response = await apiService.get<any>('/admin/analytics/videos', {
         period: selectedPeriod,
         groupBy: selectedGroupBy
       });
-      setAnalytics(response.data);
+      setAnalytics(response);
     } catch (error) {
       console.error('Failed to load analytics:', error);
     } finally {
@@ -81,7 +81,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       'like': 'bg-red-500',
       'share': 'bg-green-500',
       'comment': 'bg-yellow-500',
-      'complete': 'bg-purple-500',
+      'complete': 'bg-orange-500',
       'skip': 'bg-gray-500'
     };
     return colors[eventType] || 'bg-gray-500';

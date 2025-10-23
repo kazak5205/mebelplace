@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, X, Star, Clock, DollarSign, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Check, Star, Clock, DollarSign, MessageCircle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
 import { chatService } from '../services/chatService'
-import { useAuth } from '../contexts/AuthContext'
 
 const OrderResponsesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
   const [order, setOrder] = useState<any>(null)
   const [responses, setResponses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,7 +29,8 @@ const OrderResponsesPage: React.FC = () => {
       ])
       
       setOrder(orderResponse)
-      setResponses(responsesResponse.responses)
+      // responsesResponse уже является массивом согласно orderService
+      setResponses(Array.isArray(responsesResponse) ? responsesResponse : [])
     } catch (error) {
       console.error('Failed to load order and responses:', error)
     } finally {
@@ -45,7 +44,7 @@ const OrderResponsesPage: React.FC = () => {
       const result = await orderService.acceptResponse(id!, responseId)
       
       // Обновляем статус заказа
-      setOrder(prev => ({ ...prev, status: 'accepted' }))
+      setOrder((prev: any) => ({ ...prev, status: 'accepted' }))
       
       // Удаляем принятый отклик из списка
       setResponses(prev => prev.filter(r => r.id !== responseId))

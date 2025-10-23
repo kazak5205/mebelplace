@@ -41,42 +41,67 @@ const Header: React.FC = () => {
           </motion.button>
 
           <div className="flex items-center space-x-3">
-            <div className="text-right">
-              <p className="text-sm font-medium">{user?.name}</p>
-              <p className="text-xs text-white/60">
-                {user?.role === 'admin' ? 'Админ' : user?.role === 'master' ? 'Мастер' : 'Клиент'}
-              </p>
-            </div>
-            
-            {user?.role === 'admin' && (
-              <Link to="/admin">
+            {user ? (
+              <>
+                <div className="text-right">
+                  <p className="text-sm font-medium">{user.name}</p>
+                  <p className="text-xs text-white/60">
+                    {user.role === 'admin' ? 'Админ' : user.role === 'master' ? 'Мастер' : 'Клиент'}
+                  </p>
+                </div>
+                
+                {user.role === 'admin' && (
+                  <Link to="/admin">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="glass-button p-2 text-yellow-400 hover:text-yellow-300"
+                      title="Админка"
+                    >
+                      <Settings className="w-5 h-5" />
+                    </motion.button>
+                  </Link>
+                )}
+                
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="glass-button p-2 text-yellow-400 hover:text-yellow-300"
-                  title="Админка"
+                  className="glass-button p-2"
                 >
-                  <Settings className="w-5 h-5" />
+                  <User className="w-5 h-5" />
                 </motion.button>
-              </Link>
-            )}
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="glass-button p-2"
-            >
-              <User className="w-5 h-5" />
-            </motion.button>
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={logout}
-              className="glass-button p-2 text-red-400 hover:text-red-300"
-            >
-              <LogOut className="w-5 h-5" />
-            </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={logout}
+                  className="glass-button p-2 text-red-400 hover:text-red-300"
+                >
+                  <LogOut className="w-5 h-5" />
+                </motion.button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="glass-button px-4 py-2"
+                  >
+                    Войти
+                  </motion.button>
+                </Link>
+                <Link to="/register">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="glass-button px-4 py-2 bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                  >
+                    Регистрация
+                  </motion.button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

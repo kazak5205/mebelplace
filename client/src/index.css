@@ -25,10 +25,6 @@
     --glass-border: rgba(249, 115, 22, 0.2);
   }
   
-  * {
-    @apply border-border;
-  }
-  
   body {
     background: var(--bg-primary);
     color: var(--text-primary);

@@ -38,7 +38,7 @@ const ChatListPage: React.FC = () => {
     try {
       setLoading(true)
       const response = await chatService.getChats()
-      setChats(response)
+      setChats(response.chats || [])
     } catch (error) {
       console.error('Failed to load chats:', error)
     } finally {
@@ -48,7 +48,7 @@ const ChatListPage: React.FC = () => {
 
   const filteredChats = chats.filter(chat => 
     chat.participants.some(participant => 
-      participant.name.toLowerCase().includes(searchQuery.toLowerCase())
+      (participant.name || participant.username || participant.email || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
   )
 
@@ -163,7 +163,7 @@ const ChatListPage: React.FC = () => {
                       className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold"
                       aria-label="Канал мастера"
                     >
-                      {chat.participants[0]?.name.charAt(0).toUpperCase()}
+                      {(chat.participants[0]?.name || chat.participants[0]?.username || 'U').charAt(0).toUpperCase()}
                     </button>
                     {chat.participants[0]?.isOnline && (
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900" />

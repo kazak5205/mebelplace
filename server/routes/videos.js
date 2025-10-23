@@ -634,5 +634,205 @@ router.post('/comments/:id/like', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/videos/trending - Получить трендовые видео
+router.get('/trending', async (req, res) => {
+  try {
+    const { period = 'week', page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let dateFilter = '';
+    switch (period) {
+      case 'day':
+        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 day'";
+        break;
+      case 'week':
+        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 week'";
+        break;
+      case 'month':
+        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 month'";
+        break;
+      case 'all':
+        dateFilter = '';
+        break;
+    }
+
+    const result = await pool.query(`
+      SELECT 
+        v.*,
+        u.id as master_id,
+        u.name as master_name,
+        u.avatar as master_avatar,
+        u.is_company,
+        COUNT(DISTINCT vl.id) as likes_count,
+        COUNT(DISTINCT vc.id) as comments_count,
+        COUNT(DISTINCT vv.id) as views_count,
+        COUNT(DISTINCT vb.id) as bookmarks_count,
+        (COUNT(DISTINCT vl.id) * 0.7 + COUNT(DISTINCT vv.id) * 0.3) as trending_score
+      FROM videos v
+      JOIN users u ON v.master_id = u.id
+      LEFT JOIN video_likes vl ON v.id = vl.video_id
+      LEFT JOIN video_comments vc ON v.id = vc.video_id
+      LEFT JOIN video_views vv ON v.id = vv.video_id
+      LEFT JOIN video_bookmarks vb ON v.id = vb.video_id
+      WHERE v.is_active = true ${dateFilter}
+      GROUP BY v.id, u.id, u.name, u.avatar, u.is_company
+      HAVING COUNT(DISTINCT vl.id) > 0 OR COUNT(DISTINCT vv.id) > 0
+      ORDER BY trending_score DESC, v.created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'Trending videos retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get trending videos error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get trending videos',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/videos/bookmarked - Получить избранные видео пользователя
+router.get('/bookmarked', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT 
+        v.*,
+        u.id as master_id,
+        u.name as master_name,
+        u.avatar as master_avatar,
+        u.is_company,
+        COUNT(DISTINCT vl.id) as likes_count,
+        COUNT(DISTINCT vc.id) as comments_count,
+        COUNT(DISTINCT vv.id) as views_count,
+        vb.created_at as bookmarked_at
+      FROM video_bookmarks vb
+      JOIN videos v ON vb.video_id = v.id
+      JOIN users u ON v.master_id = u.id
+      LEFT JOIN video_likes vl ON v.id = vl.video_id
+      LEFT JOIN video_comments vc ON v.id = vc.video_id
+      LEFT JOIN video_views vv ON v.id = vv.video_id
+      WHERE vb.user_id = $1 AND v.is_active = true
+      GROUP BY v.id, u.id, u.name, u.avatar, u.is_company, vb.created_at
+      ORDER BY vb.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'Bookmarked videos retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get bookmarked videos error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get bookmarked videos',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// POST /api/videos/:id/bookmark - Добавить видео в избранное
+router.post('/:id/bookmark', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Проверяем, существует ли видео
+    const videoResult = await pool.query(
+      'SELECT id FROM videos WHERE id = $1 AND is_active = true',
+      [id]
+    );
+
+    if (videoResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Video not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Проверяем, не добавлено ли уже в избранное
+    const existingBookmark = await pool.query(
+      'SELECT id FROM video_bookmarks WHERE user_id = $1 AND video_id = $2',
+      [userId, id]
+    );
+
+    if (existingBookmark.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Video already bookmarked',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Добавляем в избранное
+    const result = await pool.query(
+      'INSERT INTO video_bookmarks (user_id, video_id) VALUES ($1, $2) RETURNING *',
+      [userId, id]
+    );
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Video bookmarked successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Bookmark video error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bookmark video',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// DELETE /api/videos/:id/bookmark - Удалить видео из избранного
+router.delete('/:id/bookmark', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      'DELETE FROM video_bookmarks WHERE user_id = $1 AND video_id = $2 RETURNING *',
+      [userId, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bookmark not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Video removed from bookmarks successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Remove bookmark error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to remove bookmark',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 module.exports = router;
 

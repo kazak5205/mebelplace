@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Send, ArrowLeft, Image, Paperclip, Smile } from 'lucide-react'
-import GlassCard from '../components/GlassCard'
 import { Chat, Message } from '../types'
 import { chatService } from '../services/chatService'
 import { useSocket } from '../contexts/SocketContext'
@@ -15,7 +14,7 @@ const ChatPage: React.FC = () => {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { emit, on } = useSocket()
+  const { on } = useSocket()
 
   useEffect(() => {
     if (id) {
@@ -139,7 +138,7 @@ const ChatPage: React.FC = () => {
               className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold"
               aria-label="Канал мастера"
             >
-              {chat.participants[0]?.name.charAt(0).toUpperCase()}
+              {(chat.participants[0]?.name || chat.participants[0]?.username || 'U').charAt(0).toUpperCase()}
             </button>
             {chat.participants[0]?.isOnline && (
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900" />

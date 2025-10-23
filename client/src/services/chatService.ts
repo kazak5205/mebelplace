@@ -66,6 +66,11 @@ export const chatService = {
     })
   },
 
+  // Алиас для совместимости со старым кодом
+  async createChatWithUser(userId: string): Promise<Chat> {
+    return this.createChat([userId], 'private')
+  },
+
   async leaveChat(chatId: string): Promise<void> {
     return apiService.post(`/chat/${chatId}/leave`)
   },
