@@ -12,6 +12,8 @@ export { orderService } from './orderService';
 export { chatService } from './chatService';
 export { authService } from './authService';
 export { userService } from './userService';
+export { subscriptionService } from './subscriptionService';
+export { pushService } from './pushService';
 
 // Export notification service (mobile-specific)
 export { notificationService } from './notificationService';

@@ -95,6 +95,16 @@ export class ApiClient {
     return this.handleResponse<T>(response);
   }
 
+  async patch<T>(url: string, data?: any): Promise<T> {
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
   async delete<T>(url: string): Promise<T> {
     const response = await fetch(`${this.baseURL}${url}`, {
       method: 'DELETE',
@@ -207,18 +217,25 @@ export const videoApi = (client: ApiClient) => ({
   list: (params?: any) => client.get('/videos/feed', params),
   get: (id: string) => client.get(`/videos/${id}`),
   trending: () => client.get('/videos/trending'),
+  getMasterVideos: (masterId: string, params?: any) => 
+    client.get(`/videos/master/${masterId}`, params),
+  getBookmarked: (params?: any) => client.get('/videos/bookmarked', params),
   
   // Upload and manage
   upload: (data: FormData, onProgress?: (p: number) => void) => 
     client.upload('/videos/upload', data, onProgress),
   update: (id: string, data: any) => client.put(`/videos/${id}`, data),
-  delete: (id: string) => client.delete(`/videos/${id}`),
+  delete: (id: string) => client.delete(`/videos/remove/${id}`),
   
   // Interactions
   like: (id: string) => client.post(`/videos/${id}/like`),
   unlike: (id: string) => client.delete(`/videos/${id}/like`),
   recordView: (id: string, data: { durationWatched: number; completionRate: number }) => 
     client.post(`/videos/${id}/view`, data),
+  
+  // Bookmarks
+  addBookmark: (id: string) => client.post(`/videos/${id}/bookmark`),
+  removeBookmark: (id: string) => client.delete(`/videos/${id}/bookmark`),
   
   // Comments
   getComments: (id: string, params?: any) => 
@@ -248,20 +265,21 @@ export const orderApi = (client: ApiClient) => ({
   
   // Responses
   createResponse: (orderId: string, data: any) => 
-    client.post(`/orders/${orderId}/responses`, data),
+    client.post(`/orders/${orderId}/response`, data),
   getResponses: (orderId: string) => 
     client.get(`/orders/${orderId}/responses`),
   acceptResponse: (orderId: string, responseId: string) => 
     client.post(`/orders/${orderId}/accept`, { responseId }),
   rejectResponse: (orderId: string, responseId: string) => 
-    client.put(`/orders/${orderId}/responses/${responseId}/reject`),
+    client.post(`/orders/${orderId}/reject`, { responseId }),
   
   // Images
   uploadImages: (data: FormData) => 
     client.upload('/orders/upload-images', data),
   
-  // Regions
+  // Regions and categories
   getRegions: () => client.get('/orders/regions'),
+  getCategories: () => client.get('/orders/categories'),
 });
 
 /**
@@ -269,14 +287,14 @@ export const orderApi = (client: ApiClient) => ({
  */
 export const chatApi = (client: ApiClient) => ({
   // List and get
-  list: () => client.get('/chats'),
+  list: () => client.get('/chats/list'),
   get: (id: string) => client.get(`/chats/${id}`),
   
   // Create
   create: (participantId: string) => 
-    client.post('/chats', { participantId }),
+    client.post('/chats/create', { participants: [participantId] }),
   createWithUser: (userId: string) => 
-    client.post('/chat/create', { participants: [userId], type: 'private' }),
+    client.post('/chats/create-with-user', { participantId: userId }),
   
   // Messages
   getMessages: (id: string, params?: any) => 
@@ -293,6 +311,41 @@ export const chatApi = (client: ApiClient) => ({
   // File upload
   uploadFile: (chatId: string, file: FormData) => 
     client.upload(`/chats/${chatId}/upload`, file),
+  
+  // Delete and block
+  deleteChat: (id: string) => 
+    client.delete(`/chats/${id}`),
+  blockUser: (chatId: string, reason?: string) => 
+    client.post(`/chats/${chatId}/block`, { reason }),
+  
+  // Support
+  getSupportChat: () => 
+    client.get('/chats/support'),
+  sendSupportMessage: (content: string, type: string = 'text') => 
+    client.post('/chats/support/messages', { content, type }),
+});
+
+/**
+ * Subscription API methods
+ */
+export const subscriptionApi = (client: ApiClient) => ({
+  list: (): Promise<any> => client.get('/subscriptions'),
+  subscribe: (masterId: string): Promise<any> => client.post(`/subscriptions/${masterId}`),
+  unsubscribe: (masterId: string): Promise<any> => client.delete(`/subscriptions/${masterId}`),
+  checkStatus: (masterId: string): Promise<any> => client.get(`/subscriptions/${masterId}`),
+  getCount: (masterId: string): Promise<any> => client.get(`/subscriptions/count/${masterId}`),
+});
+
+/**
+ * Push Notification API methods
+ */
+export const pushApi = (client: ApiClient) => ({
+  getVapidKey: (): Promise<any> => client.get('/push/vapid-key'),
+  subscribe: (subscription: any): Promise<any> => client.post('/push/subscribe', { subscription }),
+  unsubscribe: (endpoint: string): Promise<any> => client.delete('/push/unsubscribe', endpoint),
+  testPush: (title: string, message: string, data?: any): Promise<any> => 
+    client.post('/push/test', { title, message, data }),
+  getStats: (): Promise<any> => client.get('/push/stats'),
 });
 
 /**
@@ -310,29 +363,79 @@ export const userApi = (client: ApiClient) => ({
  * Auth API methods
  */
 export const authApi = (client: ApiClient) => ({
-  login: async (email: string, password: string): Promise<{ token: string; user: any }> => {
-    const response: any = await client.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
-    return { token: response.accessToken || response.token, user: response.user };
+  // Login methods
+  login: async (phone: string, password: string, smsCode?: string): Promise<{ token: string; user: any; refreshToken?: string }> => {
+    const response: any = await client.post('/auth/login', { phone, password, smsCode });
+    return { 
+      token: response.accessToken || response.token, 
+      refreshToken: response.refreshToken,
+      user: response.user 
+    };
   },
-  register: async (data: { email: string; password: string; name: string; role: string }): Promise<{ token: string; user: any }> => {
-    const response: any = await client.post(API_ENDPOINTS.AUTH.REGISTER, data);
-    return { token: response.accessToken || response.token, user: response.user };
+  simpleLogin: async (phone: string, password: string): Promise<{ token: string; user: any; refreshToken?: string }> => {
+    const response: any = await client.post('/auth/simple-login', { phone, password });
+    return { 
+      token: response.accessToken || response.token,
+      refreshToken: response.refreshToken,
+      user: response.user 
+    };
   },
-  logout: (): Promise<void> => client.post(API_ENDPOINTS.AUTH.LOGOUT),
-  getMe: (): Promise<any> => client.get(API_ENDPOINTS.AUTH.ME),
-  verify: (token: string): Promise<any> => client.post(API_ENDPOINTS.AUTH.VERIFY, { token }),
-  refresh: (): Promise<{ token: string }> => client.post(API_ENDPOINTS.AUTH.REFRESH),
+  
+  // Registration
+  register: async (data: { 
+    phone: string; 
+    username: string; 
+    password: string; 
+    firstName?: string; 
+    lastName?: string; 
+    role?: string 
+  }): Promise<{ user: any }> => {
+    const response: any = await client.post('/auth/register', data);
+    return { user: response.user };
+  },
+  
+  // SMS verification
+  sendSms: (phone: string, password?: string): Promise<any> => 
+    client.post('/auth/send-sms', { phone, password }),
+  verifySms: (phone: string, code: string): Promise<any> => 
+    client.post('/auth/verify-sms', { phone, code }),
+  
+  // Password reset
+  forgotPassword: (phone: string): Promise<any> => 
+    client.post('/auth/forgot-password', { phone }),
+  resetPassword: (phone: string, smsCode: string, newPassword: string): Promise<any> => 
+    client.post('/auth/reset-password', { phone, smsCode, newPassword }),
+  
+  // User profile
+  logout: (refreshToken?: string): Promise<void> => 
+    client.post('/auth/logout', { refreshToken }),
+  getMe: (): Promise<any> => 
+    client.get('/auth/me'),
+  updateMe: (data: any): Promise<any> => 
+    client.patch('/auth/me', data),
+  
+  // Avatar
+  uploadAvatar: (file: FormData): Promise<any> => 
+    client.upload('/auth/avatar', file),
+  
+  // Token refresh
+  refresh: (refreshToken: string): Promise<{ token: string; user: any }> => 
+    client.post('/auth/refresh', { refreshToken }),
 });
 
 /**
  * Notification API methods
  */
 export const notificationApi = (client: ApiClient) => ({
-  list: () => client.get(API_ENDPOINTS.NOTIFICATIONS.LIST),
-  get: (id: string) => client.get(API_ENDPOINTS.NOTIFICATIONS.GET(id)),
-  markRead: (id: string) => client.post(API_ENDPOINTS.NOTIFICATIONS.MARK_READ(id)),
-  markAllRead: () => client.post(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ),
-  delete: (id: string) => client.delete(API_ENDPOINTS.NOTIFICATIONS.DELETE(id)),
+  list: (params?: any) => client.get('/notifications', params),
+  get: (id: string) => client.get(`/notifications/${id}`),
+  getUnreadCount: () => client.get('/notifications/unread-count'),
+  markRead: (id: string) => client.put(`/notifications/${id}/read`),
+  markAllRead: () => client.put('/notifications/read-all'),
+  delete: (id: string) => client.delete(`/notifications/${id}`),
+  testSms: (phone: string, message: string) => 
+    client.post('/notifications/test-sms', { phone, message }),
+  getSmsBalance: () => client.get('/notifications/sms-balance'),
 });
 
 /**
@@ -362,6 +465,8 @@ export const createApiHelpers = (apiClient: ApiClient) => ({
   orders: orderApi(apiClient),
   chats: chatApi(apiClient),
   users: userApi(apiClient),
+  subscriptions: subscriptionApi(apiClient),
+  push: pushApi(apiClient),
   notifications: notificationApi(apiClient),
   admin: adminApi(apiClient),
 });

@@ -1,6 +1,7 @@
 /**
  * Order service using shared orderApi
  * SYNCHRONIZED WITH WEB VERSION - same API, same format
+ * Updated with all backend endpoints
  */
 import { apiClient } from './apiService'
 import { orderApi } from '@shared/utils/api'
@@ -32,10 +33,11 @@ export const orderService = {
   rejectResponse: (orderId: string, responseId: string) => 
     baseOrderService.rejectResponse(orderId, responseId),
   
-  // Images and regions
+  // Images, regions and categories
   uploadOrderImages: (formData: FormData) => 
     baseOrderService.uploadImages(formData),
   getRegions: () => baseOrderService.getRegions(),
+  getCategories: () => baseOrderService.getCategories(),
 }
 
 // Export base service for direct use

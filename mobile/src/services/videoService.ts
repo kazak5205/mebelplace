@@ -1,6 +1,7 @@
 /**
  * Video service using shared videoApi
  * SYNCHRONIZED WITH WEB VERSION - same API, same format
+ * Updated with all backend endpoints
  */
 import { apiClient } from './apiService'
 import { videoApi } from '@shared/utils/api'
@@ -12,6 +13,10 @@ export const videoService = {
   // Feed methods
   getVideos: (params?: any) => baseVideoService.list(params),
   getVideo: (id: string) => baseVideoService.get(id),
+  getTrending: () => baseVideoService.trending(),
+  getMasterVideos: (masterId: string, params?: any) => 
+    baseVideoService.getMasterVideos(masterId, params),
+  getBookmarked: (params?: any) => baseVideoService.getBookmarked(params),
   
   // Upload and manage
   uploadVideo: (formData: FormData, onProgress?: (p: number) => void) => 
@@ -25,6 +30,10 @@ export const videoService = {
   recordView: (id: string, data: { durationWatched: number; completionRate: number }) => 
     baseVideoService.recordView(id, data),
   
+  // Bookmarks
+  addBookmark: (videoId: string) => baseVideoService.addBookmark(videoId),
+  removeBookmark: (videoId: string) => baseVideoService.removeBookmark(videoId),
+  
   // Comments
   getComments: (videoId: string, params?: any) => 
     baseVideoService.getComments(videoId, params),
@@ -32,26 +41,6 @@ export const videoService = {
     baseVideoService.addComment(videoId, content, parentId),
   likeComment: (commentId: string) => baseVideoService.likeComment(commentId),
   unlikeComment: (commentId: string) => baseVideoService.unlikeComment(commentId),
-  
-  // Bookmarks
-  addBookmark: async (videoId: string) => {
-    try {
-      await apiClient.post(`/videos/${videoId}/bookmark`)
-      return { success: true }
-    } catch (error) {
-      console.error('Failed to add bookmark:', error)
-      throw error
-    }
-  },
-  removeBookmark: async (videoId: string) => {
-    try {
-      await apiClient.delete(`/videos/${videoId}/bookmark`)
-      return { success: true }
-    } catch (error) {
-      console.error('Failed to remove bookmark:', error)
-      throw error
-    }
-  },
 }
 
 // Export base service for direct use
