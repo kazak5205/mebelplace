@@ -5,10 +5,8 @@ const ChatSocket = require('../socket/chatSocket');
 
 let orderSocketHandler;
 let chatSocketHandler;
-let ioInstance;
 
 const setupSocket = (io) => {
-  ioInstance = io;
   // Initialize socket handlers
   orderSocketHandler = new OrderSocketHandler(io);
   chatSocketHandler = new ChatSocket(io);
@@ -23,20 +21,17 @@ const setupSocket = (io) => {
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
       
-      // Handle nested userId structure (same as REST auth middleware)
-      const userId = decoded.userId?.userId || decoded.userId || decoded.id;
-      
       // Get user from database
       const result = await pool.query(
         'SELECT id, username, role FROM users WHERE id = $1 AND is_active = true',
-        [userId]
+        [decoded.userId]
       );
 
       if (result.rows.length === 0) {
         return next(new Error('User not found'));
       }
 
-      socket.userId = userId;
+      socket.userId = decoded.userId;
       socket.user = result.rows[0];
       next();
     } catch (err) {
@@ -191,6 +186,6 @@ const setupSocket = (io) => {
 
 module.exports = { 
   setupSocket, 
-  getChatSocketHandler: () => chatSocketHandler,
-  getIo: () => ioInstance
+  getOrderSocketHandler: () => orderSocketHandler,
+  getChatSocketHandler: () => chatSocketHandler
 };

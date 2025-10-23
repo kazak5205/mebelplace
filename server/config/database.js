@@ -28,7 +28,7 @@ const initDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         username VARCHAR(100) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
-        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'client', 'master', 'admin')),
+        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'master', 'admin')),
         first_name VARCHAR(100),
         last_name VARCHAR(100),
         avatar VARCHAR(500),
@@ -68,15 +68,9 @@ const initDatabase = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         video_id UUID REFERENCES videos(id) ON DELETE CASCADE,
         user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-        is_bookmark BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(video_id, user_id)
       )
-    `);
-
-    // Add is_bookmark column if it doesn't exist (for existing databases)
-    await pool.query(`
-      ALTER TABLE video_likes ADD COLUMN IF NOT EXISTS is_bookmark BOOLEAN DEFAULT false
     `);
 
     // Create video_comments table
@@ -138,17 +132,6 @@ const initDatabase = async () => {
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Create order_response_replies table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS order_response_replies (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        order_response_id UUID REFERENCES order_responses(id) ON DELETE CASCADE,
-        client_id UUID REFERENCES users(id) ON DELETE CASCADE,
-        message TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -365,18 +348,6 @@ const initDatabase = async () => {
       )
     `);
 
-    // Create sms_verifications table for SMS verification codes
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS sms_verifications (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        phone VARCHAR(20) UNIQUE NOT NULL,
-        code VARCHAR(10) NOT NULL,
-        expires_at TIMESTAMP NOT NULL,
-        attempts INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
     // Create indexes for better performance
     await pool.query('CREATE INDEX IF NOT EXISTS idx_chat_participants_user_id ON chat_participants(user_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_chat_participants_chat_id ON chat_participants(chat_id)');
@@ -414,10 +385,6 @@ const initDatabase = async () => {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_admin_audit_log_action ON admin_audit_log(action)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_admin_audit_log_resource_type ON admin_audit_log(resource_type)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at ON admin_audit_log(created_at)');
-    
-    // SMS verification indexes
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_sms_verifications_phone ON sms_verifications(phone)');
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_sms_verifications_expires_at ON sms_verifications(expires_at)');
 
     console.log('✅ Database tables created successfully');
   } catch (error) {

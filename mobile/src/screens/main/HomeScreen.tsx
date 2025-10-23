@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
+  FlatList,
   RefreshControl,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Text,
@@ -14,10 +15,14 @@ import {
   Button,
   ActivityIndicator,
   Chip,
+  Avatar,
+  IconButton,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
-import { apiService } from '../../services/apiService';
+import { videoService } from '../../services/videoService';
+import { subscriptionService } from '../../services/subscriptionService';
+import type { Video } from '@shared/types';
 
 const { width } = Dimensions.get('window');
 

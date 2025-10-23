@@ -1,12 +1,12 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
-const { imageUpload } = require('../middleware/upload');
+const { upload } = require('../middleware/upload');
 const notificationService = require('../services/notificationService');
 const router = express.Router();
 
 // POST /api/orders/create - Создание заявки
-router.post('/create', authenticateToken, imageUpload.array('images', 5), async (req, res) => {
+router.post('/create', authenticateToken, upload.array('images', 5), async (req, res) => {
   try {
     const { title, description, category, location, region, budget, deadline } = req.body;
     const clientId = req.user.id;
@@ -20,14 +20,7 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
     }
 
     // Обработка загруженных изображений
-    let images = [];
-    if (req.files && req.files.length > 0) {
-      // Изображения загружены через multer
-      images = req.files.map(file => `/uploads/order-photos/${file.filename}`);
-    } else if (req.body.images && Array.isArray(req.body.images)) {
-      // Изображения переданы в body (уже загружены ранее)
-      images = req.body.images;
-    }
+    const images = req.files ? req.files.map(file => `/uploads/order-photos/${file.filename}`) : [];
 
     // Создание заявки
     const result = await pool.query(`
@@ -49,20 +42,14 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
 
     const order = result.rows[0];
 
-    // Уведомление мастерам о новой заявке (optional - skip if service not ready)
-    try {
-      const mastersResult = await pool.query(
-        'SELECT id FROM users WHERE role = $1 AND is_active = true',
-        ['master']
-      );
+    // Уведомление мастерам о новой заявке
+    const mastersResult = await pool.query(
+      'SELECT id FROM users WHERE role = $1 AND is_active = true',
+      ['master']
+    );
 
-      for (const master of mastersResult.rows) {
-        if (notificationService && typeof notificationService.notifyNewOrder === 'function') {
-          await notificationService.notifyNewOrder(master.id, order.title, req.user.username);
-        }
-      }
-    } catch (notifError) {
-      console.warn('Notification error (non-critical):', notifError.message);
+    for (const master of mastersResult.rows) {
+      await notificationService.notifyNewOrder(master.id, order.title, req.user.username);
     }
 
     res.status(201).json({
@@ -85,7 +72,7 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
 // GET /api/orders/feed - Лента заявок
 router.get('/feed', authenticateToken, async (req, res) => {
   try {
-    const { page = 1, limit = 10, category, region, status = 'pending', master_responses } = req.query;
+    const { page = 1, limit = 10, category, region, status = 'pending' } = req.query;
     const offset = (page - 1) * limit;
 
     let query = `
@@ -95,21 +82,15 @@ router.get('/feed', authenticateToken, async (req, res) => {
         u.first_name as client_first_name,
         u.last_name as client_last_name,
         u.avatar as client_avatar,
-        COUNT(ord_resp.id) as response_count,
-        CASE WHEN EXISTS(
-          SELECT 1 FROM order_responses my_resp 
-          WHERE my_resp.order_id = o.id 
-          AND my_resp.master_id = $1 
-          AND my_resp.is_active = true
-        ) THEN true ELSE false END as has_my_response
-    FROM orders o
-    LEFT JOIN users u ON o.client_id = u.id
-    LEFT JOIN order_responses ord_resp ON o.id = ord_resp.order_id AND ord_resp.is_active = true
-    WHERE o.is_active = true
+        COUNT(or.id) as response_count
+      FROM orders o
+      LEFT JOIN users u ON o.client_id = u.id
+      LEFT JOIN order_responses or ON o.id = or.order_id AND or.is_active = true
+      WHERE o.is_active = true
     `;
     
-    const params = [req.user.id];
-    let paramCount = 1;
+    const params = [];
+    let paramCount = 0;
 
     if (category) {
       query += ` AND o.category = $${++paramCount}`;
@@ -127,14 +108,8 @@ router.get('/feed', authenticateToken, async (req, res) => {
     }
 
     // Мастера видят все заявки, клиенты - только свои
-    if (req.user.role === 'user' || req.user.role === 'client') {
+    if (req.user.role === 'user') {
       query += ` AND o.client_id = $${++paramCount}`;
-      params.push(req.user.id);
-    }
-
-    // Если запрашиваются заявки, на которые мастер откликнулся
-    if (master_responses === 'true' && req.user.role === 'master') {
-      query += ` AND o.id IN (SELECT order_id FROM order_responses WHERE master_id = $${++paramCount} AND is_active = true)`;
       params.push(req.user.id);
     }
 
@@ -167,58 +142,6 @@ router.get('/feed', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve orders',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// GET /api/orders/regions - Получить список регионов Казахстана
-router.get('/regions', async (req, res) => {
-  try {
-    const { KZ_REGIONS } = require('../../shared/utils/regions');
-
-    res.json({
-      success: true,
-      data: KZ_REGIONS,
-      message: 'Regions retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get regions error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve regions',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// GET /api/orders/categories - Получить категории заявок
-router.get('/categories', async (req, res) => {
-  try {
-    const categories = [
-      { id: 'furniture', name: 'Мебель', description: 'Изготовление и ремонт мебели' },
-      { id: 'carpentry', name: 'Столярные работы', description: 'Работы по дереву' },
-      { id: 'upholstery', name: 'Обивка мебели', description: 'Перетяжка и реставрация' },
-      { id: 'restoration', name: 'Реставрация', description: 'Восстановление старинной мебели' },
-      { id: 'custom', name: 'На заказ', description: 'Индивидуальное изготовление' },
-      { id: 'repair', name: 'Ремонт', description: 'Ремонт и восстановление' },
-      { id: 'other', name: 'Другое', description: 'Прочие работы' }
-    ];
-
-    res.json({
-      success: true,
-      data: categories,
-      message: 'Categories retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get categories error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve categories',
       timestamp: new Date().toISOString()
     });
   }
@@ -264,15 +187,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
     // Получить отклики на заявку
     const responsesResult = await pool.query(`
       SELECT 
-        ord_resp.*,
+        or.*,
         u.username as master_username,
         u.first_name as master_first_name,
         u.last_name as master_last_name,
         u.avatar as master_avatar
-      FROM order_responses ord_resp
-      LEFT JOIN users u ON ord_resp.master_id = u.id
-      WHERE ord_resp.order_id = $1 AND ord_resp.is_active = true
-      ORDER BY ord_resp.created_at DESC
+      FROM order_responses or
+      LEFT JOIN users u ON or.master_id = u.id
+      WHERE or.order_id = $1 AND or.is_active = true
+      ORDER BY or.created_at DESC
     `, [orderId]);
 
     order.responses = responsesResult.rows;
@@ -391,7 +314,7 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
 
     // Проверка заявки
     const orderResult = await pool.query(
-      'SELECT id, client_id, status, title FROM orders WHERE id = $1 AND client_id = $2 AND is_active = true',
+      'SELECT id, client_id, status FROM orders WHERE id = $1 AND client_id = $2 AND is_active = true',
       [orderId, clientId]
     );
 
@@ -442,20 +365,13 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
     );
 
     // Создание чата между клиентом и мастером
-    const chatName = `Заявка: ${order.title || 'Заказ'}`;
     const chatResult = await pool.query(`
-      INSERT INTO chats (type, name, order_id, is_active, creator_id, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      INSERT INTO chats (order_id, client_id, master_id, is_active)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
-    `, ['private', chatName, orderId, true, clientId]);
+    `, [orderId, clientId, response.master_id, true]);
 
     const chat = chatResult.rows[0];
-    
-    // Добавляем участников чата
-    await pool.query(`
-      INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
-      VALUES ($1, $2, $3, NOW()), ($1, $4, $5, NOW())
-    `, [chat.id, clientId, 'admin', response.master_id, 'member']);
 
     // Уведомление мастеру о принятии отклика
     await notificationService.notifyResponseAccepted(response.master_id, order.title, req.user.username);
@@ -596,6 +512,56 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
 });
 
 // GET /api/orders/categories - Получить категории заявок
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = [
+      { id: 'furniture', name: 'Мебель', description: 'Изготовление и ремонт мебели' },
+      { id: 'carpentry', name: 'Столярные работы', description: 'Работы по дереву' },
+      { id: 'upholstery', name: 'Обивка мебели', description: 'Перетяжка и реставрация' },
+      { id: 'restoration', name: 'Реставрация', description: 'Восстановление старинной мебели' },
+      { id: 'custom', name: 'На заказ', description: 'Индивидуальное изготовление' },
+      { id: 'repair', name: 'Ремонт', description: 'Ремонт и восстановление' },
+      { id: 'other', name: 'Другое', description: 'Прочие работы' }
+    ];
+
+    res.json({
+      success: true,
+      data: categories,
+      message: 'Categories retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve categories',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/orders/regions - Получить список регионов Казахстана
+router.get('/regions', async (req, res) => {
+  try {
+    const { KZ_REGIONS } = require('../../shared/utils/regions');
+
+    res.json({
+      success: true,
+      data: KZ_REGIONS,
+      message: 'Regions retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get regions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve regions',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // GET /api/orders/:id/responses - Получить отклики на заявку
 router.get('/:id/responses', authenticateToken, async (req, res) => {
@@ -604,12 +570,9 @@ router.get('/:id/responses', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Проверяем, что пользователь имеет доступ к заявке
-    // Клиенты видят только свои заявки, мастера видят все заявки
     const orderResult = await pool.query(
-      req.user.role === 'client' || req.user.role === 'user'
-        ? 'SELECT * FROM orders WHERE id = $1 AND client_id = $2'
-        : 'SELECT * FROM orders WHERE id = $1',
-      req.user.role === 'client' || req.user.role === 'user' ? [orderId, userId] : [orderId]
+      'SELECT * FROM orders WHERE id = $1 AND (client_id = $2 OR $2 IN (SELECT master_id FROM order_responses WHERE order_id = $1))',
+      [orderId, userId]
     );
 
     if (orderResult.rows.length === 0) {
@@ -623,18 +586,17 @@ router.get('/:id/responses', authenticateToken, async (req, res) => {
     // Получаем отклики
     const responsesResult = await pool.query(`
       SELECT 
-        ord_resp.*,
-        u.id as master_user_id,
+        or.*,
         u.username,
         u.avatar,
         u.first_name,
         u.last_name,
         u.phone,
         u.email
-      FROM order_responses ord_resp
-      LEFT JOIN users u ON ord_resp.master_id = u.id
-      WHERE ord_resp.order_id = $1 AND ord_resp.is_active = true
-      ORDER BY ord_resp.created_at DESC
+      FROM order_responses or
+      LEFT JOIN users u ON or.master_id = u.id
+      WHERE or.order_id = $1 AND or.is_active = true
+      ORDER BY or.created_at DESC
     `, [orderId]);
 
     res.json({
@@ -835,209 +797,5 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
     });
   }
 });
-
-// POST /api/orders/:id/accept - Принять отклик мастера
-router.post('/:id/accept', authenticateToken, async (req, res) => {
-  try {
-    const { id: orderId } = req.params;
-    const { responseId } = req.body;
-    const clientId = req.user.id;
-
-    if (!responseId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Response ID is required'
-      });
-    }
-
-    // Проверяем что заявка принадлежит клиенту
-    const orderCheck = await pool.query(
-      'SELECT * FROM orders WHERE id = $1 AND client_id = $2',
-      [orderId, clientId]
-    );
-
-    if (orderCheck.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to accept responses for this order'
-      });
-    }
-
-    // Получаем отклик
-    const responseResult = await pool.query(
-      'SELECT * FROM order_responses WHERE id = $1 AND order_id = $2',
-      [responseId, orderId]
-    );
-
-    if (responseResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Response not found'
-      });
-    }
-
-    const response = responseResult.rows[0];
-    const masterId = response.master_id;
-
-    // Начинаем транзакцию
-    await pool.query('BEGIN');
-
-    try {
-      // 1. Принимаем отклик
-      await pool.query(
-        'UPDATE order_responses SET is_accepted = true, updated_at = NOW() WHERE id = $1',
-        [responseId]
-      );
-
-      // 2. Обновляем статус заявки
-      await pool.query(
-        'UPDATE orders SET status = $1, master_id = $2, updated_at = NOW() WHERE id = $3',
-        ['in_progress', masterId, orderId]
-      );
-
-      // 3. Создаём или находим чат между клиентом и мастером
-      const chatCheck = await pool.query(
-        `SELECT c.id FROM chats c
-         INNER JOIN chat_participants cp1 ON c.id = cp1.chat_id AND cp1.user_id = $1
-         INNER JOIN chat_participants cp2 ON c.id = cp2.chat_id AND cp2.user_id = $2
-         WHERE c.type = 'private'
-         LIMIT 1`,
-        [clientId, masterId]
-      );
-
-      let chatId;
-      if (chatCheck.rows.length > 0) {
-        chatId = chatCheck.rows[0].id;
-      } else {
-        // Создаём новый чат
-        const chatResult = await pool.query(
-          `INSERT INTO chats (type, creator_id, created_at, updated_at)
-           VALUES ('private', $1, NOW(), NOW())
-           RETURNING id`,
-          [clientId]
-        );
-        chatId = chatResult.rows[0].id;
-        
-        // Добавляем участников чата
-        await pool.query(
-          `INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
-           VALUES ($1, $2, 'member', NOW()), ($1, $3, 'member', NOW())`,
-          [chatId, clientId, masterId]
-        );
-      }
-
-      await pool.query('COMMIT');
-
-      res.json({
-        success: true,
-        chatId,
-        message: 'Response accepted successfully'
-      });
-    } catch (error) {
-      await pool.query('ROLLBACK');
-      throw error;
-    }
-  } catch (error) {
-    console.error('Accept response error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to accept response'
-    });
-  }
-});
-
-// POST /api/orders/upload-images - Загрузка изображений для заявок
-router.post('/upload-images', authenticateToken, imageUpload.array('images', 5), async (req, res) => {
-  try {
-    console.log('🚀 Upload endpoint called');
-    console.log('📦 req.files:', req.files);
-    console.log('📝 req.body:', req.body);
-    console.log('👤 req.user:', req.user);
-    
-    if (!req.files || req.files.length === 0) {
-      console.log('❌ No files uploaded');
-      return res.status(400).json({
-        success: false,
-        message: 'No images uploaded',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    console.log(`✅ ${req.files.length} files received`);
-    const imageUrls = req.files.map(file => `/uploads/order-photos/${file.filename}`);
-    console.log('🔗 Image URLs:', imageUrls);
-
-    res.json({
-      success: true,
-      data: imageUrls,
-      message: `${imageUrls.length} images uploaded successfully`,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('❌ Upload images error:', error);
-    console.error('Error stack:', error.stack);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to upload images',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// DELETE /api/orders/:id - Удаление заявки
-router.delete('/:id', authenticateToken, async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    const userId = req.user.id;
-
-    // Проверяем, что заявка принадлежит пользователю
-    const orderResult = await pool.query(
-      'SELECT id, client_id FROM orders WHERE id = $1 AND is_active = true',
-      [orderId]
-    );
-
-    if (orderResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const order = orderResult.rows[0];
-
-    // Проверяем права доступа (только клиент может удалить свою заявку)
-    if (order.client_id !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. You can only delete your own orders.',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Мягкое удаление - помечаем как неактивную
-    await pool.query(
-      'UPDATE orders SET is_active = false WHERE id = $1',
-      [orderId]
-    );
-
-    res.json({
-      success: true,
-      message: 'Order deleted successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Delete order error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete order',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-
 
 module.exports = router;

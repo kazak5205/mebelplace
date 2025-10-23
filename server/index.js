@@ -10,19 +10,13 @@ const authRoutes = require('./routes/auth');
 const videoRoutes = require('./routes/videos');
 const notificationRoutes = require('./routes/notifications');
 const orderRoutes = require('./routes/orders');
-const orderStatusRoutes = require('./routes/order-status');
 const chatRoutes = require('./routes/chat');
 const pushRoutes = require('./routes/push');
-const subscriptionRoutes = require('./routes/subscriptions');
 const adminRoutes = require('./routes/admin');
 const { initDatabase } = require('./config/database');
 const { setupSocket } = require('./config/socket');
 
 const app = express();
-
-// Trust proxy для работы за nginx
-app.set('trust proxy', 1);
-
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
@@ -58,10 +52,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/order-status', orderStatusRoutes);
-app.use('/api/chats', chatRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/push', pushRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Health check

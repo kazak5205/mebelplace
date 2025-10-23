@@ -4,15 +4,10 @@ const { pool } = require('../config/database');
 // Middleware для проверки JWT токена
 const authenticateToken = async (req, res, next) => {
   try {
-    console.log('🔐 [AUTH] Incoming request:', req.method, req.originalUrl);
-    
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    console.log('🔐 [AUTH] Token present:', !!token);
-
     if (!token) {
-      console.log('❌ [AUTH] No token provided');
       return res.status(401).json({
         success: false,
         data: null,
@@ -23,20 +18,14 @@ const authenticateToken = async (req, res, next) => {
 
     // Проверка JWT токена
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    console.log('🔐 [AUTH] Token decoded:', decoded);
-    
-    // Handle nested userId structure
-    const userId = decoded.userId?.userId || decoded.userId || decoded.id;
-    console.log('🔐 [AUTH] Extracted userId:', userId);
     
     // Получение пользователя из базы данных
     const result = await pool.query(
       'SELECT id, username, role, first_name, last_name, avatar, phone, is_active FROM users WHERE id = $1',
-      [userId]
+      [decoded.userId]
     );
 
     if (result.rows.length === 0) {
-      console.log('❌ [AUTH] User not found in database for userId:', userId);
       return res.status(401).json({
         success: false,
         data: null,
@@ -46,7 +35,6 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const user = result.rows[0];
-    console.log('✅ [AUTH] User found:', user.id, user.username, user.role);
 
     if (!user.is_active) {
       return res.status(401).json({
@@ -199,7 +187,7 @@ const authRateLimit = (req, res, next) => {
   const key = req.ip + ':' + req.path;
   const now = Date.now();
   const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxAttempts = 50;
+  const maxAttempts = 5;
 
   if (!req.rateLimit) {
     req.rateLimit = {};

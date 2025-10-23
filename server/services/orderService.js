@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const { pool } = require('../config/database');
+const { getOrderSocketHandler } = require('../config/socket');
 
 class OrderService {
   // Создать новую заявку
@@ -23,8 +24,11 @@ class OrderService {
         category: orderData.category.toLowerCase()
       });
 
-      // Socket notification will be handled by the route handler
-      // to avoid circular dependency
+      // Отправка уведомления через Socket.IO
+      const orderSocketHandler = getOrderSocketHandler();
+      if (orderSocketHandler) {
+        await orderSocketHandler.notifyNewOrder(order);
+      }
 
       return {
         success: true,
@@ -338,8 +342,11 @@ class OrderService {
 
       response.master = masterInfo.rows[0];
 
-      // Socket notification will be handled by the route handler
-      // to avoid circular dependency
+      // Отправка уведомления через Socket.IO
+      const orderSocketHandler = getOrderSocketHandler();
+      if (orderSocketHandler) {
+        await orderSocketHandler.notifyNewOrderResponse(orderId, response);
+      }
 
       return {
         success: true,
@@ -391,8 +398,12 @@ class OrderService {
 
       const result = await order.acceptResponse(responseId);
 
-      // Socket notification will be handled by the route handler
-      // to avoid circular dependency
+      // Отправка уведомлений через Socket.IO
+      const orderSocketHandler = getOrderSocketHandler();
+      if (orderSocketHandler) {
+        await orderSocketHandler.notifyOrderAccepted(orderId, result.order.master_id);
+        await orderSocketHandler.notifyChatCreated(orderId, result.chat.id, result.order.client_id, result.order.master_id);
+      }
 
       return {
         success: true,

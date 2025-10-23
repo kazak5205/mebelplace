@@ -37,31 +37,25 @@ const videoStorage = multer.diskStorage({
 // Image upload configuration
 const imageStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let uploadPath = '/app/uploads/';
+    let uploadPath = 'uploads/';
     
-    // Determine upload path based on route or URL
-    const routePath = req.route?.path || req.url || '';
-    const fullUrl = req.originalUrl || req.url || '';
-    
-    if (routePath.includes('avatar') || fullUrl.includes('avatar')) {
+    // Determine upload path based on route
+    if (req.route?.path?.includes('avatar')) {
       uploadPath += 'avatars/';
-    } else if (routePath.includes('order') || fullUrl.includes('order') || fullUrl.includes('upload-images')) {
+    } else if (req.route?.path?.includes('order')) {
       uploadPath += 'order-photos/';
-    } else if (routePath.includes('chat') || fullUrl.includes('chat')) {
+    } else if (req.route?.path?.includes('chat')) {
       uploadPath += 'chat-files/';
     } else {
       uploadPath += 'images/';
     }
     
-    console.log('📁 Image storage - Destination:', uploadPath, 'Route:', routePath, 'URL:', fullUrl);
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    const filename = 'img-' + uniqueSuffix + ext;
-    console.log('📝 Image storage - Filename:', filename, 'Original:', file.originalname);
-    cb(null, filename);
+    cb(null, 'img-' + uniqueSuffix + ext);
   }
 });
 
@@ -76,12 +70,9 @@ const videoFilter = (req, file, cb) => {
 
 // File filter for images
 const imageFilter = (req, file, cb) => {
-  console.log('🔍 Image filter - File received:', file.originalname, 'MIME:', file.mimetype, 'Size:', file.size);
   if (file.mimetype.startsWith('image/')) {
-    console.log('✅ Image filter - File accepted:', file.originalname);
     cb(null, true);
   } else {
-    console.log('❌ Image filter - File rejected:', file.originalname, 'MIME:', file.mimetype);
     cb(new Error('Only image files are allowed!'), false);
   }
 };
