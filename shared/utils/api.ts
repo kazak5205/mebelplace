@@ -308,6 +308,12 @@ export const chatApi = (client: ApiClient) => ({
   markChatAsRead: (id: string) => 
     client.put(`/chats/${id}/read`),
   
+  // Chat management
+  leaveChat: (id: string) => 
+    client.post(`/chats/${id}/leave`),
+  addParticipant: (chatId: string, participantId: string) => 
+    client.post(`/chats/${chatId}/add-participant`, { participantId }),
+  
   // File upload
   uploadFile: (chatId: string, file: FormData) => 
     client.upload(`/chats/${chatId}/upload`, file),
@@ -323,6 +329,10 @@ export const chatApi = (client: ApiClient) => ({
     client.get('/chats/support'),
   sendSupportMessage: (content: string, type: string = 'text') => 
     client.post('/chats/support/messages', { content, type }),
+  
+  // Admin
+  getAdminSupportChats: (params?: any) => 
+    client.get('/chats/admin/support-chats', params),
 });
 
 /**
@@ -439,20 +449,53 @@ export const notificationApi = (client: ApiClient) => ({
 });
 
 /**
+ * Order Status API methods
+ */
+export const orderStatusApi = (client: ApiClient) => ({
+  changeStatus: (orderId: string, newStatus: string, reason?: string) => 
+    client.post(`/order-status/${orderId}/change`, { newStatus, reason }),
+  getHistory: (orderId: string) => 
+    client.get(`/order-status/${orderId}/history`),
+  getAvailableActions: (orderId: string) => 
+    client.get(`/order-status/${orderId}/actions`),
+});
+
+/**
  * Admin API methods
  */
 export const adminApi = (client: ApiClient) => ({
-  users: {
-    list: (params?: any) => client.get(API_ENDPOINTS.ADMIN.USERS, params),
-  },
+  // Dashboard and Analytics
+  getDashboard: (params?: any) => client.get('/admin/dashboard', params),
+  getVideoAnalytics: (params?: any) => client.get('/admin/analytics/videos', params),
+  
+  // Video Management
   videos: {
-    list: (params?: any) => client.get(API_ENDPOINTS.ADMIN.VIDEOS, params),
+    list: (params?: any) => client.get('/admin/videos', params),
+    upload: (data: FormData) => client.upload('/admin/videos/upload', data),
+    updatePriority: (id: string, priorityOrder: number, isFeatured: boolean) => 
+      client.put(`/admin/videos/${id}/priority`, { priorityOrder, isFeatured }),
+    updateStatus: (id: string, isActive?: boolean, isPublic?: boolean) => 
+      client.put(`/admin/videos/${id}/status`, { isActive, isPublic }),
+    delete: (id: string) => client.delete(`/admin/videos/${id}`),
   },
-  orders: {
-    list: (params?: any) => client.get(API_ENDPOINTS.ADMIN.ORDERS, params),
+  
+  // User Management
+  users: {
+    list: (params?: any) => client.get('/admin/users', params),
+    updateStatus: (id: string, isActive?: boolean, role?: string) => 
+      client.put(`/admin/users/${id}/status`, { isActive, role }),
   },
-  stats: () => client.get(API_ENDPOINTS.ADMIN.STATS),
-  auditLog: (params?: any) => client.get(API_ENDPOINTS.ADMIN.AUDIT, params),
+  
+  // Category Management
+  categories: {
+    list: () => client.get('/admin/categories'),
+    create: (data: any) => client.post('/admin/categories', data),
+    update: (id: string, data: any) => client.put(`/admin/categories/${id}`, data),
+    delete: (id: string) => client.delete(`/admin/categories/${id}`),
+  },
+  
+  // Audit Log
+  auditLog: (params?: any) => client.get('/admin/audit-log', params),
 });
 
 // ============================================================================
@@ -463,6 +506,7 @@ export const createApiHelpers = (apiClient: ApiClient) => ({
   auth: authApi(apiClient),
   videos: videoApi(apiClient),
   orders: orderApi(apiClient),
+  orderStatus: orderStatusApi(apiClient),
   chats: chatApi(apiClient),
   users: userApi(apiClient),
   subscriptions: subscriptionApi(apiClient),

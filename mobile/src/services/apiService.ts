@@ -32,10 +32,11 @@ export const apiClient = new ApiClient({
 });
 
 // Create API service instances (for direct use)
-import { subscriptionApi, pushApi } from '@shared/utils/api';
+import { subscriptionApi, pushApi, orderStatusApi } from '@shared/utils/api';
 
 const video = videoApi(apiClient);
 const order = orderApi(apiClient);
+const orderStatus = orderStatusApi(apiClient);
 const chat = chatApi(apiClient);
 const user = userApi(apiClient);
 const auth = authApi(apiClient);
@@ -47,6 +48,7 @@ const push = pushApi(apiClient);
 export const api = {
   video,
   order,
+  orderStatus,
   chat,
   user,
   auth,

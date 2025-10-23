@@ -9,6 +9,7 @@ export { apiClient, apiService, api } from './apiService';
 // Export individual services
 export { videoService } from './videoService';
 export { orderService } from './orderService';
+export { orderStatusService } from './orderStatusService';
 export { chatService } from './chatService';
 export { authService } from './authService';
 export { userService } from './userService';

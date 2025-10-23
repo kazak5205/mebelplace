@@ -194,6 +194,36 @@ router.get('/regions', async (req, res) => {
   }
 });
 
+// GET /api/orders/categories - Получить категории заявок
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = [
+      { id: 'furniture', name: 'Мебель', description: 'Изготовление и ремонт мебели' },
+      { id: 'carpentry', name: 'Столярные работы', description: 'Работы по дереву' },
+      { id: 'upholstery', name: 'Обивка мебели', description: 'Перетяжка и реставрация' },
+      { id: 'restoration', name: 'Реставрация', description: 'Восстановление старинной мебели' },
+      { id: 'custom', name: 'На заказ', description: 'Индивидуальное изготовление' },
+      { id: 'repair', name: 'Ремонт', description: 'Ремонт и восстановление' },
+      { id: 'other', name: 'Другое', description: 'Прочие работы' }
+    ];
+
+    res.json({
+      success: true,
+      data: categories,
+      message: 'Categories retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve categories',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // GET /api/orders/:id - Получить заявку
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
@@ -361,7 +391,7 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
 
     // Проверка заявки
     const orderResult = await pool.query(
-      'SELECT id, client_id, status FROM orders WHERE id = $1 AND client_id = $2 AND is_active = true',
+      'SELECT id, client_id, status, title FROM orders WHERE id = $1 AND client_id = $2 AND is_active = true',
       [orderId, clientId]
     );
 
@@ -412,13 +442,20 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
     );
 
     // Создание чата между клиентом и мастером
+    const chatName = `Заявка: ${order.title || 'Заказ'}`;
     const chatResult = await pool.query(`
-      INSERT INTO chats (order_id, client_id, master_id, is_active)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO chats (type, name, order_id, is_active, creator_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *
-    `, [orderId, clientId, response.master_id, true]);
+    `, ['private', chatName, orderId, true, clientId]);
 
     const chat = chatResult.rows[0];
+    
+    // Добавляем участников чата
+    await pool.query(`
+      INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
+      VALUES ($1, $2, $3, NOW()), ($1, $4, $5, NOW())
+    `, [chat.id, clientId, 'admin', response.master_id, 'member']);
 
     // Уведомление мастеру о принятии отклика
     await notificationService.notifyResponseAccepted(response.master_id, order.title, req.user.username);
@@ -559,34 +596,6 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
 });
 
 // GET /api/orders/categories - Получить категории заявок
-router.get('/categories', async (req, res) => {
-  try {
-    const categories = [
-      { id: 'furniture', name: 'Мебель', description: 'Изготовление и ремонт мебели' },
-      { id: 'carpentry', name: 'Столярные работы', description: 'Работы по дереву' },
-      { id: 'upholstery', name: 'Обивка мебели', description: 'Перетяжка и реставрация' },
-      { id: 'restoration', name: 'Реставрация', description: 'Восстановление старинной мебели' },
-      { id: 'custom', name: 'На заказ', description: 'Индивидуальное изготовление' },
-      { id: 'repair', name: 'Ремонт', description: 'Ремонт и восстановление' },
-      { id: 'other', name: 'Другое', description: 'Прочие работы' }
-    ];
-
-    res.json({
-      success: true,
-      data: categories,
-      message: 'Categories retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get categories error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve categories',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
 
 // GET /api/orders/:id/responses - Получить отклики на заявку
 router.get('/:id/responses', authenticateToken, async (req, res) => {

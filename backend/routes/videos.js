@@ -740,48 +740,8 @@ router.post('/:id/view', async (req, res) => {
   }
 });
 
-// GET /api/videos/bookmarked - Get bookmarked videos for user
-router.get('/bookmarked', authenticateToken, async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
-
-    const result = await pool.query(`
-      SELECT 
-        v.*,
-        u.username,
-        u.first_name,
-        u.last_name,
-        u.avatar,
-        vl.created_at as bookmarked_at
-      FROM videos v
-      INNER JOIN video_likes vl ON v.id = vl.video_id
-      INNER JOIN users u ON v.author_id = u.id
-      WHERE vl.user_id = $1 AND vl.is_bookmark = true AND v.is_active = true
-      ORDER BY vl.created_at DESC
-      LIMIT $2 OFFSET $3
-    `, [req.user.id, limit, offset]);
-
-    res.json({
-      success: true,
-      data: result.rows,
-      message: 'Bookmarked videos retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get bookmarked videos error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve bookmarked videos',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
 // GET /api/videos/:id - Get single video
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const videoId = req.params.id;
 
@@ -813,12 +773,23 @@ router.get('/:id', async (req, res) => {
     const video = result.rows[0];
 
     // Check if user liked this video (if authenticated)
+    console.log('User from req:', req.user);
     if (req.user) {
       const likeResult = await pool.query(
         'SELECT id FROM video_likes WHERE video_id = $1 AND user_id = $2',
         [videoId, req.user.id]
       );
       video.is_liked = likeResult.rows.length > 0;
+      
+      // Check if user bookmarked this video
+      const bookmarkResult = await pool.query(
+        'SELECT id FROM video_likes WHERE video_id = $1 AND user_id = $2 AND is_bookmark = true',
+        [videoId, req.user.id]
+      );
+      video.is_bookmarked = bookmarkResult.rows.length > 0;
+      console.log('Bookmark result:', bookmarkResult.rows.length, 'is_bookmarked:', video.is_bookmarked);
+    } else {
+      console.log('No user in request');
     }
 
     res.json({
@@ -1022,59 +993,41 @@ router.delete('/:id/bookmark', authenticateToken, async (req, res) => {
   }
 });
 
-
-// DELETE /api/videos/remove/:id - Delete video (only by author)
-router.delete('/remove/:id', authenticateToken, async (req, res) => {
+// GET /api/videos/bookmarked - Get bookmarked videos for user
+router.get('/bookmarked', authenticateToken, async (req, res) => {
   try {
-    const videoId = req.params.id;
-    const userId = req.user.id;
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
 
-    console.log('🗑️ Deleting video:', { videoId, userId });
-
-    // Проверяем, что видео существует и принадлежит пользователю
-    const videoResult = await pool.query(
-      'SELECT id, author_id, title FROM videos WHERE id = $1 AND is_active = true',
-      [videoId]
-    );
-
-    if (videoResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Video not found',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const video = videoResult.rows[0];
-
-    // Проверяем, что пользователь является автором видео
-    if (video.author_id !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'You can only delete your own videos',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Soft delete - помечаем как неактивное
-    await pool.query(
-      'UPDATE videos SET is_active = false, updated_at = NOW() WHERE id = $1',
-      [videoId]
-    );
-
-    console.log('✅ Video deleted successfully:', video.title);
+    const result = await pool.query(`
+      SELECT 
+        v.*,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.avatar,
+        vl.created_at as bookmarked_at
+      FROM videos v
+      INNER JOIN video_likes vl ON v.id = vl.video_id
+      INNER JOIN users u ON v.author_id = u.id
+      WHERE vl.user_id = $1 AND vl.is_bookmark = true
+      ORDER BY vl.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [req.user.id, limit, offset]);
 
     res.json({
       success: true,
-      message: 'Video deleted successfully',
+      data: result.rows,
+      message: 'Bookmarked videos retrieved successfully',
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('Delete video error:', error);
+    console.error('Get bookmarked videos error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete video',
+      message: 'Failed to retrieve bookmarked videos',
+      error: error.message,
       timestamp: new Date().toISOString()
     });
   }

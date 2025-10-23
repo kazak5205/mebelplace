@@ -749,12 +749,20 @@ router.get('/me', authenticateToken, async (req, res) => {
     
     // Get subscribers count if user is master
     let subscribersCount = 0;
+    let videoCount = 0;
     if (user.role === 'master' || user.role === 'admin') {
       const subscribersResult = await pool.query(
         'SELECT COUNT(*) as count FROM subscriptions WHERE channel_id = $1',
         [userId]
       );
       subscribersCount = parseInt(subscribersResult.rows[0].count) || 0;
+      
+      // Get video count for masters
+      const videoCountResult = await pool.query(
+        'SELECT COUNT(*) as count FROM videos WHERE author_id = $1 AND is_active = true AND is_public = true',
+        [userId]
+      );
+      videoCount = parseInt(videoCountResult.rows[0].count) || 0;
     }
     
     res.json({
@@ -765,7 +773,8 @@ router.get('/me', authenticateToken, async (req, res) => {
         isOnline: user.is_online || false,
         lastSeen: user.last_seen,
         isActive: user.is_active !== false,
-        subscribersCount
+        subscribersCount,
+        videoCount
       },
       timestamp: new Date().toISOString()
     });

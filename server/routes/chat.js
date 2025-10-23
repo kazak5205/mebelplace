@@ -61,7 +61,7 @@ router.post('/create-with-user', authenticateToken, async (req, res) => {
     const chatName = `${req.user.username} - ${participant.username}`;
 
     const chatResult = await pool.query(`
-      INSERT INTO chats (type, name, is_active, created_by, created_at, updated_at)
+      INSERT INTO chats (type, name, is_active, creator_id, created_at, updated_at)
       VALUES ($1, $2, $3, $4, NOW(), NOW())
       RETURNING *
     `, ['private', chatName, true, currentUserId]);
@@ -233,6 +233,79 @@ router.get('/list', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve chats',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/chats/support - Get or create support chat
+router.get('/support', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    console.log('📞 Getting support chat for user:', userId);
+
+    // Check if support chat already exists for this user
+    const existingChatResult = await pool.query(`
+      SELECT c.*, cp.role as user_role
+      FROM chats c
+      INNER JOIN chat_participants cp ON c.id = cp.chat_id
+      WHERE c.type = 'support' AND cp.user_id = $1 AND c.is_active = true
+      LIMIT 1
+    `, [userId]);
+
+    if (existingChatResult.rows.length > 0) {
+      console.log('✅ Found existing support chat:', existingChatResult.rows[0].id);
+      return res.json({
+        success: true,
+        data: existingChatResult.rows[0],
+        message: 'Support chat retrieved successfully',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Create new support chat
+    const chatResult = await pool.query(`
+      INSERT INTO chats (type, name, is_active, creator_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      RETURNING *
+    `, ['support', `Поддержка - ${req.user.username}`, true, userId]);
+
+    const chat = chatResult.rows[0];
+    console.log('✅ Created new support chat:', chat.id);
+
+    // Add user as participant
+    await pool.query(`
+      INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
+      VALUES ($1, $2, $3, NOW())
+    `, [chat.id, userId, 'member']);
+
+    // Add admin as participant (find first admin user)
+    const adminResult = await pool.query(
+      'SELECT id FROM users WHERE role = $1 AND is_active = true LIMIT 1',
+      ['admin']
+    );
+
+    if (adminResult.rows.length > 0) {
+      await pool.query(`
+        INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
+        VALUES ($1, $2, $3, NOW())
+      `, [chat.id, adminResult.rows[0].id, 'admin']);
+    }
+
+    res.status(201).json({
+      success: true,
+      data: chat,
+      message: 'Support chat created successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Get support chat error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get support chat',
+      error: error.message,
       timestamp: new Date().toISOString()
     });
   }
@@ -635,85 +708,6 @@ router.post('/:id/add-participant', authenticateToken, async (req, res) => {
 // ==================== SUPPORT CHAT ENDPOINTS ====================
 
 // GET /api/chats/support - Get or create support chat
-router.get('/support', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    console.log('📞 Getting support chat for user:', userId);
-    console.log('📞 User object:', req.user);
-
-    // Check if support chat already exists for this user
-    const existingChatResult = await pool.query(`
-      SELECT c.*, cp.role as user_role
-      FROM chats c
-      INNER JOIN chat_participants cp ON c.id = cp.chat_id
-      WHERE c.type = 'support' AND cp.user_id = $1 AND c.is_active = true
-      LIMIT 1
-    `, [userId]);
-
-    if (existingChatResult.rows.length > 0) {
-      console.log('✅ Found existing support chat:', existingChatResult.rows[0].id);
-      return res.json({
-        success: true,
-        data: existingChatResult.rows[0],
-        message: 'Support chat retrieved successfully',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Create new support chat
-    const chatResult = await pool.query(`
-      INSERT INTO chats (type, name, is_active, creator_id, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, NOW(), NOW())
-      RETURNING *
-    `, ['support', `Поддержка - ${req.user.username}`, true, userId]);
-
-    const chat = chatResult.rows[0];
-    console.log('✅ Created new support chat:', chat.id);
-
-    // Add user as participant
-    await pool.query(`
-      INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
-      VALUES ($1, $2, $3, NOW())
-    `, [chat.id, userId, 'member']);
-
-    // Add admin as participant (find first admin user)
-    const adminResult = await pool.query(
-      'SELECT id FROM users WHERE role = $1 AND is_active = true LIMIT 1',
-      ['admin']
-    );
-
-    if (adminResult.rows.length > 0) {
-      await pool.query(`
-        INSERT INTO chat_participants (chat_id, user_id, role, joined_at)
-        VALUES ($1, $2, $3, NOW())
-      `, [chat.id, adminResult.rows[0].id, 'admin']);
-    }
-
-    res.status(201).json({
-      success: true,
-      data: chat,
-      message: 'Support chat created successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('❌ Get support chat error:', error);
-    console.error('❌ Error stack:', error.stack);
-    console.error('❌ Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
-      hint: error.hint
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get support chat',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
 
 // POST /api/chats/support/messages - Send message to support
 router.post('/support/messages', authenticateToken, async (req, res) => {
