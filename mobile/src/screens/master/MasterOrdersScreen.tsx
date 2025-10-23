@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   FlatList,
-  RefreshControl,
   TouchableOpacity,
   Image,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,9 +23,13 @@ interface Order {
   category: string;
   created_at: string;
   response_count: number;
+  client_username: string;
+  client_first_name: string;
+  client_last_name: string;
+  client_avatar: string;
 }
 
-const OrdersScreen = ({ navigation }: any) => {
+const MasterOrdersScreen = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,44 +61,17 @@ const OrdersScreen = ({ navigation }: any) => {
   };
 
   const handleOrderPress = (order: Order) => {
-    navigation.navigate('OrderDetails' as never, { orderId: order.id } as never);
+    // Navigate to order details
+    // navigation.navigate('OrderDetails' as never, { orderId: order.id } as never);
   };
 
-  const handleResponsesPress = (order: Order) => {
-    navigation.navigate('OrderResponses' as never, { orderId: order.id } as never);
-  };
-
-  const handleDeleteOrder = async (orderId: string) => {
-    Alert.alert(
-      'Удалить заявку',
-      'Вы уверены, что хотите удалить эту заявку?',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // TODO: Implement delete order API
-              setOrders(prev => prev.filter(order => order.id !== orderId));
-              Alert.alert('Успех', 'Заявка удалена');
-            } catch (error) {
-              console.error('Error deleting order:', error);
-              Alert.alert('Ошибка', 'Не удалось удалить заявку');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handlePinOrder = async (orderId: string) => {
+  const handleRespondToOrder = async (order: Order) => {
     try {
-      // TODO: Implement pin order API
-      Alert.alert('Успех', 'Заявка закреплена');
+      // TODO: Implement response to order
+      Alert.alert('Отклик', 'Функция отклика на заявку будет добавлена в следующих версиях');
     } catch (error) {
-      console.error('Error pinning order:', error);
-      Alert.alert('Ошибка', 'Не удалось закрепить заявку');
+      console.error('Error responding to order:', error);
+      Alert.alert('Ошибка', 'Не удалось откликнуться на заявку');
     }
   };
 
@@ -176,30 +154,32 @@ const OrdersScreen = ({ navigation }: any) => {
         </View>
 
         <TouchableOpacity 
-          style={styles.responsesButton}
-          onPress={() => handleResponsesPress(item)}
+          style={styles.respondButton}
+          onPress={() => handleRespondToOrder(item)}
         >
           <Ionicons name="chatbubble-outline" size={16} color="#f97316" />
-          <Text style={styles.responsesText}>
-            Ответы ({item.response_count})
+          <Text style={styles.respondText}>
+            Ответить на заявку
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Swipe Actions */}
-      <View style={styles.swipeActions}>
-        <TouchableOpacity 
-          style={styles.swipeAction}
-          onPress={() => handlePinOrder(item.id)}
-        >
-          <Ionicons name="pin" size={20} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.swipeAction, { backgroundColor: '#ef4444' }]}
-          onPress={() => handleDeleteOrder(item.id)}
-        >
-          <Ionicons name="trash" size={20} color="#fff" />
-        </TouchableOpacity>
+      {/* Client Info */}
+      <View style={styles.clientInfo}>
+        <Image 
+          source={{ 
+            uri: item.client_avatar 
+              ? `https://mebelplace.com.kz${item.client_avatar}` 
+              : 'https://via.placeholder.com/30'
+          }}
+          style={styles.clientAvatar}
+        />
+        <Text style={styles.clientName}>
+          {item.client_first_name} {item.client_last_name}
+        </Text>
+        <Text style={styles.clientUsername}>
+          @{item.client_username}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -217,12 +197,9 @@ const OrdersScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Мои заявки</Text>
-        <TouchableOpacity 
-          style={styles.createButton}
-          onPress={() => navigation.navigate('CreateOrder' as never)}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
+        <Text style={styles.headerTitle}>Все заявки</Text>
+        <TouchableOpacity style={styles.filterButton}>
+          <Ionicons name="filter" size={20} color="#6b7280" />
         </TouchableOpacity>
       </View>
 
@@ -231,14 +208,8 @@ const OrdersScreen = ({ navigation }: any) => {
           <Ionicons name="document-outline" size={64} color="#9ca3af" />
           <Text style={styles.emptyTitle}>Нет заявок</Text>
           <Text style={styles.emptyDescription}>
-            Создайте свою первую заявку, чтобы мастера могли предложить вам свои услуги
+            Новые заявки от клиентов будут появляться здесь
           </Text>
-          <TouchableOpacity 
-            style={styles.emptyButton}
-            onPress={() => navigation.navigate('CreateOrder' as never)}
-          >
-            <Text style={styles.emptyButtonText}>Создать заявку</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -285,13 +256,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1f2937',
   },
-  createButton: {
-    backgroundColor: '#f97316',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  filterButton: {
+    padding: 8,
   },
   emptyContainer: {
     flex: 1,
@@ -311,18 +277,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 24,
-  },
-  emptyButton: {
-    backgroundColor: '#f97316',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
   listContainer: {
     padding: 16,
@@ -403,7 +357,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  responsesButton: {
+  respondButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fef3c7',
@@ -411,27 +365,36 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
   },
-  responsesText: {
+  respondText: {
     fontSize: 12,
     color: '#f97316',
     marginLeft: 4,
     fontWeight: '600',
   },
-  swipeActions: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
+  clientInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
   },
-  swipeAction: {
-    backgroundColor: '#3b82f6',
-    width: 60,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+  clientAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 8,
+  },
+  clientName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginRight: 8,
+  },
+  clientUsername: {
+    fontSize: 12,
+    color: '#6b7280',
   },
 });
 
-export default OrdersScreen;
+export default MasterOrdersScreen;

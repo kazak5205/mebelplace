@@ -32,29 +32,21 @@ export const apiClient = new ApiClient({
 });
 
 // Create API service instances (for direct use)
-import { subscriptionApi, pushApi, orderStatusApi } from '@shared/utils/api';
-
 const video = videoApi(apiClient);
 const order = orderApi(apiClient);
-const orderStatus = orderStatusApi(apiClient);
 const chat = chatApi(apiClient);
 const user = userApi(apiClient);
 const auth = authApi(apiClient);
 const notification = notificationApi(apiClient);
-const subscription = subscriptionApi(apiClient);
-const push = pushApi(apiClient);
 
 // Export individual service APIs for direct use
 export const api = {
   video,
   order,
-  orderStatus,
   chat,
   user,
   auth,
   notification,
-  subscription,
-  push,
 };
 
 // Legacy-compatible API service class

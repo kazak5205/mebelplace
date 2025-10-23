@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -11,9 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
 import { videoService } from '../../services/videoService';
-import { chatService } from '../../services/chatService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,8 +33,7 @@ interface Video {
   isBookmarked: boolean;
 }
 
-const HomeScreen = ({ navigation }: any) => {
-  const { user } = useAuth();
+const GuestHomeScreen = ({ navigation }: any) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,87 +65,23 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   const handleLike = async (videoId: string) => {
-    try {
-      const video = videos.find(v => v.id === videoId);
-      if (!video) return;
-
-      if (video.isLiked) {
-        await videoService.unlikeVideo(videoId);
-        setVideos(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, isLiked: false, likes: v.likes - 1 }
-            : v
-        ));
-      } else {
-        await videoService.likeVideo(videoId);
-        setVideos(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, isLiked: true, likes: v.likes + 1 }
-            : v
-        ));
-      }
-    } catch (error) {
-      console.error('Error liking video:', error);
-    }
+    // Redirect to login for guests
+    navigation.navigate('Auth' as never);
   };
 
-  const handleBookmark = async (videoId: string) => {
-    try {
-      const video = videos.find(v => v.id === videoId);
-      if (!video) return;
-
-      if (video.isBookmarked) {
-        await videoService.removeBookmark(videoId);
-        setVideos(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, isBookmarked: false }
-            : v
-        ));
-      } else {
-        await videoService.addBookmark(videoId);
-        setVideos(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, isBookmarked: true }
-            : v
-        ));
-      }
-    } catch (error) {
-      console.error('Error bookmarking video:', error);
-    }
+  const handleComment = async (videoId: string) => {
+    // Redirect to login for guests
+    navigation.navigate('Auth' as never);
   };
 
-  const handleOrderFurniture = async (videoId: string) => {
-    try {
-      const video = videos.find(v => v.id === videoId);
-      if (!video) return;
-
-      // Создаем чат с мастером
-      const chatResponse = await chatService.createChat(video.authorId);
-      if (chatResponse.success) {
-        // Отправляем сообщение с заказом
-        await chatService.sendMessage(
-          chatResponse.data.id,
-          `Хочу заказать эту мебель из видео: ${video.title}`,
-          'text',
-          { videoId, videoTitle: video.title, videoUrl: video.videoUrl }
-        );
-        
-        // Переходим в чат
-        navigation.navigate('UserMessagesList' as never);
-      }
-    } catch (error) {
-      console.error('Error creating order chat:', error);
-      Alert.alert('Ошибка', 'Не удалось создать чат с мастером');
-    }
+  const handleCreateOrder = () => {
+    // Redirect to login for guests
+    navigation.navigate('Auth' as never);
   };
 
-  const handleSubscribe = async (authorId: string) => {
-    try {
-      // TODO: Implement subscription logic
-      Alert.alert('Подписка', 'Функция подписки будет добавлена в следующих версиях');
-    } catch (error) {
-      console.error('Error subscribing:', error);
-    }
+  const handleCreateVideo = () => {
+    // Redirect to login for guests
+    navigation.navigate('Auth' as never);
   };
 
   const renderVideo = ({ item, index }: { item: Video; index: number }) => (
@@ -175,7 +109,7 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Master Profile */}
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={() => handleSubscribe(item.authorId)}
+          onPress={() => navigation.navigate('Auth' as never)}
         >
           <Image 
             source={{ 
@@ -204,7 +138,10 @@ const HomeScreen = ({ navigation }: any) => {
         </TouchableOpacity>
 
         {/* Comment Button */}
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => handleComment(item.id)}
+        >
           <Ionicons name="chatbubble-outline" size={24} color="#fff" />
           <Text style={styles.actionText}>{item.comments}</Text>
         </TouchableOpacity>
@@ -217,7 +154,7 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Bookmark Button */}
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={() => handleBookmark(item.id)}
+          onPress={() => navigation.navigate('Auth' as never)}
         >
           <Ionicons 
             name={item.isBookmarked ? 'bookmark' : 'bookmark-outline'} 
@@ -229,7 +166,7 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Order Furniture Button */}
         <TouchableOpacity 
           style={styles.orderButton}
-          onPress={() => handleOrderFurniture(item.id)}
+          onPress={handleCreateOrder}
         >
           <Text style={styles.orderButtonText}>Заказать эту мебель</Text>
         </TouchableOpacity>
@@ -249,6 +186,17 @@ const HomeScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Guest Header */}
+      <View style={styles.guestHeader}>
+        <Text style={styles.guestTitle}>MebelPlace</Text>
+        <TouchableOpacity 
+          style={styles.loginButton}
+          onPress={() => navigation.navigate('Auth' as never)}
+        >
+          <Text style={styles.loginButtonText}>Войти</Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={videos}
         renderItem={renderVideo}
@@ -266,6 +214,24 @@ const HomeScreen = ({ navigation }: any) => {
           setCurrentIndex(index);
         }}
       />
+
+      {/* Guest Actions */}
+      <View style={styles.guestActions}>
+        <TouchableOpacity 
+          style={styles.guestActionButton}
+          onPress={handleCreateOrder}
+        >
+          <Ionicons name="add-circle" size={24} color="#f97316" />
+          <Text style={styles.guestActionText}>Заявка всем</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.guestActionButton}
+          onPress={handleCreateVideo}
+        >
+          <Ionicons name="videocam" size={24} color="#f97316" />
+          <Text style={styles.guestActionText}>Создать видеорекламу</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
@@ -283,6 +249,30 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#fff',
     fontSize: 16,
+  },
+  guestHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  guestTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  loginButton: {
+    backgroundColor: '#f97316',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   videoContainer: {
     flex: 1,
@@ -355,6 +345,30 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  guestActions: {
+    position: 'absolute',
+    bottom: 100,
+    left: 20,
+    right: 80,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  guestActionButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  guestActionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
 });
 
-export default HomeScreen;
+export default GuestHomeScreen;

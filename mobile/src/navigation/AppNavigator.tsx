@@ -3,24 +3,30 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { getTabs, getRedirectPath } from '@shared/routing/routes';
 import LoadingScreen from '../components/LoadingScreen';
 import { useBadgeCounts } from '../hooks/useBadgeCounts';
-import type { User } from '@shared/types';
+import { CenterTabButton } from '../components/TabBarButton';
 
 // Auth screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 
-// Main screens
-import SearchScreen from '../screens/main/SearchScreen';
-import MasterChannelScreen from '../screens/main/MasterChannelScreen';
+// Main screens - User
+import HomeScreen from '../screens/main/HomeScreen';
 import OrdersScreen from '../screens/main/OrdersScreen';
-import MessagesScreen from '../screens/main/MessagesScreen';
+import CreateOrderScreen from '../screens/main/CreateOrderScreen';
+import UserMessagesScreen from '../screens/main/UserMessagesScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
-import EditProfileScreen from '../screens/main/EditProfileScreen';
-import SettingsScreen from '../screens/main/SettingsScreen';
-import HelpScreen from '../screens/main/HelpScreen';
+
+// Guest screens
+import GuestHomeScreen from '../screens/guest/GuestHomeScreen';
+
+// Master screens
+import MasterHomeScreen from '../screens/master/MasterHomeScreen';
+import MasterOrdersScreen from '../screens/master/MasterOrdersScreen';
+import CreateVideoScreen from '../screens/master/CreateVideoScreen';
+import MasterMessagesScreen from '../screens/master/MasterMessagesScreen';
+import MasterProfileScreen from '../screens/master/MasterProfileScreen';
 
 // Video screens
 import VideoPlayerScreen from '../screens/video/VideoPlayerScreen';
@@ -30,10 +36,16 @@ import MediaSelectionScreen from '../screens/video/MediaSelectionScreen';
 
 // Order screens
 import OrderDetailsScreen from '../screens/orders/OrderDetailsScreen';
-import CreateOrderScreen from '../screens/orders/CreateOrderScreen';
+import OrderResponsesScreen from '../screens/orders/OrderResponsesScreen';
 
 // Message screens
 import ChatScreen from '../screens/messages/ChatScreen';
+
+// Profile screens
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import SettingsScreen from '../screens/profile/SettingsScreen';
+import SupportScreen from '../screens/profile/SupportScreen';
+import SubscriptionsScreen from '../screens/profile/SubscriptionsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -45,6 +57,7 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
+// Video Stack - общий для всех пользователей
 const VideoStack = () => (
   <Stack.Navigator>
     <Stack.Screen 
@@ -74,33 +87,13 @@ const VideoStack = () => (
   </Stack.Navigator>
 );
 
-const SearchStack = () => (
+// User Navigation Stacks
+const UserOrderStack = () => (
   <Stack.Navigator>
     <Stack.Screen 
-      name="SearchList" 
-      component={SearchScreen} 
-      options={{ 
-        title: 'Поиск',
-        headerShown: true 
-      }}
-    />
-    <Stack.Screen 
-      name="MasterChannel" 
-      component={MasterChannelScreen} 
-      options={{ 
-        title: 'Профиль мастера',
-        headerShown: false 
-      }}
-    />
-  </Stack.Navigator>
-);
-
-const OrderStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen 
-      name="OrdersList" 
-      component={OrdersScreen} 
-      options={{ title: 'Заявки' }}
+      name="UserOrdersList" 
+      component={UserOrdersScreen} 
+      options={{ title: 'Мои заявки' }}
     />
     <Stack.Screen 
       name="OrderDetails" 
@@ -108,19 +101,24 @@ const OrderStack = () => (
       options={{ title: 'Детали заявки' }}
     />
     <Stack.Screen 
+      name="OrderResponses" 
+      component={OrderResponsesScreen} 
+      options={{ title: 'Ответы на заявку' }}
+    />
+    <Stack.Screen 
       name="CreateOrder" 
       component={CreateOrderScreen} 
-      options={{ title: 'Создать заявку' }}
+      options={{ title: 'Заявка всем' }}
     />
   </Stack.Navigator>
 );
 
-const MessageStack = () => (
+const UserMessageStack = () => (
   <Stack.Navigator>
     <Stack.Screen 
-      name="MessagesList" 
-      component={MessagesScreen} 
-      options={{ title: 'Сообщения' }}
+      name="UserMessagesList" 
+      component={UserMessagesScreen} 
+      options={{ title: 'Мессенджер' }}
     />
     <Stack.Screen 
       name="Chat" 
@@ -130,11 +128,11 @@ const MessageStack = () => (
   </Stack.Navigator>
 );
 
-const ProfileStack = () => (
+const UserProfileStack = () => (
   <Stack.Navigator>
     <Stack.Screen 
-      name="ProfileMain" 
-      component={ProfileScreen} 
+      name="UserProfileMain" 
+      component={UserProfileScreen} 
       options={{ title: 'Профиль' }}
     />
     <Stack.Screen 
@@ -148,35 +146,94 @@ const ProfileStack = () => (
       options={{ title: 'Настройки' }}
     />
     <Stack.Screen 
-      name="Help" 
-      component={HelpScreen} 
-      options={{ title: 'Помощь' }}
+      name="Support" 
+      component={SupportScreen} 
+      options={{ title: 'Служба поддержки' }}
+    />
+    <Stack.Screen 
+      name="Subscriptions" 
+      component={SubscriptionsScreen} 
+      options={{ title: 'Подписки' }}
     />
   </Stack.Navigator>
 );
 
-const MainTabs = () => {
-  const { user } = useAuth();
+// Master Navigation Stacks
+const MasterOrderStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen 
+      name="MasterOrdersList" 
+      component={MasterOrdersScreen} 
+      options={{ title: 'Все заявки' }}
+    />
+    <Stack.Screen 
+      name="OrderDetails" 
+      component={OrderDetailsScreen} 
+      options={{ title: 'Детали заявки' }}
+    />
+  </Stack.Navigator>
+);
+
+const MasterMessageStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen 
+      name="MasterMessagesList" 
+      component={MasterMessagesScreen} 
+      options={{ title: 'Мессенджер' }}
+    />
+    <Stack.Screen 
+      name="Chat" 
+      component={ChatScreen} 
+      options={{ title: 'Чат' }}
+    />
+  </Stack.Navigator>
+);
+
+const MasterProfileStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen 
+      name="MasterProfileMain" 
+      component={MasterProfileScreen} 
+      options={{ title: 'Профиль' }}
+    />
+    <Stack.Screen 
+      name="EditProfile" 
+      component={EditProfileScreen} 
+      options={{ title: 'Редактировать профиль' }}
+    />
+    <Stack.Screen 
+      name="Settings" 
+      component={SettingsScreen} 
+      options={{ title: 'Настройки' }}
+    />
+    <Stack.Screen 
+      name="Support" 
+      component={SupportScreen} 
+      options={{ title: 'Служба поддержки' }}
+    />
+  </Stack.Navigator>
+);
+
+// User Tabs
+const UserTabs = () => {
   const { unreadMessagesCount, pendingOrdersCount } = useBadgeCounts();
-  
-  // Get tabs based on user role (synchronized with shared/routing/routes.ts)
-  const userRole = user?.role || 'client';
-  const tabs = getTabs(userRole);
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
+          let iconSize = size;
 
-          // Synchronized icon mapping
-          if (route.name === 'Видео') {
-            iconName = focused ? 'play' : 'play-outline';
-          } else if (route.name === 'Поиск') {
-            iconName = focused ? 'search' : 'search-outline';
-          } else if (route.name === 'Заявки' || route.name === 'Мои заявки') {
+          if (route.name === 'Главная') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Мои заявки') {
             iconName = focused ? 'document-text' : 'document-text-outline';
-          } else if (route.name === 'Чат') {
+          } else if (route.name === 'Заявка всем') {
+            iconName = 'add-circle';
+            iconSize = 56; // Большая центральная кнопка
+            color = '#f97316';
+          } else if (route.name === 'Мессенджер') {
             iconName = focused ? 'chatbubble' : 'chatbubble-outline';
           } else if (route.name === 'Профиль') {
             iconName = focused ? 'person' : 'person-outline';
@@ -184,47 +241,155 @@ const MainTabs = () => {
             iconName = 'help-outline';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={iconSize} color={color} />;
         },
-        tabBarActiveTintColor: '#f97316',  // Orange (синхронизировано с shared)
+        tabBarActiveTintColor: '#f97316',
         tabBarInactiveTintColor: '#9ca3af',
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#fff',
           borderTopWidth: 1,
           borderTopColor: '#e5e7eb',
+          height: 70,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '500',
         },
       })}
     >
       <Tab.Screen 
-        name="Видео" 
-        component={VideoStack}
-        options={{ title: 'Видео' }}
+        name="Главная" 
+        component={HomeScreen}
+        options={{ title: 'Главная' }}
       />
       <Tab.Screen 
-        name="Поиск" 
-        component={SearchStack}
-        options={{ title: 'Поиск' }}
-      />
-      <Tab.Screen 
-        name={userRole === 'client' ? 'Мои заявки' : 'Заявки'}
-        component={OrderStack}
+        name="Мои заявки" 
+        component={UserOrderStack}
         options={{ 
-          title: userRole === 'client' ? 'Мои заявки' : 'Заявки',
+          title: 'Мои заявки',
           tabBarBadge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
         }}
       />
       <Tab.Screen 
-        name="Чат" 
-        component={MessageStack}
+        name="Заявка всем" 
+        component={CreateOrderScreen}
         options={{ 
-          title: 'Чат',
+          title: 'Заявка всем',
+          tabBarLabel: 'Заявка всем',
+          tabBarButton: (props) => (
+            <CenterTabButton
+              focused={props.accessibilityState?.selected || false}
+              onPress={props.onPress}
+              label="Заявка всем"
+            />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Мессенджер" 
+        component={UserMessageStack}
+        options={{ 
+          title: 'Мессенджер',
           tabBarBadge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
         }}
       />
       <Tab.Screen 
         name="Профиль" 
-        component={ProfileStack}
+        component={UserProfileStack}
+        options={{ title: 'Профиль' }}
+      />
+    </Tab.Navigator>
+  );
+};
+
+// Master Tabs
+const MasterTabs = () => {
+  const { unreadMessagesCount, pendingOrdersCount } = useBadgeCounts();
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap;
+          let iconSize = size;
+
+          if (route.name === 'Главная') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Все заявки') {
+            iconName = focused ? 'document-text' : 'document-text-outline';
+          } else if (route.name === 'Создать видеорекламу') {
+            iconName = 'add-circle';
+            iconSize = 56; // Большая центральная кнопка
+            color = '#f97316';
+          } else if (route.name === 'Мессенджер') {
+            iconName = focused ? 'chatbubble' : 'chatbubble-outline';
+          } else if (route.name === 'Профиль') {
+            iconName = focused ? 'person' : 'person-outline';
+          } else {
+            iconName = 'help-outline';
+          }
+
+          return <Ionicons name={iconName} size={iconSize} color={color} />;
+        },
+        tabBarActiveTintColor: '#f97316',
+        tabBarInactiveTintColor: '#9ca3af',
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          borderTopWidth: 1,
+          borderTopColor: '#e5e7eb',
+          height: 70,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '500',
+        },
+      })}
+    >
+      <Tab.Screen 
+        name="Главная" 
+        component={MasterHomeScreen}
+        options={{ title: 'Главная' }}
+      />
+      <Tab.Screen 
+        name="Все заявки" 
+        component={MasterOrderStack}
+        options={{ 
+          title: 'Все заявки',
+          tabBarBadge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined,
+        }}
+      />
+      <Tab.Screen 
+        name="Создать видеорекламу" 
+        component={CreateVideoScreen}
+        options={{ 
+          title: 'Создать видеорекламу',
+          tabBarLabel: 'Создать',
+          tabBarButton: (props) => (
+            <CenterTabButton
+              focused={props.accessibilityState?.selected || false}
+              onPress={props.onPress}
+              label="Создать"
+            />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Мессенджер" 
+        component={MasterMessageStack}
+        options={{ 
+          title: 'Мессенджер',
+          tabBarBadge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
+        }}
+      />
+      <Tab.Screen 
+        name="Профиль" 
+        component={MasterProfileStack}
         options={{ title: 'Профиль' }}
       />
     </Tab.Navigator>
@@ -241,9 +406,16 @@ const AppNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
-        <Stack.Screen name="Main" component={MainTabs} />
+        user.role === 'master' ? (
+          <Stack.Screen name="MasterMain" component={MasterTabs} />
+        ) : (
+          <Stack.Screen name="UserMain" component={UserTabs} />
+        )
       ) : (
-        <Stack.Screen name="Auth" component={AuthStack} />
+        <>
+          <Stack.Screen name="GuestMain" component={GuestHomeScreen} />
+          <Stack.Screen name="Auth" component={AuthStack} />
+        </>
       )}
     </Stack.Navigator>
   );

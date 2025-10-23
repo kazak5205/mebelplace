@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -13,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { videoService } from '../../services/videoService';
-import { chatService } from '../../services/chatService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,7 +34,7 @@ interface Video {
   isBookmarked: boolean;
 }
 
-const HomeScreen = ({ navigation }: any) => {
+const MasterHomeScreen = () => {
   const { user } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,31 +116,6 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleOrderFurniture = async (videoId: string) => {
-    try {
-      const video = videos.find(v => v.id === videoId);
-      if (!video) return;
-
-      // Создаем чат с мастером
-      const chatResponse = await chatService.createChat(video.authorId);
-      if (chatResponse.success) {
-        // Отправляем сообщение с заказом
-        await chatService.sendMessage(
-          chatResponse.data.id,
-          `Хочу заказать эту мебель из видео: ${video.title}`,
-          'text',
-          { videoId, videoTitle: video.title, videoUrl: video.videoUrl }
-        );
-        
-        // Переходим в чат
-        navigation.navigate('UserMessagesList' as never);
-      }
-    } catch (error) {
-      console.error('Error creating order chat:', error);
-      Alert.alert('Ошибка', 'Не удалось создать чат с мастером');
-    }
-  };
-
   const handleSubscribe = async (authorId: string) => {
     try {
       // TODO: Implement subscription logic
@@ -203,10 +178,10 @@ const HomeScreen = ({ navigation }: any) => {
           <Text style={styles.actionText}>{item.likes}</Text>
         </TouchableOpacity>
 
-        {/* Comment Button */}
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-          <Text style={styles.actionText}>{item.comments}</Text>
+        {/* Comment Button - Disabled for masters */}
+        <TouchableOpacity style={styles.actionButton} disabled>
+          <Ionicons name="chatbubble-outline" size={24} color="#666" />
+          <Text style={[styles.actionText, { color: '#666' }]}>{item.comments}</Text>
         </TouchableOpacity>
 
         {/* Share Button */}
@@ -224,14 +199,6 @@ const HomeScreen = ({ navigation }: any) => {
             size={24} 
             color={item.isBookmarked ? '#f97316' : '#fff'} 
           />
-        </TouchableOpacity>
-
-        {/* Order Furniture Button */}
-        <TouchableOpacity 
-          style={styles.orderButton}
-          onPress={() => handleOrderFurniture(item.id)}
-        >
-          <Text style={styles.orderButtonText}>Заказать эту мебель</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -342,19 +309,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  orderButton: {
-    backgroundColor: '#f97316',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 10,
-  },
-  orderButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
 });
 
-export default HomeScreen;
+export default MasterHomeScreen;
