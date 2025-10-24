@@ -2,7 +2,7 @@ const axios = require('axios');
 
 class SMSService {
   constructor() {
-    this.apiKey = 'kza709b533060de72b09110d34ca60bee25bad4fd53e2bb6181fe47cb8a7cad16cb0b1';
+    this.apiKey = 'kza28b2431c84d125c7b571c1a20363bd4dfc77ca728e74f3f292eb4aee3985d952185';
     this.baseUrl = 'https://api.mobizon.kz/service';
   }
 
@@ -12,13 +12,25 @@ class SMSService {
       // Форматируем номер телефона (убираем + и добавляем код страны если нужно)
       const formattedPhone = this.formatPhoneNumber(phone);
       
-      const response = await axios.post(`${this.baseUrl}/message/sendsmsmessage`, {
-        apiKey: this.apiKey,
-        recipient: formattedPhone,
-        from: sender,
-        text: message,
-        output: 'json'
-      });
+      console.log(`📱 Sending SMS to: ${formattedPhone}, from: ${sender}`);
+      
+      // Mobizon API использует POST запросы
+      const params = new URLSearchParams();
+      params.append('apiKey', this.apiKey);
+      params.append('recipient', formattedPhone);
+      params.append('text', message);
+      
+      const response = await axios.post(
+        `${this.baseUrl}/message/sendsmsmessage`,
+        params,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+
+      console.log(`📡 Mobizon API response:`, JSON.stringify(response.data));
 
       if (response.data.code === 0) {
         console.log(`✅ SMS sent successfully to ${formattedPhone}`);
@@ -35,10 +47,10 @@ class SMSService {
         };
       }
     } catch (error) {
-      console.error('SMS service error:', error);
+      console.error('SMS service error:', error.response?.data || error.message);
       return {
         success: false,
-        error: error.message
+        error: error.response?.data?.message || error.message
       };
     }
   }
@@ -171,12 +183,14 @@ class SMSService {
     try {
       const formattedRecipients = recipients.map(phone => this.formatPhoneNumber(phone));
       
-      const response = await axios.post(`${this.baseUrl}/message/sendsmsmessage`, {
-        apiKey: this.apiKey,
-        recipient: formattedRecipients.join(','),
-        from: sender,
-        text: message,
-        output: 'json'
+      const response = await axios.get(`${this.baseUrl}/message/sendsmsmessage`, {
+        params: {
+          apiKey: this.apiKey,
+          recipient: formattedRecipients.join(','),
+          from: sender,
+          text: message,
+          output: 'json'
+        }
       });
 
       if (response.data.code === 0) {

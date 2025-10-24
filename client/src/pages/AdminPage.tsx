@@ -5,7 +5,9 @@ import VideoManagement from '../components/admin/VideoManagement';
 import UserManagement from '../components/admin/UserManagement';
 import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
 import CategoryManagement from '../components/admin/CategoryManagement';
+import SupportChatManagement from '../components/admin/SupportChatManagement';
 import AuditLog from '../components/admin/AuditLog';
+import OrderManagement from '../components/admin/OrderManagement';
 
 interface AdminPageProps {}
 
@@ -25,7 +27,7 @@ const AdminPage: React.FC<AdminPageProps> = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Загрузка админки...</p>
@@ -36,7 +38,7 @@ const AdminPage: React.FC<AdminPageProps> = () => {
 
   if (user?.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Доступ запрещен</h1>
           <p className="text-gray-600">У вас нет прав для доступа к админке</p>
@@ -49,9 +51,11 @@ const AdminPage: React.FC<AdminPageProps> = () => {
     { id: 'dashboard', name: 'Дашборд', icon: '📊' },
     { id: 'videos', name: 'Видео', icon: '🎥' },
     { id: 'users', name: 'Пользователи', icon: '👥' },
+    { id: 'orders', name: 'Заявки', icon: '📋' },
     { id: 'analytics', name: 'Аналитика', icon: '📈' },
     { id: 'categories', name: 'Категории', icon: '📂' },
-    { id: 'audit', name: 'Аудит', icon: '📋' }
+    { id: 'support', name: 'Поддержка', icon: '💬' },
+    { id: 'audit', name: 'Аудит', icon: '📝' }
   ];
 
   const renderContent = () => {
@@ -62,10 +66,14 @@ const AdminPage: React.FC<AdminPageProps> = () => {
         return <VideoManagement />;
       case 'users':
         return <UserManagement />;
+      case 'orders':
+        return <OrderManagement />;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'categories':
         return <CategoryManagement />;
+      case 'support':
+        return <SupportChatManagement />;
       case 'audit':
         return <AuditLog />;
       default:
@@ -74,16 +82,16 @@ const AdminPage: React.FC<AdminPageProps> = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-gray-900 shadow-sm border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">Админка MebelPlace</h1>
+              <h1 className="text-2xl font-bold text-white">Админка MebelPlace</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-300">
                 Привет, {user?.firstName} {user?.lastName}
               </span>
               <button
@@ -111,8 +119,8 @@ const AdminPage: React.FC<AdminPageProps> = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center px-4 py-3 text-left text-sm font-medium rounded-md transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-500'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-blue-600 text-white border-r-2 border-blue-400'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   }`}
                 >
                   <span className="mr-3 text-lg">{tab.icon}</span>
@@ -124,7 +132,7 @@ const AdminPage: React.FC<AdminPageProps> = () => {
 
           {/* Main Content */}
           <div className="flex-1">
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-gray-900 rounded-lg shadow-lg">
               {renderContent()}
             </div>
           </div>

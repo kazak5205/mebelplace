@@ -51,14 +51,19 @@ const SupportChatScreen = ({ navigation }: any) => {
     try {
       setIsLoading(true);
       
-      // Получаем существующий чат с поддержкой
-      const response = await apiService.getSupportChat();
-      
-      if (response.success && response.data) {
-        setChat(response.data);
-        loadMessages(response.data.id);
-      } else {
-        // Чат с поддержкой не существует, создадим его при первом сообщении
+      // Синхронизировано с web: getSupportChat возвращает chat
+      try {
+        const chat = await apiService.getSupportChat();
+        if (chat) {
+          setChat(chat);
+          loadMessages(chat.id);
+        } else {
+          // Чат с поддержкой не существует, создадим его при первом сообщении
+          setChat(null);
+          setIsLoading(false);
+        }
+      } catch {
+        // Чат не найден
         setChat(null);
         setIsLoading(false);
       }
@@ -70,12 +75,10 @@ const SupportChatScreen = ({ navigation }: any) => {
 
   const loadMessages = async (chatId: string) => {
     try {
-      const response = await apiService.getChatMessages(chatId);
-      
-      if (response.success) {
-        setMessages(response.data);
-        scrollToBottom();
-      }
+      // Синхронизировано с web: getChatMessages возвращает messages
+      const messages = await apiService.getChatMessages(chatId);
+      setMessages(messages || []);
+      scrollToBottom();
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
@@ -87,15 +90,10 @@ const SupportChatScreen = ({ navigation }: any) => {
     try {
       setIsCreatingChat(true);
       
-      const response = await apiService.createSupportChat();
-      
-      if (response.success) {
-        setChat(response.data);
-        return response.data.id;
-      } else {
-        Alert.alert('Ошибка', 'Не удалось создать чат с поддержкой');
-        return null;
-      }
+      // Синхронизировано с web: createSupportChat возвращает chat
+      const chat = await apiService.createSupportChat();
+      setChat(chat);
+      return chat.id;
     } catch (error) {
       console.error('Error creating support chat:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при создании чата');
@@ -157,18 +155,14 @@ const SupportChatScreen = ({ navigation }: any) => {
         chatId: currentChatId,
       };
 
-      const response = await apiService.sendSupportMessage(messageData);
+      // Синхронизировано с web: sendSupportMessage возвращает message
+      const message = await apiService.sendSupportMessage(messageData);
+      setMessages(prev => [...prev, message]);
+      setNewMessage('');
+      scrollToBottom();
       
-      if (response.success) {
-        setMessages(prev => [...prev, response.data]);
-        setNewMessage('');
-        scrollToBottom();
-        
-        // Отправляем через сокет
-        emit('send_message', response.data);
-      } else {
-        Alert.alert('Ошибка', 'Не удалось отправить сообщение');
-      }
+      // Отправляем через сокет
+      emit('send_message', message);
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при отправке сообщения');

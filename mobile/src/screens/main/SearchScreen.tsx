@@ -1,3 +1,7 @@
+/**
+ * SearchScreen - TikTok-style search
+ * Синхронизировано с web SearchResultsPage - dark theme, orange accent
+ */
 import React, { useState } from 'react';
 import {
   View,
@@ -9,18 +13,14 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
-import {
-  Text,
-  Card,
-  ActivityIndicator,
-  Chip,
-  Avatar,
-} from 'react-native-paper';
+import { Text, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { apiService } from '../../services/apiService';
+import { videoService } from '../../services/videoService';
+import { FadeInView } from '../../components/TikTokAnimations';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.9;
 
 type SearchTab = 'videos' | 'hashtags' | 'channels';
 
@@ -66,16 +66,6 @@ const SearchScreen = ({ navigation }: any) => {
   const [hashtags, setHashtags] = useState<HashtagItem[]>([]);
   const [channels, setChannels] = useState<ChannelItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-
-  const categories = [
-    { key: 'all', label: 'Все' },
-    { key: 'furniture', label: 'Мебель' },
-    { key: 'decor', label: 'Декор' },
-    { key: 'kitchen', label: 'Кухня' },
-    { key: 'bedroom', label: 'Спальня' },
-    { key: 'living', label: 'Гостиная' },
-  ];
 
   const searchTabs: { key: SearchTab; label: string; icon: string }[] = [
     { key: 'videos', label: 'Видео', icon: 'play-outline' },
@@ -90,28 +80,23 @@ const SearchScreen = ({ navigation }: any) => {
       setIsLoading(true);
       
       if (activeTab === 'videos') {
-        const response = await apiService.getVideos(1, 20);
-        if (response.success) {
-          setVideos(response.data);
-        }
+        const response = await videoService.getVideos({ 
+          search: searchQuery,
+          limit: 50 
+        });
+        setVideos(response.videos || []);
       } else if (activeTab === 'hashtags') {
-        // Поиск по хештегам
-        const response = await apiService.get('/search/hashtags', { 
+        const data: any = await apiService.get('/search/hashtags', { 
           query: searchQuery,
           limit: 50 
         });
-        if (response.success) {
-          setHashtags(response.data?.hashtags || []);
-        }
+        setHashtags((data.data || data).hashtags || []);
       } else if (activeTab === 'channels') {
-        // Поиск по каналам
-        const response = await apiService.get('/search/users', { 
+        const data: any = await apiService.get('/search/users', { 
           query: searchQuery,
           limit: 50 
         });
-        if (response.success) {
-          setChannels(response.data?.users || []);
-        }
+        setChannels((data.data || data).users || []);
       }
     } catch (error) {
       console.error('Error searching:', error);
@@ -130,20 +115,16 @@ const SearchScreen = ({ navigation }: any) => {
   const handleHashtagPress = async (hashtag: HashtagItem) => {
     try {
       setIsLoading(true);
-      // Загружаем видео по хештегу
-      const response = await apiService.get('/videos/by-hashtag', { 
+      const data: any = await apiService.get('/videos/by-hashtag', { 
         tag: hashtag.tag,
         limit: 50 
       });
       
-      if (response.success && response.data?.videos?.length > 0) {
-        // Открываем TikTok плеер с видео по этому хештегу
+      const videos = (data.data || data).videos || [];
+      if (videos.length > 0) {
         navigation.navigate('Видео', {
           screen: 'TikTokPlayer',
-          params: { 
-            videos: response.data.videos, 
-            initialIndex: 0 
-          }
+          params: { videos, initialIndex: 0 }
         });
       }
     } catch (error) {
@@ -154,28 +135,7 @@ const SearchScreen = ({ navigation }: any) => {
   };
 
   const handleChannelPress = async (channel: ChannelItem) => {
-    try {
-      setIsLoading(true);
-      // Загружаем видео канала
-      const response = await apiService.get(`/users/${channel.id}/videos`, { 
-        limit: 50 
-      });
-      
-      if (response.success && response.data?.videos?.length > 0) {
-        // Открываем TikTok плеер с видео этого канала
-        navigation.navigate('Видео', {
-          screen: 'TikTokPlayer',
-          params: { 
-            videos: response.data.videos, 
-            initialIndex: 0 
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error loading channel videos:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    navigation.navigate('MasterChannel', { masterId: channel.id });
   };
 
   const formatCount = (count: number) => {
@@ -185,179 +145,95 @@ const SearchScreen = ({ navigation }: any) => {
   };
 
   const renderVideoItem = ({ item, index }: { item: VideoItem; index: number }) => (
-    <TouchableOpacity onPress={() => handleVideoPress(item, index)}>
-      <Card style={styles.videoCard}>
+    <FadeInView delay={index * 50}>
+      <TouchableOpacity 
+        onPress={() => handleVideoPress(item, index)}
+        style={styles.videoItem}
+      >
         <Image
-          source={{ uri: item.thumbnailUrl || 'https://via.placeholder.com/400x225' }}
-          style={styles.thumbnail}
+          source={{ uri: item.thumbnailUrl || 'https://via.placeholder.com/200x350' }}
+          style={styles.videoThumbnail}
           resizeMode="cover"
         />
-        <Card.Content style={styles.cardContent}>
-          <Text style={styles.videoTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
-          
-          <View style={styles.authorInfo}>
-            <Text style={styles.authorName}>@{item.author.username}</Text>
-          </View>
-          
-          {item.description && (
-            <Text style={styles.description} numberOfLines={2}>
-              {item.description}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.videoOverlay}
+        >
+          <View style={styles.videoInfo}>
+            <Text style={styles.videoTitle} numberOfLines={2}>
+              {item.title}
             </Text>
-          )}
-          
-          <View style={styles.stats}>
-            <View style={styles.statItem}>
-              <Ionicons name="eye-outline" size={16} color="#666" />
-              <Text style={styles.statText}>{formatCount(item.views)}</Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Ionicons name="heart-outline" size={16} color="#666" />
-              <Text style={styles.statText}>{formatCount(item.likes)}</Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Ionicons name="chatbubble-outline" size={16} color="#666" />
-              <Text style={styles.statText}>{formatCount(item.comments)}</Text>
+            <View style={styles.videoStats}>
+              <View style={styles.statItem}>
+                <Ionicons name="heart" size={14} color="#fff" />
+                <Text style={styles.statText}>{formatCount(item.likes)}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="eye" size={14} color="#fff" />
+                <Text style={styles.statText}>{formatCount(item.views)}</Text>
+              </View>
             </View>
           </View>
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
+        </LinearGradient>
+      </TouchableOpacity>
+    </FadeInView>
   );
 
-  const renderHashtagItem = ({ item }: { item: HashtagItem }) => (
-    <TouchableOpacity onPress={() => handleHashtagPress(item)}>
-      <Card style={styles.hashtagCard}>
-        <Card.Content style={styles.hashtagContent}>
-          <View style={styles.hashtagIconContainer}>
-            <Ionicons name="pricetag-outline" size={32} color="#000" />
-          </View>
-          
-          <View style={styles.hashtagInfo}>
-            <Text style={styles.hashtagTitle}>#{item.tag}</Text>
-            <Text style={styles.hashtagStats}>
-              {formatCount(item.videoCount)} видео • {formatCount(item.views)} просмотров
-            </Text>
-          </View>
-          
-          <Ionicons name="chevron-forward-outline" size={20} color="#999" />
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
-
-  const renderChannelItem = ({ item }: { item: ChannelItem }) => (
-    <TouchableOpacity onPress={() => handleChannelPress(item)}>
-      <Card style={styles.channelCard}>
-        <Card.Content style={styles.channelContent}>
-          <View style={styles.channelAvatar}>
-            {item.avatar ? (
-              <Image source={{ uri: item.avatar }} style={styles.avatarImage} />
-            ) : (
-              <Ionicons name="person-outline" size={32} color="#000" />
-            )}
-          </View>
-          
-          <View style={styles.channelInfo}>
-            <Text style={styles.channelName}>@{item.username}</Text>
-            {item.bio && (
-              <Text style={styles.channelBio} numberOfLines={1}>
-                {item.bio}
-              </Text>
-            )}
-            <Text style={styles.channelStats}>
-              {formatCount(item.followers)} подписчиков • {formatCount(item.videoCount)} видео
-            </Text>
-          </View>
-          
-          <Ionicons name="chevron-forward-outline" size={20} color="#999" />
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
-
-  const getPlaceholder = () => {
-    switch (activeTab) {
-      case 'videos': return 'Поиск видео...';
-      case 'hashtags': return 'Поиск хештегов...';
-      case 'channels': return 'Поиск каналов...';
-      default: return 'Поиск...';
-    }
-  };
-
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000" />
-          <Text style={styles.loadingText}>Поиск...</Text>
+  const renderHashtagItem = ({ item, index }: { item: HashtagItem; index: number }) => (
+    <FadeInView delay={index * 50}>
+      <TouchableOpacity onPress={() => handleHashtagPress(item)} style={styles.hashtagItem}>
+        <View style={styles.hashtagIcon}>
+          <Ionicons name="pricetag" size={24} color="#f97316" />
         </View>
-      );
-    }
+        <View style={styles.hashtagInfo}>
+          <Text style={styles.hashtagTitle}>#{item.tag}</Text>
+          <Text style={styles.hashtagStats}>
+            {formatCount(item.videoCount)} видео • {formatCount(item.views)} просмотров
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.3)" />
+      </TouchableOpacity>
+    </FadeInView>
+  );
 
-    if (activeTab === 'videos') {
-      if (videos.length > 0) {
-        return (
-          <FlatList
-            data={videos}
-            renderItem={renderVideoItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
-        );
-      }
-    } else if (activeTab === 'hashtags') {
-      if (hashtags.length > 0) {
-        return (
-          <FlatList
-            data={hashtags}
-            renderItem={renderHashtagItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
-        );
-      }
-    } else if (activeTab === 'channels') {
-      if (channels.length > 0) {
-        return (
-          <FlatList
-            data={channels}
-            renderItem={renderChannelItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
-        );
-      }
-    }
-
-    return (
-      <View style={styles.emptyContainer}>
-        <Ionicons 
-          name={activeTab === 'videos' ? 'play-outline' : activeTab === 'hashtags' ? 'pricetag-outline' : 'person-outline'} 
-          size={64} 
-          color="#ccc" 
-        />
-        <Text style={styles.emptyText}>
-          {searchQuery ? 'Ничего не найдено' : 'Введите запрос для поиска'}
-        </Text>
-      </View>
-    );
-  };
+  const renderChannelItem = ({ item, index }: { item: ChannelItem; index: number }) => (
+    <FadeInView delay={index * 50}>
+      <TouchableOpacity onPress={() => handleChannelPress(item)} style={styles.channelItem}>
+        <View style={styles.channelAvatarContainer}>
+          {item.avatar ? (
+            <Image source={{ uri: item.avatar }} style={styles.channelAvatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>
+                {item.username.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.channelInfo}>
+          <Text style={styles.channelName}>@{item.username}</Text>
+          {item.bio && (
+            <Text style={styles.channelBio} numberOfLines={1}>{item.bio}</Text>
+          )}
+          <Text style={styles.channelStats}>
+            {formatCount(item.followers)} подписчиков • {item.videoCount} видео
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.3)" />
+      </TouchableOpacity>
+    </FadeInView>
+  );
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchHeader}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#666" style={styles.searchIcon} />
+      {/* Search Header - TikTok Style */}
+      <View style={styles.header}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={getPlaceholder()}
+            placeholder="Поиск видео, хештегов, каналов..."
+            placeholderTextColor="rgba(255,255,255,0.4)"
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
@@ -365,72 +241,89 @@ const SearchScreen = ({ navigation }: any) => {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle-outline" size={20} color="#666" />
+              <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
           )}
         </View>
-        
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Text style={styles.searchButtonText}>Найти</Text>
-        </TouchableOpacity>
       </View>
 
-      {/* Табы типов поиска */}
-      <View style={styles.tabsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {searchTabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[
-                styles.tab,
-                activeTab === tab.key && styles.activeTab
-              ]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Ionicons 
-                name={tab.icon as any} 
-                size={20} 
-                color={activeTab === tab.key ? '#000' : '#999'} 
-              />
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab.key && styles.activeTabText
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      {/* Tabs - TikTok Style */}
+      <View style={styles.tabs}>
+        {searchTabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+            onPress={() => setActiveTab(tab.key)}
+          >
+            <Ionicons 
+              name={tab.icon as any} 
+              size={20} 
+              color={activeTab === tab.key ? '#f97316' : 'rgba(255,255,255,0.6)'} 
+            />
+            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+              {tab.label}
+            </Text>
+            {activeTab === tab.key && <View style={styles.activeTabIndicator} />}
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Категории только для видео */}
-      {activeTab === 'videos' && (
-        <View style={styles.categoriesContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {categories.map((item) => (
-              <Chip
-                key={item.key}
-                selected={selectedCategory === item.key}
-                onPress={() => setSelectedCategory(item.key)}
-                style={[
-                  styles.categoryChip,
-                  selectedCategory === item.key && styles.selectedCategoryChip
-                ]}
-                textStyle={[
-                  styles.categoryChipText,
-                  selectedCategory === item.key && styles.selectedCategoryChipText
-                ]}
-              >
-                {item.label}
-              </Chip>
-            ))}
-          </ScrollView>
+      {/* Content */}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#f97316" />
         </View>
-      )}
+      ) : (
+        <>
+          {activeTab === 'videos' && videos.length > 0 && (
+            <FlatList
+              data={videos}
+              renderItem={renderVideoItem}
+              keyExtractor={(item) => item.id}
+              numColumns={3}
+              columnWrapperStyle={styles.videoGrid}
+              contentContainerStyle={styles.listContent}
+            />
+          )}
 
-      {renderContent()}
+          {activeTab === 'hashtags' && hashtags.length > 0 && (
+            <FlatList
+              data={hashtags}
+              renderItem={renderHashtagItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+            />
+          )}
+
+          {activeTab === 'channels' && channels.length > 0 && (
+            <FlatList
+              data={channels}
+              renderItem={renderChannelItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+            />
+          )}
+
+          {((activeTab === 'videos' && videos.length === 0) ||
+            (activeTab === 'hashtags' && hashtags.length === 0) ||
+            (activeTab === 'channels' && channels.length === 0)) &&
+            searchQuery.length > 0 && !isLoading && (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={64} color="rgba(255,255,255,0.2)" />
+                <Text style={styles.emptyText}>Ничего не найдено</Text>
+                <Text style={styles.emptySubtext}>Попробуйте другой запрос</Text>
+              </View>
+            )}
+
+          {searchQuery.length === 0 && !isLoading && (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search-outline" size={64} color="rgba(255,255,255,0.2)" />
+              <Text style={styles.emptyText}>Начните поиск</Text>
+              <Text style={styles.emptySubtext}>Введите запрос выше</Text>
+            </View>
+          )}
+        </>
+      )}
     </View>
   );
 };
@@ -438,21 +331,19 @@ const SearchScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#000',
   },
-  searchHeader: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    gap: 8,
+  header: {
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#111',
   },
-  searchContainer: {
-    flex: 1,
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
     paddingHorizontal: 12,
     height: 44,
   },
@@ -462,222 +353,193 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#000',
-  },
-  searchButton: {
-    backgroundColor: '#000',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  searchButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    paddingVertical: 8,
   },
-  tabsContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: '#111',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 12,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    paddingVertical: 12,
     gap: 6,
   },
   activeTab: {
-    backgroundColor: '#000',
+    borderBottomWidth: 0,
   },
   tabText: {
     fontSize: 14,
-    color: '#999',
-    fontWeight: '500',
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
   },
   activeTabText: {
-    color: '#fff',
+    color: '#f97316',
   },
-  categoriesContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  categoryChip: {
-    marginRight: 8,
-    backgroundColor: '#f5f5f5',
-  },
-  selectedCategoryChip: {
-    backgroundColor: '#000',
-  },
-  categoryChipText: {
-    color: '#666',
-  },
-  selectedCategoryChipText: {
-    color: '#fff',
+  activeTabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: '#f97316',
   },
   listContent: {
     padding: 16,
-  },
-  videoCard: {
-    marginBottom: 16,
-    backgroundColor: '#fff',
-    width: CARD_WIDTH,
-    alignSelf: 'center',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  thumbnail: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#eee',
-  },
-  cardContent: {
-    padding: 16,
-  },
-  videoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#000',
-  },
-  authorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  authorName: {
-    fontSize: 14,
-    color: '#666',
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
-  stats: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 14,
-    color: '#666',
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
   },
   emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 16,
-    fontSize: 16,
-    color: '#999',
+    marginBottom: 8,
   },
-  // Hashtag styles
-  hashtagCard: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    width: CARD_WIDTH,
-    alignSelf: 'center',
-    borderRadius: 12,
+  emptySubtext: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  // Video Grid (3 columns)
+  videoGrid: {
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  videoItem: {
+    width: (width - 38) / 3,
+    aspectRatio: 9 / 16,
+    backgroundColor: '#1a1a1a',
+    marginRight: 2,
+    marginBottom: 2,
+    borderRadius: 8,
     overflow: 'hidden',
   },
-  hashtagContent: {
+  videoThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 8,
+  },
+  videoInfo: {
+    gap: 4,
+  },
+  videoTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  videoStats: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    gap: 3,
   },
-  hashtagIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#f5f5f5',
+  statText: {
+    fontSize: 10,
+    color: '#fff',
+  },
+  // Hashtag List
+  hashtagItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  hashtagIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(249,115,22,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   hashtagInfo: {
     flex: 1,
   },
   hashtagTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#fff',
     marginBottom: 4,
   },
   hashtagStats: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
-  // Channel styles
-  channelCard: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    width: CARD_WIDTH,
-    alignSelf: 'center',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  channelContent: {
+  // Channel List
+  channelItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  channelAvatarContainer: {
+    marginRight: 12,
   },
   channelAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#f5f5f5',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-    overflow: 'hidden',
   },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   channelInfo: {
     flex: 1,
   },
   channelName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: '600',
+    color: '#fff',
     marginBottom: 2,
   },
   channelBio: {
     fontSize: 13,
-    color: '#666',
+    color: 'rgba(255,255,255,0.6)',
     marginBottom: 4,
   },
   channelStats: {
-    fontSize: 13,
-    color: '#999',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
   },
 });
 
 export default SearchScreen;
-

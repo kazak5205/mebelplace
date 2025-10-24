@@ -85,6 +85,8 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
 // GET /api/orders/feed - Лента заявок
 router.get('/feed', authenticateToken, async (req, res) => {
   try {
+    console.error('[ORDERS] Orders feed request from user:', req.user.id, 'role:', req.user.role);
+    
     const { page = 1, limit = 10, category, region, status = 'pending', master_responses } = req.query;
     const offset = (page - 1) * limit;
 
@@ -95,7 +97,7 @@ router.get('/feed', authenticateToken, async (req, res) => {
         u.first_name as client_first_name,
         u.last_name as client_last_name,
         u.avatar as client_avatar,
-        COUNT(ord_resp.id) as response_count,
+        COUNT(DISTINCT ord_resp.id) as response_count,
         CASE WHEN EXISTS(
           SELECT 1 FROM order_responses my_resp 
           WHERE my_resp.order_id = o.id 
@@ -144,18 +146,55 @@ router.get('/feed', authenticateToken, async (req, res) => {
       LIMIT $${++paramCount} OFFSET $${++paramCount}
     `;
     
-    params.push(limit, offset);
+    params.push(parseInt(limit));
+    params.push(parseInt(offset));
+
+    console.error('[ORDERS] Executing query');
+    console.error('[ORDERS] Params:', JSON.stringify(params));
 
     const result = await pool.query(query, params);
+    console.error('[ORDERS] Query result:', result.rows.length, 'rows');
+
+    // Map snake_case to camelCase for frontend
+    const mappedOrders = result.rows.map(order => ({
+      id: order.id,
+      clientId: order.client_id,
+      masterId: order.master_id,
+      title: order.title,
+      description: order.description,
+      category: order.category,
+      region: order.region,
+      status: order.status,
+      price: order.price,
+      deadline: order.deadline,
+      location: order.location,
+      images: order.images || [],
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+      client: order.client_username ? {
+        id: order.client_id,
+        username: order.client_username,
+        firstName: order.client_first_name,
+        lastName: order.client_last_name,
+        avatar: order.client_avatar,
+        email: '',
+        role: 'user',
+        isActive: true,
+        isVerified: true,
+        createdAt: order.created_at
+      } : undefined,
+      responseCount: parseInt(order.response_count) || 0,
+      hasMyResponse: order.has_my_response || false
+    }));
 
     res.json({
       success: true,
       data: {
-        orders: result.rows,
+        orders: mappedOrders,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: result.rows.length
+          total: mappedOrders.length
         }
       },
       message: 'Orders retrieved successfully',
@@ -164,9 +203,12 @@ router.get('/feed', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Get orders feed error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve orders',
+      error: error.message,
       timestamp: new Date().toISOString()
     });
   }
@@ -175,7 +217,7 @@ router.get('/feed', authenticateToken, async (req, res) => {
 // GET /api/orders/regions - Получить список регионов Казахстана
 router.get('/regions', async (req, res) => {
   try {
-    const { KZ_REGIONS } = require('../../shared/utils/regions');
+    const { KZ_REGIONS } = require('../utils/regions');
 
     res.json({
       success: true,

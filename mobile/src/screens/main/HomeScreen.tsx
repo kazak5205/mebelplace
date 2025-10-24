@@ -1,359 +1,128 @@
+/**
+ * HomeScreen - TikTok-style video feed
+ * Синхронизировано с web HomePage - показывает VideoPlayer на весь экран
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  Dimensions,
-  RefreshControl,
-  Alert,
+  ActivityIndicator,
+  Text,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { videoService } from '../../services/videoService';
-import { chatService } from '../../services/chatService';
+import type { Video } from '@shared/types';
 
-const { width, height } = Dimensions.get('window');
-
-interface Video {
-  id: string;
-  title: string;
-  description: string;
-  videoUrl: string;
-  thumbnailUrl: string;
-  authorId: string;
-  username: string;
-  firstName: string;
-  lastName: string;
-  avatar: string;
-  likes: number;
-  comments: number;
-  isLiked: boolean;
-  isBookmarked: boolean;
-}
-
-const HomeScreen = ({ navigation }: any) => {
+const HomeScreen = ({ navigation, route }: any) => {
   const { user } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [initialIndex, setInitialIndex] = useState(0);
+  const videoId = route?.params?.videoId;
 
   useEffect(() => {
     loadVideos();
-  }, []);
+  }, [videoId]);
 
   const loadVideos = async () => {
     try {
       setLoading(true);
-      const response = await videoService.getVideos({ page: 1, limit: 20 });
-      if (response.success) {
-        setVideos(response.data.videos || []);
+      
+      // Если есть videoId, загружаем видео автора (как на web)
+      if (videoId) {
+        try {
+          const video = await videoService.getVideo(videoId);
+          const authorId = video.authorId || video.author_id;
+          
+          if (authorId) {
+            const response = await videoService.getVideos({ 
+              author_id: authorId,
+              limit: 50 
+            });
+            setVideos(response.videos || []);
+            
+            const index = response.videos.findIndex((v: Video) => v.id === videoId);
+            setInitialIndex(index !== -1 ? index : 0);
+            
+            // Переходим на TikTok Player
+            navigation.replace('TikTokPlayer', {
+              videos: response.videos,
+              initialIndex: index !== -1 ? index : 0
+            });
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to load specific video:', error);
+        }
       }
+      
+      // Обычная загрузка фида (синхронизировано с web)
+      const params = user?.role === 'master' 
+        ? { limit: 50, exclude_author: user.id }
+        : { limit: 50, recommendations: true };
+      
+      const response = await videoService.getVideos(params);
+      setVideos(response.videos || []);
+      setInitialIndex(0);
+      
+      // Переходим на TikTok Player
+      navigation.replace('TikTokPlayer', {
+        videos: response.videos,
+        initialIndex: 0
+      });
+      
     } catch (error) {
-      console.error('Error loading videos:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить видео');
+      console.error('Failed to load videos:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadVideos();
-    setRefreshing(false);
-  };
-
-  const handleLike = async (videoId: string) => {
-    try {
-      const video = videos.find(v => v.id === videoId);
-      if (!video) return;
-
-      if (video.isLiked) {
-        await videoService.unlikeVideo(videoId);
-        setVideos(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, isLiked: false, likes: v.likes - 1 }
-            : v
-        ));
-      } else {
-        await videoService.likeVideo(videoId);
-        setVideos(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, isLiked: true, likes: v.likes + 1 }
-            : v
-        ));
-      }
-    } catch (error) {
-      console.error('Error liking video:', error);
-    }
-  };
-
-  const handleBookmark = async (videoId: string) => {
-    try {
-      const video = videos.find(v => v.id === videoId);
-      if (!video) return;
-
-      if (video.isBookmarked) {
-        await videoService.removeBookmark(videoId);
-        setVideos(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, isBookmarked: false }
-            : v
-        ));
-      } else {
-        await videoService.addBookmark(videoId);
-        setVideos(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, isBookmarked: true }
-            : v
-        ));
-      }
-    } catch (error) {
-      console.error('Error bookmarking video:', error);
-    }
-  };
-
-  const handleOrderFurniture = async (videoId: string) => {
-    try {
-      const video = videos.find(v => v.id === videoId);
-      if (!video) return;
-
-      // Создаем чат с мастером
-      const chatResponse = await chatService.createChat(video.authorId);
-      if (chatResponse.success) {
-        // Отправляем сообщение с заказом
-        await chatService.sendMessage(
-          chatResponse.data.id,
-          `Хочу заказать эту мебель из видео: ${video.title}`,
-          'text',
-          { videoId, videoTitle: video.title, videoUrl: video.videoUrl }
-        );
-        
-        // Переходим в чат
-        navigation.navigate('UserMessagesList' as never);
-      }
-    } catch (error) {
-      console.error('Error creating order chat:', error);
-      Alert.alert('Ошибка', 'Не удалось создать чат с мастером');
-    }
-  };
-
-  const handleSubscribe = async (authorId: string) => {
-    try {
-      // TODO: Implement subscription logic
-      Alert.alert('Подписка', 'Функция подписки будет добавлена в следующих версиях');
-    } catch (error) {
-      console.error('Error subscribing:', error);
-    }
-  };
-
-  const renderVideo = ({ item, index }: { item: Video; index: number }) => (
-    <View style={styles.videoContainer}>
-      <View style={styles.videoWrapper}>
-        <Image 
-          source={{ uri: `https://mebelplace.com.kz${item.thumbnailUrl}` }}
-          style={styles.videoThumbnail}
-          resizeMode="cover"
-        />
-        
-        {/* Video Info Overlay */}
-        <View style={styles.videoInfo}>
-          <Text style={styles.videoTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
-          <Text style={styles.videoDescription} numberOfLines={3}>
-            {item.description}
-          </Text>
-        </View>
-      </View>
-
-      {/* Right Side Actions */}
-      <View style={styles.actionsContainer}>
-        {/* Master Profile */}
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => handleSubscribe(item.authorId)}
-        >
-          <Image 
-            source={{ 
-              uri: item.avatar 
-                ? `https://mebelplace.com.kz${item.avatar}` 
-                : 'https://via.placeholder.com/50'
-            }}
-            style={styles.masterAvatar}
-          />
-          <Text style={styles.masterName} numberOfLines={1}>
-            {item.firstName} {item.lastName}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Like Button */}
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => handleLike(item.id)}
-        >
-          <Ionicons 
-            name={item.isLiked ? 'heart' : 'heart-outline'} 
-            size={24} 
-            color={item.isLiked ? '#ff4757' : '#fff'} 
-          />
-          <Text style={styles.actionText}>{item.likes}</Text>
-        </TouchableOpacity>
-
-        {/* Comment Button */}
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-          <Text style={styles.actionText}>{item.comments}</Text>
-        </TouchableOpacity>
-
-        {/* Share Button */}
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="share-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-
-        {/* Bookmark Button */}
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => handleBookmark(item.id)}
-        >
-          <Ionicons 
-            name={item.isBookmarked ? 'bookmark' : 'bookmark-outline'} 
-            size={24} 
-            color={item.isBookmarked ? '#f97316' : '#fff'} 
-          />
-        </TouchableOpacity>
-
-        {/* Order Furniture Button */}
-        <TouchableOpacity 
-          style={styles.orderButton}
-          onPress={() => handleOrderFurniture(item.id)}
-        >
-          <Text style={styles.orderButtonText}>Заказать эту мебель</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Загрузка видео...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#f97316" />
+      </View>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <FlatList
-        data={videos}
-        renderItem={renderVideo}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        pagingEnabled
-        snapToInterval={height}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.y / height);
-          setCurrentIndex(index);
-        }}
-      />
-    </SafeAreaView>
-  );
+  if (videos.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Пока нет видео</Text>
+        <Text style={styles.emptySubtext}>Загрузите первое видео!</Text>
+      </View>
+    );
+  }
+
+  // Если видео загружены, показываем TikTok плеер
+  // (navigation.replace выше уже переводит на TikTokPlayer)
+  return null;
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
   loadingContainer: {
     flex: 1,
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  videoContainer: {
+  emptyContainer: {
     flex: 1,
-    height: height,
-    flexDirection: 'row',
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
   },
-  videoWrapper: {
-    flex: 1,
-    position: 'relative',
-  },
-  videoThumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  videoInfo: {
-    position: 'absolute',
-    bottom: 100,
-    left: 20,
-    right: 80,
-  },
-  videoTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  emptyText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 8,
   },
-  videoDescription: {
-    color: '#fff',
+  emptySubtext: {
     fontSize: 14,
-    opacity: 0.9,
-  },
-  actionsContainer: {
-    width: 60,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingBottom: 100,
-    paddingRight: 10,
-  },
-  actionButton: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  masterAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginBottom: 5,
-  },
-  masterName: {
-    color: '#fff',
-    fontSize: 12,
-    textAlign: 'center',
-    maxWidth: 50,
-  },
-  actionText: {
-    color: '#fff',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  orderButton: {
-    backgroundColor: '#f97316',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 10,
-  },
-  orderButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.5)',
   },
 });
 

@@ -56,9 +56,9 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
         limit: 20,
         ...filters
       };
-      const response = await apiService.get('/admin/videos', params);
-      setVideos((response as any).data.videos);
-      setTotalPages((response as any).data.pagination.pages);
+      const response = await apiService.get<any>('/admin/videos', params);
+      setVideos(response.videos || []);
+      setTotalPages(response.pagination?.pages || 1);
     } catch (error) {
       console.error('Failed to load videos:', error);
     } finally {
@@ -164,7 +164,7 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Управление видео</h2>
+        <h2 className="text-2xl font-bold text-white">Управление видео</h2>
         <button
           onClick={() => setShowUploadModal(true)}
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -174,14 +174,14 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow mb-6 p-4">
+      <div className="bg-gray-800 rounded-lg shadow mb-6 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Статус</label>
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
             >
               <option value="">Все</option>
               <option value="active">Активные</option>
@@ -190,11 +190,11 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Категория</label>
             <select
               value={filters.category}
               onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
             >
               <option value="">Все категории</option>
               <option value="general">Общее</option>
@@ -204,66 +204,66 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Поиск</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Поиск</label>
             <input
               type="text"
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               placeholder="Поиск по названию..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
             />
           </div>
         </div>
       </div>
 
       {/* Videos Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-gray-800 rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Видео
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Автор
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Статистика
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Приоритет
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Статус
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Дата
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Действия
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-400">
                     Загрузка...
                   </td>
                 </tr>
               ) : videos.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-400">
                     Видео не найдены
                   </td>
                 </tr>
               ) : (
                 videos.map((video) => (
-                  <tr key={video.id} className="hover:bg-gray-50">
+                  <tr key={video.id} className="hover:bg-gray-700">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-16 w-24 bg-gray-200 rounded-md overflow-hidden">
+                        <div className="flex-shrink-0 h-16 w-24 bg-gray-600 rounded-md overflow-hidden">
                           {video.thumbnail_url ? (
                             <img
                               src={video.thumbnail_url}
@@ -279,23 +279,23 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
                           )}
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+                          <div className="text-sm font-medium text-white max-w-xs truncate">
                             {video.title}
                           </div>
-                          <div className="text-sm text-gray-500 max-w-xs truncate">
+                          <div className="text-sm text-gray-400 max-w-xs truncate">
                             {video.description}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-white">
                         {video.first_name} {video.last_name}
                       </div>
-                      <div className="text-sm text-gray-500">@{video.username}</div>
+                      <div className="text-sm text-gray-400">@{video.username}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-white">
                         <div className="flex items-center space-x-4">
                           <span className="flex items-center">
                             <svg className="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -322,7 +322,7 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
                             const value = e.target.value ? parseInt(e.target.value) : 0;
                             handlePriorityUpdate(video.id, value, video.is_featured || false);
                           }}
-                          className="w-16 border border-gray-300 rounded px-2 py-1 text-sm"
+                          className="w-16 border border-gray-600 rounded px-2 py-1 text-sm"
                           placeholder="0"
                         />
                         <label className="flex items-center">
@@ -332,9 +332,9 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
                             onChange={(e) => {
                               handlePriorityUpdate(video.id, video.priority_order || 0, e.target.checked);
                             }}
-                            className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                            className="rounded border-gray-600 text-orange-500 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Рекомендуемое</span>
+                          <span className="ml-2 text-sm text-gray-300">Рекомендуемое</span>
                         </label>
                       </div>
                     </td>
@@ -345,28 +345,28 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
                             type="checkbox"
                             checked={video.is_active}
                             onChange={(e) => handleStatusChange(video.id, 'isActive', e.target.checked)}
-                            className="rounded border-gray-300 text-green-600 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50"
+                            className="rounded border-gray-600 text-green-400 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Активно</span>
+                          <span className="ml-2 text-sm text-gray-300">Активно</span>
                         </label>
                         <label className="flex items-center">
                           <input
                             type="checkbox"
                             checked={video.is_public}
                             onChange={(e) => handleStatusChange(video.id, 'isPublic', e.target.checked)}
-                            className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                            className="rounded border-gray-600 text-orange-500 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Публично</span>
+                          <span className="ml-2 text-sm text-gray-300">Публично</span>
                         </label>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {formatDate(video.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => handleDelete(video.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-400 hover:text-red-300"
                       >
                         Удалить
                       </button>
@@ -380,26 +380,26 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-700 sm:px-6">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-gray-300 bg-gray-800 hover:bg-gray-700 disabled:opacity-50"
               >
                 Предыдущая
               </button>
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-gray-300 bg-gray-800 hover:bg-gray-700 disabled:opacity-50"
               >
                 Следующая
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-300">
                   Страница <span className="font-medium">{currentPage}</span> из{' '}
                   <span className="font-medium">{totalPages}</span>
                 </p>
@@ -409,14 +409,14 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-600 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
                   >
                     Предыдущая
                   </button>
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-600 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
                   >
                     Следующая
                   </button>
@@ -430,45 +430,45 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-gray-800">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Загрузить видео</h3>
+              <h3 className="text-lg font-medium text-white mb-4">Загрузить видео</h3>
               <form onSubmit={handleUpload} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Видео файл</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Видео файл</label>
                   <input
                     id="video-file"
                     type="file"
                     accept="video/*"
                     required
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Название</label>
                   <input
                     type="text"
                     value={uploadForm.title}
                     onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
                     required
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Описание</label>
                   <textarea
                     value={uploadForm.description}
                     onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Категория</label>
                   <select
                     value={uploadForm.category}
                     onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
                   >
                     <option value="general">Общее</option>
                     <option value="furniture">Мебель</option>
@@ -477,23 +477,23 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Теги (через запятую)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Теги (через запятую)</label>
                   <input
                     type="text"
                     value={uploadForm.tags}
                     onChange={(e) => setUploadForm({ ...uploadForm, tags: e.target.value })}
                     placeholder="мебель, дизайн, интерьер"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Порядок приоритета</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Порядок приоритета</label>
                   <input
                     type="number"
                     value={uploadForm.priorityOrder}
                     onChange={(e) => setUploadForm({ ...uploadForm, priorityOrder: e.target.value })}
                     placeholder="0"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-700 text-white"
                   />
                 </div>
                 <div>
@@ -502,16 +502,16 @@ const VideoManagement: React.FC<VideoManagementProps> = () => {
                       type="checkbox"
                       checked={uploadForm.isFeatured}
                       onChange={(e) => setUploadForm({ ...uploadForm, isFeatured: e.target.checked })}
-                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className="rounded border-gray-600 text-orange-500 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Рекомендуемое видео</span>
+                    <span className="ml-2 text-sm text-gray-300">Рекомендуемое видео</span>
                   </label>
                 </div>
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowUploadModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                    className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-md"
                   >
                     Отмена
                   </button>

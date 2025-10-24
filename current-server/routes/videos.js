@@ -91,6 +91,7 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
 // GET /api/videos/feed - Get video feed with admin priorities (every 5th video is admin-selected)
 router.get('/feed', async (req, res) => {
   try {
+    console.error('[VIDEOS] Feed request:', req.query);
     const { page = 1, limit = 10, category, author_id } = req.query;
     const offset = (page - 1) * limit;
 
@@ -132,7 +133,9 @@ router.get('/feed', async (req, res) => {
       ORDER BY v.created_at DESC
     `;
 
+    console.error('[VIDEOS] Executing main query');
     const result = await pool.query(query, params);
+    console.error('[VIDEOS] Got', result.rows.length, 'videos');
     const allVideos = result.rows;
 
     // Get admin-selected videos for insertion
@@ -173,7 +176,9 @@ router.get('/feed', async (req, res) => {
       ORDER BY avp.priority_order ASC, v.created_at DESC
     `;
 
+    console.error('[VIDEOS] Executing admin query');
     const adminResult = await pool.query(adminVideosQuery, adminParams);
+    console.error('[VIDEOS] Got', adminResult.rows.length, 'admin videos');
     const adminVideos = adminResult.rows;
 
     // Create the mixed feed: every 5th video is admin-selected
@@ -241,8 +246,8 @@ router.get('/feed', async (req, res) => {
       tags: video.tags,
       views: video.views,
       likes: video.likes,
-      likeCount: video.like_count || 0,
-      commentCount: video.comment_count || 0,
+      likesCount: parseInt(video.like_count) || 0,
+      commentsCount: parseInt(video.comment_count) || 0,
       isLiked: video.is_liked || false,
       isFeatured: video.is_featured || false,
       priorityOrder: video.priority_order,
@@ -1017,6 +1022,85 @@ router.get('/bookmarked', authenticateToken, async (req, res) => {
       success: false,
       message: 'Failed to retrieve bookmarked videos',
       error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// DELETE /api/videos/:id - Delete video (только для автора или админа)
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const videoId = req.params.id;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Check if video exists
+    const videoResult = await pool.query(
+      'SELECT id, author_id, video_url, thumbnail_url FROM videos WHERE id = $1',
+      [videoId]
+    );
+
+    if (videoResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Video not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const video = videoResult.rows[0];
+
+    // Check permissions (only author or admin can delete)
+    if (video.author_id !== userId && userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only delete your own videos.',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Delete video file from filesystem
+    if (video.video_url) {
+      const fs = require('fs');
+      const path = require('path');
+      const videoPath = path.join('/app', video.video_url);
+      try {
+        if (fs.existsSync(videoPath)) {
+          fs.unlinkSync(videoPath);
+        }
+      } catch (fileError) {
+        console.warn('Failed to delete video file:', fileError.message);
+      }
+    }
+
+    // Delete thumbnail file from filesystem
+    if (video.thumbnail_url) {
+      const fs = require('fs');
+      const path = require('path');
+      const thumbnailPath = path.join('/app', video.thumbnail_url);
+      try {
+        if (fs.existsSync(thumbnailPath)) {
+          fs.unlinkSync(thumbnailPath);
+        }
+      } catch (fileError) {
+        console.warn('Failed to delete thumbnail file:', fileError.message);
+      }
+    }
+
+    // Delete from database (cascade will handle related records)
+    await pool.query('DELETE FROM videos WHERE id = $1', [videoId]);
+
+    res.json({
+      success: true,
+      message: 'Video deleted successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Delete video error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete video',
       timestamp: new Date().toISOString()
     });
   }

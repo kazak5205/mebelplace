@@ -2,6 +2,8 @@
 
 # Stage 1: Build backend
 FROM node:18-alpine AS backend-builder
+WORKDIR /app
+COPY shared ./shared
 WORKDIR /app/backend
 COPY server/package*.json ./
 RUN npm ci --only=production
@@ -43,6 +45,9 @@ RUN apk add --no-cache \
     ffmpeg \
     nginx \
     supervisor
+
+# Copy shared utilities
+COPY --from=backend-builder /app/shared ./shared
 
 # Copy backend
 COPY --from=backend-builder /app/backend ./server

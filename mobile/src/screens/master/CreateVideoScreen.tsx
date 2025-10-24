@@ -39,7 +39,7 @@ const CreateVideoScreen = ({ navigation }: any) => {
       const result = await VideoPicker.launchVideoLibraryAsync({
         mediaTypes: VideoPicker.MediaTypeOptions.Videos,
         allowsEditing: true,
-        quality: 0.8,
+        quality: 1.0, // Максимальное качество - не сжимать на клиенте
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -69,22 +69,19 @@ const CreateVideoScreen = ({ navigation }: any) => {
         video: selectedVideo, // This would need to be converted to FormData
       };
 
-      const response = await videoService.uploadVideo(videoData);
+      // Синхронизировано с web: uploadVideo возвращает video
+      await videoService.uploadVideo(videoData);
       
-      if (response.success) {
-        Alert.alert(
-          'Успех',
-          'Видеореклама создана! Она будет отображаться в ленте других мастеров.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Ошибка', 'Не удалось создать видеорекламу');
-      }
+      Alert.alert(
+        'Успех',
+        'Видеореклама создана! Она будет отображаться в ленте других мастеров.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } catch (error) {
       console.error('Error creating video:', error);
       Alert.alert('Ошибка', 'Не удалось создать видеорекламу');

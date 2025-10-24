@@ -79,22 +79,19 @@ const CreateOrderScreen = ({ navigation }: any) => {
         budget: budget ? parseInt(budget) : undefined,
       };
 
-      const response = await apiService.createOrder(orderData);
+      // Синхронизировано с web: apiService.createOrder возвращает order
+      await apiService.createOrder(orderData);
       
-      if (response.success) {
-        Alert.alert(
-          'Успех',
-          'Заявка успешно создана!',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            }
-          ]
-        );
-      } else {
-        Alert.alert('Ошибка', 'Не удалось создать заявку');
-      }
+      Alert.alert(
+        'Успех',
+        'Заявка успешно создана!',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          }
+        ]
+      );
     } catch (error) {
       console.error('Error creating order:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при создании заявки');

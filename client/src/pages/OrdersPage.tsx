@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Filter, MapPin, Clock } from 'lucide-react'
+import { Plus, Search, Filter, MapPin, Clock, Video, X, CheckCircle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { Order } from '../types'
 import { orderService } from '../services/orderService'
+import { videoService } from '../services/videoService'
 import { useAuth } from '../contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
 
@@ -15,12 +16,14 @@ const OrdersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [regionFilter, setRegionFilter] = useState('')
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuth()
   const { on } = useSocket()
 
   useEffect(() => {
     loadOrders()
+    checkMasterVideos()
   }, [regionFilter])
 
   useEffect(() => {
@@ -28,6 +31,36 @@ const OrdersPage: React.FC = () => {
       .then(setRegions)
       .catch(() => setRegions([]))
   }, [])
+
+  const checkMasterVideos = async () => {
+    // Проверяем только для мастеров
+    if (user?.role !== 'master') return
+    
+    try {
+      // Проверяем есть ли видео у мастера
+      const response = await videoService.getVideos({ 
+        author_id: user.id,
+        limit: 1 
+      })
+      
+      const videosExist = response.videos && response.videos.length > 0
+      
+      // Показываем welcome modal только если:
+      // 1. Видео нет
+      // 2. Пользователь ещё не закрывал это окно
+      const hasSeenWelcome = localStorage.getItem('master_welcome_seen')
+      if (!videosExist && !hasSeenWelcome) {
+        setShowWelcomeModal(true)
+      }
+    } catch (error) {
+      console.error('Failed to check master videos:', error)
+    }
+  }
+
+  const handleCloseWelcome = () => {
+    setShowWelcomeModal(false)
+    localStorage.setItem('master_welcome_seen', 'true')
+  }
 
   useEffect(() => {
     // Listen for new order responses
@@ -102,6 +135,100 @@ const OrdersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Welcome Modal для новых мастеров */}
+      <AnimatePresence>
+        {showWelcomeModal && user?.role === 'master' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={handleCloseWelcome}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card p-8 max-w-2xl w-full relative"
+            >
+              <button
+                onClick={handleCloseWelcome}
+                className="absolute top-4 right-4 glass-button p-2 hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Video className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold gradient-text mb-2">
+                  Добро пожаловать на MebelPlace! 👋
+                </h2>
+                <p className="text-white/70 text-lg">
+                  Вы можете начать получать заказы прямо сейчас
+                </p>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start space-x-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-bold text-white mb-1">Отвечайте на заявки</h3>
+                    <p className="text-white/70 text-sm">
+                      Вы можете отвечать на заявки клиентов и получать заказы уже сейчас!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <Video className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-bold text-white mb-1">⚠️ Важно: Загрузите видеорекламу</h3>
+                    <p className="text-white/70 text-sm mb-2">
+                      Пока вы не загрузите хотя бы одно видео с вашими работами, 
+                      <strong className="text-yellow-300"> клиенты не смогут найти ваш профиль в поиске</strong>.
+                    </p>
+                    <p className="text-white/70 text-sm">
+                      Видео помогает клиентам увидеть качество вашей работы и принять решение о заказе.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    handleCloseWelcome()
+                    navigate('/create-video-ad')
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-4 rounded-lg font-bold text-lg flex items-center justify-center space-x-2"
+                >
+                  <Video className="w-6 h-6" />
+                  <span>Создать видеорекламу</span>
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCloseWelcome}
+                  className="glass-button px-6 py-4 font-medium"
+                >
+                  Позже
+                </motion.button>
+              </div>
+
+              <p className="text-center text-white/50 text-sm mt-4">
+                Вы всегда можете создать видео через кнопку "Создать видеорекламу" в профиле
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -216,16 +343,16 @@ const OrdersPage: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    {order.location?.region && (
+                    {order.region && (
                       <div className="flex items-center space-x-2 text-white/70">
                         <MapPin className="w-5 h-5" />
-                        <span>{order.location.region}</span>
+                        <span>{order.region}</span>
                       </div>
                     )}
-                    {order.location?.city && (
+                    {order.location && (
                       <div className="flex items-center space-x-2 text-white/70">
                         <MapPin className="w-5 h-5" />
-                        <span>{order.location.city}</span>
+                        <span>{typeof order.location === 'string' ? order.location : order.location.city || order.location.region}</span>
                       </div>
                     )}
                     <div className="flex items-center space-x-2 text-white/70">
@@ -262,13 +389,10 @@ const OrdersPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {order.responses && order.responses.length > 0 && (
+                    {((order.responseCount && order.responseCount > 0) || (order as any).response_count > 0) && (
                       <div className="text-right">
                         <p className="text-sm font-medium text-white">
-                          {order.responses.length} откликов
-                        </p>
-                        <p className="text-xs text-white/60">
-                          {order.responses.filter((r: any) => r.status === 'accepted').length} принято
+                          {order.responseCount || (order as any).response_count} откликов
                         </p>
                       </div>
                     )}
@@ -276,17 +400,17 @@ const OrdersPage: React.FC = () => {
 
                   {/* Action Buttons */}
                   <div className="flex justify-end space-x-3 mt-4">
-                    {order.responses && order.responses.length > 0 && (
+                    {((order.responseCount && order.responseCount > 0) || (order as any).response_count > 0) && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => navigate(`/orders/${order.id}/responses`)}
                         className="glass-button px-4 py-2 text-sm"
                       >
-                        Просмотреть отклики
+                        Просмотреть отклики ({order.responseCount || (order as any).response_count})
                       </motion.button>
                     )}
-                    {user?.role === 'master' && order.status === 'pending' && (
+                    {user?.role === 'master' && order.status === 'pending' && !(order.hasMyResponse || (order as any).has_my_response) && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -295,6 +419,14 @@ const OrdersPage: React.FC = () => {
                       >
                         Оставить отклик
                       </motion.button>
+                    )}
+                    {user?.role === 'master' && order.status === 'pending' && (order.hasMyResponse || (order as any).has_my_response) && (
+                      <div className="px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-lg text-sm font-medium text-green-300 flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span>Отклик отправлен</span>
+                      </div>
                     )}
                   </div>
                 </div>

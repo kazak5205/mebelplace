@@ -84,7 +84,7 @@ const CameraScreen = ({ navigation, route }: any) => {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: 1.0, // Максимальное качество для фото
         base64: false,
       });
       
@@ -149,19 +149,19 @@ const CameraScreen = ({ navigation, route }: any) => {
       const fileInfo = await FileSystem.getInfoAsync(videoUri);
       const fileSizeMB = fileInfo.size ? fileInfo.size / (1024 * 1024) : 0;
       
-      // Адаптивное качество в зависимости от размера
-      let quality = 0.8; // 80% по умолчанию
-      let maxFileSize = 30 * 1024 * 1024; // 30MB по умолчанию
+      // Минимальное сжатие для сохранения качества
+      let quality = 0.95; // 95% качества - почти без потерь
+      let maxFileSize = 100 * 1024 * 1024; // 100MB по умолчанию
       
-      if (fileSizeMB > 100) {
-        quality = 0.5; // 50% для очень больших файлов
-        maxFileSize = 15 * 1024 * 1024; // 15MB
+      if (fileSizeMB > 150) {
+        quality = 0.90; // 90% для очень больших файлов
+        maxFileSize = 80 * 1024 * 1024; // 80MB
+      } else if (fileSizeMB > 100) {
+        quality = 0.92; // 92% для больших файлов
+        maxFileSize = 90 * 1024 * 1024; // 90MB
       } else if (fileSizeMB > 50) {
-        quality = 0.6; // 60% для больших файлов
-        maxFileSize = 20 * 1024 * 1024; // 20MB
-      } else if (fileSizeMB > 20) {
-        quality = 0.7; // 70% для средних файлов
-        maxFileSize = 15 * 1024 * 1024; // 15MB
+        quality = 0.94; // 94% для средних файлов
+        maxFileSize = 95 * 1024 * 1024; // 95MB
       }
       
       console.log(`Сжимаем видео: ${fileSizeMB.toFixed(1)}MB -> качество ${quality * 100}%`);
@@ -225,29 +225,25 @@ const CameraScreen = ({ navigation, route }: any) => {
         } as any);
       }
 
-      // Загружаем медиа
-      const response = isVideo 
+      // Синхронизировано с web: uploadVideo возвращает video
+      const result = isVideo 
         ? await apiService.uploadVideo(formData)
         : await apiService.uploadImage(formData);
       
-      if (response.success) {
-        Alert.alert(
-          'Успех', 
-          'Медиа успешно загружено!',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                navigation.goBack();
-                // Переходим к списку видео
-                navigation.navigate('Videos');
-              }
+      Alert.alert(
+        'Успех', 
+        'Медиа успешно загружено!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              navigation.goBack();
+              // Переходим к списку видео
+              navigation.navigate('Videos');
             }
-          ]
-        );
-      } else {
-        Alert.alert('Ошибка', 'Не удалось загрузить медиа');
-      }
+          }
+        ]
+      );
     } catch (error) {
       console.error('Error uploading media:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при загрузке');

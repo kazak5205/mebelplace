@@ -5,6 +5,7 @@ interface User {
   id: string;
   username: string;
   email: string;
+  phone: string;
   first_name: string;
   last_name: string;
   role: string;
@@ -39,9 +40,9 @@ const UserManagement: React.FC<UserManagementProps> = () => {
         limit: 20,
         ...filters
       };
-      const response = await apiService.get('/admin/users', params);
-      setUsers((response as any).data.users);
-      setTotalPages((response as any).data.pagination.pages);
+      const response = await apiService.get<any>('/admin/users', params);
+      setUsers(response.users || []);
+      setTotalPages(response.pagination?.pages || 1);
     } catch (error) {
       console.error('Failed to load users:', error);
     } finally {
@@ -57,7 +58,18 @@ const UserManagement: React.FC<UserManagementProps> = () => {
       loadUsers();
     } catch (error) {
       console.error('Failed to update user status:', error);
+      alert('Ошибка обновления статуса пользователя');
     }
+  };
+
+  const handleViewUser = (user: User) => {
+    // Открываем профиль пользователя в новой вкладке
+    window.open(`/profile/${user.id}`, '_blank');
+  };
+
+  const handleSendMessage = (user: User) => {
+    // Переходим в чат с пользователем
+    window.location.href = `/chat?userId=${user.id}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -79,7 +91,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
       case 'user':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-700 text-gray-800';
     }
   };
 
@@ -100,18 +112,18 @@ const UserManagement: React.FC<UserManagementProps> = () => {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Управление пользователями</h2>
+        <h2 className="text-2xl font-bold text-white">Управление пользователями</h2>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow mb-6 p-4">
+      <div className="bg-gray-800 rounded-lg shadow mb-6 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Роль</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Роль</label>
             <select
               value={filters.role}
               onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
             >
               <option value="">Все роли</option>
               <option value="admin">Админы</option>
@@ -120,77 +132,83 @@ const UserManagement: React.FC<UserManagementProps> = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Поиск</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Поиск</label>
             <input
               type="text"
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               placeholder="Поиск по имени, email или username..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full bg-gray-700 text-white placeholder-gray-400 border border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
             />
           </div>
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-gray-800 rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Пользователь
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  Телефон
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Роль
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Статистика
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Статус
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Дата регистрации
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Действия
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-400">
                     Загрузка...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-400">
                     Пользователи не найдены
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr key={user.id} className="hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <span className="text-sm font-medium text-gray-700">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                            <span className="text-sm font-medium text-white">
                               {user.first_name?.[0]}{user.last_name?.[0]}
                             </span>
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-white">
                             {user.first_name} {user.last_name}
                           </div>
-                          <div className="text-sm text-gray-500">@{user.username}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="text-sm text-gray-400">@{user.username}</div>
+                          {user.email && <div className="text-sm text-gray-400">{user.email}</div>}
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-white">{user.phone || 'Не указан'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
@@ -200,7 +218,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
                         <select
                           value={user.role}
                           onChange={(e) => handleStatusChange(user.id, 'role', e.target.value)}
-                          className="text-xs border border-gray-300 rounded px-2 py-1"
+                          className="text-xs bg-gray-700 text-white border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-orange-500"
                         >
                           <option value="user">Пользователь</option>
                           <option value="master">Мастер</option>
@@ -208,7 +226,7 @@ const UserManagement: React.FC<UserManagementProps> = () => {
                         </select>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       <div className="space-y-1">
                         <div>Видео: {user.video_count}</div>
                         <div>Заказы: {user.order_count}</div>
@@ -223,25 +241,31 @@ const UserManagement: React.FC<UserManagementProps> = () => {
                             onChange={(e) => handleStatusChange(user.id, 'isActive', e.target.checked)}
                             className="rounded border-gray-300 text-green-600 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Активен</span>
+                          <span className="ml-2 text-sm text-gray-300">Активен</span>
                         </label>
                         <div className="flex items-center">
                           <div className={`w-2 h-2 rounded-full mr-2 ${user.is_verified ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-gray-300">
                             {user.is_verified ? 'Подтвержден' : 'Не подтвержден'}
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {formatDate(user.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">
+                        <button 
+                          onClick={() => handleViewUser(user)}
+                          className="text-blue-400 hover:text-blue-300 hover:underline"
+                        >
                           Просмотр
                         </button>
-                        <button className="text-green-600 hover:text-green-900">
+                        <button 
+                          onClick={() => handleSendMessage(user)}
+                          className="text-green-400 hover:text-green-300 hover:underline"
+                        >
                           Сообщение
                         </button>
                       </div>
@@ -255,26 +279,26 @@ const UserManagement: React.FC<UserManagementProps> = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-700 sm:px-6">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-white bg-gray-700 hover:bg-gray-600 disabled:opacity-50"
               >
                 Предыдущая
               </button>
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-white bg-gray-700 hover:bg-gray-600 disabled:opacity-50"
               >
                 Следующая
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-300">
                   Страница <span className="font-medium">{currentPage}</span> из{' '}
                   <span className="font-medium">{totalPages}</span>
                 </p>
@@ -284,14 +308,14 @@ const UserManagement: React.FC<UserManagementProps> = () => {
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-600 bg-gray-700 text-sm font-medium text-white hover:bg-gray-600 disabled:opacity-50"
                   >
                     Предыдущая
                   </button>
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-600 bg-gray-700 text-sm font-medium text-white hover:bg-gray-600 disabled:opacity-50"
                   >
                     Следующая
                   </button>

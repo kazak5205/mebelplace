@@ -23,7 +23,6 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    email: user?.email || '',
     phone: user?.phone || '',
     avatar: user?.avatar || '',
   });
@@ -49,7 +48,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.8,
+                quality: 0.95, // Высокое качество для аватара
               });
 
               if (!result.canceled && result.assets[0]) {
@@ -72,7 +71,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.8,
+                quality: 0.95, // Высокое качество для аватара
               });
 
               if (!result.canceled && result.assets[0]) {
@@ -105,11 +104,12 @@ const EditProfileScreen = ({ navigation }: any) => {
       } as any);
 
       // Загружаем на сервер
-      const response = await apiService.uploadImage(formData);
-      
-      if (response.success && response.data.url) {
+      // Синхронизировано с web: uploadImage возвращает { url }
+      const data: any = await apiService.uploadImage(formData);
+      const url = (data.data || data).url;
+      if (url) {
         // Обновляем локальное состояние
-        setFormData(prev => ({ ...prev, avatar: response.data.url }));
+        setFormData(prev => ({ ...prev, avatar: url }));
         Alert.alert('Успешно', 'Аватар обновлен');
       }
     } catch (error) {
@@ -126,8 +126,8 @@ const EditProfileScreen = ({ navigation }: any) => {
       return;
     }
 
-    if (!formData.email.trim()) {
-      Alert.alert('Ошибка', 'Email не может быть пустым');
+    if (!formData.phone.trim()) {
+      Alert.alert('Ошибка', 'Телефон не может быть пустым');
       return;
     }
 
@@ -182,18 +182,7 @@ const EditProfileScreen = ({ navigation }: any) => {
             />
 
             <TextInput
-              label="Email"
-              value={formData.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text })}
-              mode="outlined"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              left={<TextInput.Icon icon="email" />}
-              style={styles.input}
-            />
-
-            <TextInput
-              label="Телефон"
+              label="Телефон *"
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
               mode="outlined"

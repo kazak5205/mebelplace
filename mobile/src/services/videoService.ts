@@ -20,8 +20,9 @@ export const videoService = {
   deleteVideo: (id: string) => baseVideoService.delete(id),
   
   // Interactions
-  likeVideo: (id: string) => baseVideoService.like(id),
-  unlikeVideo: (id: string) => baseVideoService.unlike(id),
+  toggleLike: (id: string) => baseVideoService.like(id),  // Синхронизировано с web: один метод для toggle
+  likeVideo: (id: string) => baseVideoService.like(id),   // Legacy support
+  unlikeVideo: (id: string) => baseVideoService.unlike(id), // Legacy support
   recordView: (id: string, data: { durationWatched: number; completionRate: number }) => 
     baseVideoService.recordView(id, data),
   

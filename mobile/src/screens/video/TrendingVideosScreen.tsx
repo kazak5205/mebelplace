@@ -11,10 +11,9 @@ const TrendingVideosScreen = ({ navigation }: any) => {
   const loadTrendingVideos = async () => {
     try {
       setLoading(true);
-      const response = await videoService.getTrendingVideos();
-      if (response.success) {
-        setVideos(response.data);
-      }
+      // Синхронизировано с web: getTrendingVideos возвращает videos
+      const videos = await videoService.getTrendingVideos();
+      setVideos(videos || []);
     } catch (error) {
       console.error('Error loading trending videos:', error);
     } finally {

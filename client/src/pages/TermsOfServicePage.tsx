@@ -205,7 +205,7 @@ const TermsOfServicePage = () => {
               </p>
               <p className="mb-2">
                 11.2. Претензии к Платформе направляются по адресу: 
-                <a href="mailto:support@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300"> support@mebelplace.com.kz</a>
+                <a href="mailto:bekaron.company@gmail.com" className="text-orange-400 hover:text-purple-300"> bekaron.company@gmail.com</a>
               </p>
               <p>
                 11.3. При невозможности досудебного урегулирования споры рассматриваются в соответствии 
@@ -258,7 +258,7 @@ const TermsOfServicePage = () => {
               <h2 className="text-xl font-semibold text-white mb-3">15. Контактная информация</h2>
               <p className="mb-2">По всем вопросам обращайтесь:</p>
               <ul className="list-none space-y-1 ml-4">
-                <li>Email: <a href="mailto:support@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">support@mebelplace.com.kz</a></li>
+                <li>Email: <a href="mailto:bekaron.company@gmail.com" className="text-orange-400 hover:text-purple-300">bekaron.company@gmail.com</a></li>
                 <li>Email: <a href="mailto:legal@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">legal@mebelplace.com.kz</a></li>
                 <li>Сайт: <a href="https://mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">https://mebelplace.com.kz</a></li>
               </ul>

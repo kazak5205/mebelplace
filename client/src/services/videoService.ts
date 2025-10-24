@@ -42,5 +42,25 @@ export const videoService = {
 
   async recordView(id: string, data: { durationWatched: number; completionRate: number }): Promise<void> {
     return apiService.post(`/videos/${id}/view`, data)
+  },
+
+  // Bookmark methods
+  async addBookmark(videoId: string): Promise<void> {
+    return apiService.post(`/videos/${videoId}/bookmark`)
+  },
+
+  async removeBookmark(videoId: string): Promise<void> {
+    return apiService.delete(`/videos/${videoId}/bookmark`)
+  },
+
+  async searchVideos(params: {
+    q: string
+    type?: 'all' | 'video' | 'channel'
+    page?: number
+    limit?: number
+    category?: string
+  }): Promise<{ videos: any[]; pagination: any; search: any }> {
+    const response = await apiService.get('/search', params) as any
+    return response.data || response
   }
 }

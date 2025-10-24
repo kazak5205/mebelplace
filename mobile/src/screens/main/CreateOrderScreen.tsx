@@ -39,7 +39,7 @@ const CreateOrderScreen = ({ navigation }: any) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8,
+        quality: 0.95, // Высокое качество для фото заказа
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -74,22 +74,19 @@ const CreateOrderScreen = ({ navigation }: any) => {
         images: imageUrls,
       };
 
-      const response = await orderService.createOrder(orderData);
+      // Синхронизировано с web: createOrder возвращает order
+      await orderService.createOrder(orderData);
       
-      if (response.success) {
-        Alert.alert(
-          'Успех',
-          'Заявка создана! Мастера увидят вашу заявку и смогут предложить свои услуги.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Ошибка', 'Не удалось создать заявку');
-      }
+      Alert.alert(
+        'Успех',
+        'Заявка создана! Мастера увидят вашу заявку и смогут предложить свои услуги.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } catch (error) {
       console.error('Error creating order:', error);
       Alert.alert('Ошибка', 'Не удалось создать заявку');

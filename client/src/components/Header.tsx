@@ -1,11 +1,36 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Search, User, LogOut, Settings } from 'lucide-react'
+import { Search, User, LogOut, Settings } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { videoService } from '../services/videoService'
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
+  
+  console.log('Header user:', user)
+
+  const handleSearch = async (query: string) => {
+    if (query.trim().length >= 2) {
+      try {
+        const results = await videoService.searchVideos({ q: query })
+        console.log('Search results:', results)
+        // TODO: Navigate to search results page
+        navigate(`/search?q=${encodeURIComponent(query)}`)
+      } catch (error) {
+        console.error('Search error:', error)
+      }
+    }
+  }
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      handleSearch(searchQuery)
+    }
+  }
 
   return (
     <motion.header
@@ -21,24 +46,16 @@ const Header: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="glass-button p-2"
-          >
-            <Search className="w-5 h-5" />
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="glass-button p-2 relative"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs flex items-center justify-center">
-              3
-            </span>
-          </motion.button>
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <input
+              type="text"
+              placeholder="Поиск видео, каналов, хештегов..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-80 px-4 py-2 pl-10 bg-gray-900/90 border border-gray-700 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 backdrop-blur-md"
+            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/70" />
+          </form>
 
           <div className="flex items-center space-x-3">
             {user ? (

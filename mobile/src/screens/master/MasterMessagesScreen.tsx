@@ -44,10 +44,9 @@ const MasterMessagesScreen = ({ navigation }: any) => {
   const loadChats = async () => {
     try {
       setLoading(true);
-      const response = await chatService.getChats();
-      if (response.success) {
-        setChats(response.data.chats || []);
-      }
+      // Синхронизировано с web: chatService.getChats возвращает chats
+      const chats = await chatService.getChats();
+      setChats(chats || []);
     } catch (error) {
       console.error('Error loading chats:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить чаты');

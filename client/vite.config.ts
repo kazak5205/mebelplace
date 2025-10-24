@@ -9,6 +9,22 @@ export default defineConfig({
     host: true
   },
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        // Не удаляем неиспользуемые функции
+        unused: false,
+        // Не удаляем мертвый код
+        dead_code: false,
+        // Не удаляем console
+        drop_console: false,
+        drop_debugger: false
+      },
+      mangle: {
+        // Не минифицируем имена функций
+        keep_fnames: true
+      }
+    }
   }
 })

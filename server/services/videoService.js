@@ -57,7 +57,7 @@ class VideoService {
     if (!videoData.title || videoData.title.trim().length === 0) {
       errors.push('Title is required');
     }
-    if (!videoData.authorId || !Number.isInteger(videoData.authorId)) {
+    if (!videoData.authorId || typeof videoData.authorId !== 'string' || videoData.authorId.trim().length === 0) {
       errors.push('Valid author ID is required');
     }
     if (!videoData.videoUrl || !videoData.videoUrl.trim()) {
@@ -128,10 +128,14 @@ class VideoService {
   // Generate thumbnail from video
   async generateThumbnail(videoPath, videoId) {
     try {
+      console.log(`[THUMBNAIL] Starting generation for video ${videoId}, path: ${videoPath}`);
+      
       // Validate video file exists
       await fs.access(videoPath);
+      console.log(`[THUMBNAIL] Video file exists at ${videoPath}`);
       
       const thumbnailPath = videoPath.replace(/\.[^/.]+$/, '_thumb.jpg');
+      console.log(`[THUMBNAIL] Thumbnail will be saved to: ${thumbnailPath}`);
       
       return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
@@ -144,11 +148,13 @@ class VideoService {
           })
           .on('end', async () => {
             try {
+              console.log(`[THUMBNAIL] ffmpeg finished, checking file ${thumbnailPath}`);
               // Verify thumbnail was created
               await fs.access(thumbnailPath);
               
               // Update video record with thumbnail URL
               const thumbnailUrl = `/uploads/videos/${path.basename(thumbnailPath)}`;
+              console.log(`[THUMBNAIL] Updating DB with URL: ${thumbnailUrl}`);
               await pool.query(
                 'UPDATE videos SET thumbnail_url = $1 WHERE id = $2',
                 [thumbnailUrl, videoId]
@@ -156,17 +162,17 @@ class VideoService {
               console.log(`✅ Thumbnail generated for video ${videoId}`);
               resolve(thumbnailUrl);
             } catch (error) {
-              console.error('Error updating thumbnail URL:', error);
+              console.error('[THUMBNAIL] Error in post-generation:', error);
               reject(error);
             }
           })
           .on('error', (error) => {
-            console.error('Error generating thumbnail:', error);
+            console.error('[THUMBNAIL] ffmpeg error:', error);
             reject(error);
           });
       });
     } catch (error) {
-      console.error('Error in generateThumbnail:', error);
+      console.error('[THUMBNAIL] Error in generateThumbnail:', error);
       throw error;
     }
   }

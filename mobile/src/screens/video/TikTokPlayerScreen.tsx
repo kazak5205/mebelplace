@@ -58,8 +58,9 @@ const TikTokPlayerScreen = ({ route, navigation }: any) => {
 
   const loadVideos = async () => {
     try {
-      const response = await apiService.get('/videos/feed', { limit: 20 });
-      setVideos(response.data?.videos || []);
+      // Синхронизировано с web: apiService.get('/videos/feed') возвращает { videos, pagination }
+      const data: any = await apiService.get('/videos/feed', { limit: 20 });
+      setVideos((data.data || data).videos || []);
     } catch (error) {
       console.error('Failed to load videos:', error);
     }

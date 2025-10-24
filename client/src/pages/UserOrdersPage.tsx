@@ -30,6 +30,9 @@ const UserOrdersPage: React.FC = () => {
     try {
       setLoading(true)
       const response = await orderService.getOrders({})
+      console.log('🔍 UserOrdersPage - Loaded orders:', response)
+      console.log('🔍 UserOrdersPage - First order:', (response as any).orders?.[0])
+      console.log('🔍 UserOrdersPage - First order responseCount:', (response as any).orders?.[0]?.responseCount)
       setOrders((response as any).orders || [])
     } catch (error) {
       console.error('Failed to load orders:', error)
@@ -106,8 +109,10 @@ const UserOrdersPage: React.FC = () => {
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-gray-900/95 backdrop-blur-md border-b border-gray-800 px-4 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Мои заявки</h1>
+        <div className="flex items-center justify-center mb-4">
+          <h1 className="text-2xl font-bold text-center">Мои заявки</h1>
+        </div>
+        <div className="flex justify-end mb-4">
           <button
             onClick={() => navigate('/orders/create')}
             className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-lg hover:shadow-orange-500/25 transition-all"
@@ -234,13 +239,13 @@ const UserOrdersPage: React.FC = () => {
 
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-400">
-                    {(order as any).responsesCount > 0 ? (
-                      <span>{(order as any).responsesCount} откликов</span>
+                    {(order as any).responseCount > 0 ? (
+                      <span>{(order as any).responseCount} откликов</span>
                     ) : (
                       <span>0 откликов</span>
                     )}
                   </div>
-                  {(order as any).responsesCount > 0 && (
+                  {(order as any).responseCount > 0 && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()

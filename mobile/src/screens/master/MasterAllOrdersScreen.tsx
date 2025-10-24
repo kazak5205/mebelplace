@@ -53,36 +53,34 @@ const MasterAllOrdersScreen = ({ navigation }: any) => {
         setIsLoading(true);
       }
 
-      const response = await apiService.getOrders(pageNum, 20);
+      // Синхронизировано с web: getOrders возвращает { orders, pagination }
+      const response: any = await apiService.getOrders(pageNum, 20);
+      const newOrders = response.orders || [];
       
-      if (response.success) {
-        const newOrders = response.data;
-        
-        // Фильтруем по категории и поиску
-        let filteredOrders = newOrders;
-        
-        if (selectedCategory !== 'all') {
-          filteredOrders = filteredOrders.filter(order => 
-            order.category === selectedCategory
-          );
-        }
-        
-        if (searchQuery.trim()) {
-          filteredOrders = filteredOrders.filter(order =>
-            order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.description.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-        }
-        
-        if (isRefresh || pageNum === 1) {
-          setOrders(filteredOrders);
-        } else {
-          setOrders(prev => [...prev, ...filteredOrders]);
-        }
-        
-        setHasMore(newOrders.length === 20);
-        setPage(pageNum);
+      // Фильтруем по категории и поиску
+      let filteredOrders = newOrders;
+      
+      if (selectedCategory !== 'all') {
+        filteredOrders = filteredOrders.filter(order => 
+          order.category === selectedCategory
+        );
       }
+      
+      if (searchQuery.trim()) {
+        filteredOrders = filteredOrders.filter(order =>
+          order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.description.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      
+      if (isRefresh || pageNum === 1) {
+        setOrders(filteredOrders);
+      } else {
+        setOrders(prev => [...prev, ...filteredOrders]);
+      }
+      
+      setHasMore(newOrders.length === 20);
+      setPage(pageNum);
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {

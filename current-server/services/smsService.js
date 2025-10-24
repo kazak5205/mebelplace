@@ -20,7 +20,7 @@ class SMSService {
   }
 
   /**
-   * Нормализация номера телефона в формат E.164
+   * Нормализация номера телефона для Mobizon API (без +)
    */
   normalizePhone(phone) {
     // Убираем все символы кроме цифр
@@ -34,24 +34,10 @@ class SMSService {
       console.log(`[SMS] Converted 8 to 7: ${cleanPhone}`);
     }
     
-    // Если номер начинается с 7 и имеет 11 цифр, добавляем +
+    // Если номер начинается с 7 и имеет 11 цифр, возвращаем как есть (без +)
     if (cleanPhone.startsWith('7') && cleanPhone.length === 11) {
-      const result = '+' + cleanPhone;
-      console.log(`[SMS] Final normalized phone: ${result}`);
-      return result;
-    }
-    
-    // Если номер уже в правильном формате
-    if (phone.startsWith('+') && phone.length === 12) {
-      console.log(`[SMS] Phone already normalized: ${phone}`);
-      return phone;
-    }
-    
-    // Если номер начинается с 7 и имеет 12 цифр (уже с +7), возвращаем как есть
-    if (cleanPhone.startsWith('7') && cleanPhone.length === 12) {
-      const result = '+' + cleanPhone;
-      console.log(`[SMS] Phone with 12 digits normalized: ${result}`);
-      return result;
+      console.log(`[SMS] Final normalized phone for Mobizon: ${cleanPhone}`);
+      return cleanPhone;
     }
     
     console.log(`[SMS] Could not normalize phone: ${phone} (length: ${cleanPhone.length})`);
@@ -84,24 +70,26 @@ class SMSService {
       // Отправка через Mobizon API с правильными параметрами
       const message = `MebelPlace код верификации: ${code}. Действителен 10 минут.`;
       
-      // Используем GET запрос с параметрами как в документации Mobizon
-      const params = new URLSearchParams({
+      // Используем POST запрос согласно документации Mobizon
+      const postData = {
         apiKey: this.apiKey,
         recipient: normalizedPhone,
         text: message
-      });
-      
-      const url = `${this.apiUrl}?${params.toString()}`;
+      };
       
       try {
         console.log(`[SMS] Sending to Mobizon:`, {
           recipient: normalizedPhone,
           text: message,
-          url: url
+          apiKey: this.apiKey.substring(0, 10) + '...'
         });
         
-        const response = await axios.get(url, {
+        // Конвертируем данные в URL-encoded формат
+        const formData = new URLSearchParams(postData).toString();
+        
+        const response = await axios.post(this.apiUrl, formData, {
           headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded',
             'Accept': 'application/json'
           }
         });
@@ -118,7 +106,9 @@ class SMSService {
           response: smsError.response?.data,
           status: smsError.response?.status
         });
-        // Код уже сохранен в БД, поэтому можем вернуть success для тестирования
+        
+        // Для тестирования возвращаем success, так как код уже сохранен в БД
+        console.log('[SMS] Returning success for testing purposes');
         return { success: true, message: 'SMS queued (code saved in DB)', error: smsError.message };
       }
     } catch (error) {
@@ -132,23 +122,27 @@ class SMSService {
    */
   async verifyCode(phone, code) {
     try {
+      // Нормализуем номер для поиска в БД
+      const normalizedPhone = this.normalizePhone(phone);
+      console.log(`[SMS] Verifying code ${code} for phone ${phone} (normalized: ${normalizedPhone})`);
+      
       const result = await pool.query(
         `SELECT * FROM sms_verifications 
          WHERE phone = $1 AND code = $2 AND expires_at > NOW() AND attempts < 3`,
-        [phone, code]
+        [normalizedPhone, code]
       );
 
       if (result.rows.length === 0) {
         // Увеличиваем счётчик попыток
         await pool.query(
           `UPDATE sms_verifications SET attempts = attempts + 1 WHERE phone = $1`,
-          [phone]
+          [normalizedPhone]
         );
         return { success: false, message: 'Invalid or expired code' };
       }
 
       // Удаляем использованный код
-      await pool.query(`DELETE FROM sms_verifications WHERE phone = $1`, [phone]);
+      await pool.query(`DELETE FROM sms_verifications WHERE phone = $1`, [normalizedPhone]);
 
       return { success: true, message: 'Code verified' };
     } catch (error) {

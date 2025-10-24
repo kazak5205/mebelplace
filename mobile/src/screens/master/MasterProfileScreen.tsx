@@ -7,29 +7,33 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
 import {
   Text,
-  Card,
-  Title,
-  Paragraph,
   ActivityIndicator,
-  Avatar,
-  Chip,
-  Button,
-  IconButton,
-  Divider,
 } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import { useAuth } from '@shared/contexts/AuthContext';
+import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
 import { videoService } from '../../services/videoService';
 import type { Video } from '@shared/types';
+import { FadeInView, ScaleInView, SlideInView } from '../../components/TikTokAnimations';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 3;
+const AVATAR_SIZE = 100;
+
+type TabType = 'videos' | 'drafts' | 'private';
 
 const MasterProfileScreen = ({ navigation }: any) => {
   const { user, updateUser } = useAuth();
   const [videos, setVideos] = useState<Video[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('videos');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
@@ -44,11 +48,11 @@ const MasterProfileScreen = ({ navigation }: any) => {
         setIsLoading(true);
       }
 
-      const response = await videoService.getMasterVideos(user?.id || '');
+      // Получаем видео текущего мастера через правильный API endpoint
+      const response:any = await videoService.getVideos({ masterId: user?.id } as any);
       
-      if (response.success) {
-        setVideos(response.data);
-      }
+      // Синхронизировано с web: videoService.getVideos возвращает { videos, pagination }
+      setVideos(response.videos || []);
     } catch (error) {
       console.error('Error loading master videos:', error);
     } finally {
@@ -68,11 +72,12 @@ const MasterProfileScreen = ({ navigation }: any) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.95, // Высокое качество для аватара
       });
 
       if (!result.canceled && result.assets[0]) {
         setIsUpdatingProfile(true);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         
         const formData = new FormData();
         formData.append('avatar', {
@@ -81,14 +86,14 @@ const MasterProfileScreen = ({ navigation }: any) => {
           name: 'avatar.jpg',
         } as any);
 
-        const response = await authService.uploadAvatar(formData);
+        // TODO: Использовать правильный endpoint для загрузки аватара
+        // const response:any = await authService.uploadAvatar(formData);
+        // if (response && response.data) {
+        //   updateUser(response.data);
+        //   Alert.alert('Успех', 'Фото профиля обновлено');
+        // }
         
-        if (response.success) {
-          updateUser(response.data);
-          Alert.alert('Успех', 'Фото профиля обновлено');
-        } else {
-          Alert.alert('Ошибка', 'Не удалось обновить фото');
-        }
+        Alert.alert('Инфо', 'Функция загрузки аватара будет добавлена позже');
       }
     } catch (error) {
       console.error('Error changing avatar:', error);
@@ -112,13 +117,12 @@ const MasterProfileScreen = ({ navigation }: any) => {
           text: 'Удалить',
           onPress: async () => {
             try {
-              const response = await videoService.delete(videoId);
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              const response:any = await videoService.deleteVideo(videoId);
               
-              if (response.success) {
+              if (response) {
                 setVideos(prev => prev.filter(video => video.id !== videoId));
                 Alert.alert('Успех', 'Видео удалено');
-              } else {
-                Alert.alert('Ошибка', 'Не удалось удалить видео');
               }
             } catch (error) {
               console.error('Error deleting video:', error);
@@ -146,6 +150,17 @@ const MasterProfileScreen = ({ navigation }: any) => {
     navigation.navigate('SupportChat');
   };
 
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const formatCount = (count: number): string => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Выйти',
@@ -168,36 +183,32 @@ const MasterProfileScreen = ({ navigation }: any) => {
   };
 
   const renderVideo = ({ item }: { item: Video }) => (
-    <Card style={styles.videoCard}>
-      <TouchableOpacity onPress={() => handleVideoPress(item)}>
-        <Card.Cover 
-          source={{ uri: item.thumbnail }} 
-          style={styles.thumbnail}
-        />
-        <Card.Content style={styles.videoContent}>
-          <Paragraph style={styles.videoTitle} numberOfLines={2}>
-            {item.title}
-          </Paragraph>
-          <View style={styles.videoStats}>
-            <View style={styles.statItem}>
-              <Ionicons name="heart" size={14} color="#F44336" />
-              <Text style={styles.statText}>{item.likesCount}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="eye" size={14} color="#666" />
-              <Text style={styles.statText}>{item.viewsCount}</Text>
-            </View>
-          </View>
-        </Card.Content>
-      </TouchableOpacity>
-      <IconButton
-        icon="delete"
-        size={20}
-        iconColor="#F44336"
-        style={styles.deleteButton}
-        onPress={() => handleDeleteVideo(item.id, item.title)}
+    <TouchableOpacity 
+      onPress={() => handleVideoPress(item)} 
+      onLongPress={() => handleDeleteVideo(item.id, item.title)}
+      style={styles.videoCard}
+    >
+      <Image 
+        source={{ uri: item.thumbnailUrl }} 
+        style={styles.videoThumbnail}
+        resizeMode="cover"
       />
-    </Card>
+      <View style={styles.videoOverlay}>
+        <View style={styles.videoStat}>
+          <Ionicons name="play" size={16} color="#fff" />
+          <Text style={styles.videoStatText}>{formatCount(item.views)}</Text>
+        </View>
+      </View>
+      <TouchableOpacity 
+        style={styles.videoDeleteButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          handleDeleteVideo(item.id, item.title);
+        }}
+      >
+        <Ionicons name="trash-outline" size={16} color="#fff" />
+      </TouchableOpacity>
+    </TouchableOpacity>
   );
 
   if (isLoading && videos.length === 0) {
@@ -211,140 +222,160 @@ const MasterProfileScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+        <TouchableOpacity onPress={handleEditProfile} style={styles.headerButton}>
+          <Ionicons name="settings-outline" size={24} color="#000" />
         </TouchableOpacity>
-        <Title style={styles.headerTitle}>Профиль мастера</Title>
-        <TouchableOpacity onPress={handleEditProfile}>
-          <Ionicons name="settings" size={24} color="#666" />
+        <Text style={styles.headerTitle}>Мой профиль</Text>
+        <TouchableOpacity onPress={handleLogout} style={styles.headerButton}>
+          <Ionicons name="log-out-outline" size={24} color="#000" />
         </TouchableOpacity>
       </View>
       
       <FlatList
         ListHeaderComponent={
           <>
-            {/* Profile Info */}
-            <Card style={styles.profileCard}>
-              <Card.Content style={styles.profileContent}>
-                <View style={styles.avatarContainer}>
-                  <TouchableOpacity onPress={handleChangeAvatar} disabled={isUpdatingProfile}>
+            {/* TikTok Style Profile Header */}
+            <View style={styles.profileHeader}>
+              {/* Avatar with gradient border */}
+              <TouchableOpacity 
+                onPress={handleChangeAvatar} 
+                disabled={isUpdatingProfile}
+                style={styles.avatarContainer}
+              >
+                <LinearGradient
+                  colors={['#FE2C55', '#FFC107', '#00F2EA']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatarGradient}
+                >
+                  <View style={styles.avatarInner}>
                     {user?.avatar ? (
                       <Image source={{ uri: user.avatar }} style={styles.avatar} />
                     ) : (
-                      <Avatar.Text 
-                        size={80} 
-                        label={user?.name?.charAt(0).toUpperCase() || 'M'} 
-                        style={styles.avatar}
-                      />
+                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'M'}</Text>
+                      </View>
                     )}
                     {isUpdatingProfile && (
                       <View style={styles.avatarLoading}>
                         <ActivityIndicator size="small" color="white" />
                       </View>
                     )}
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleChangeAvatar} style={styles.changeAvatarButton}>
-                    <Ionicons name="camera" size={16} color="white" />
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.profileInfo}>
-                  <Title style={styles.profileName}>{user?.name}</Title>
-                  <Text style={styles.profileType}>
-                    {user?.isCompany ? 'Компания' : 'Мастер'}
-                  </Text>
-                  {user?.bio && (
-                    <Paragraph style={styles.profileBio}>{user.bio}</Paragraph>
-                  )}
-                </View>
-                
-                <View style={styles.profileStats}>
-                  <TouchableOpacity style={styles.statContainer} onPress={handleSubscribersPress}>
-                    <Text style={styles.statNumber}>{user?.subscribersCount || 0}</Text>
-                    <Text style={styles.statLabel}>Подписчиков</Text>
-                  </TouchableOpacity>
-                  <View style={styles.statContainer}>
-                    <Text style={styles.statNumber}>{videos.length}</Text>
-                    <Text style={styles.statLabel}>Видео</Text>
                   </View>
-                  <View style={styles.statContainer}>
-                    <Text style={styles.statNumber}>{user?.rating || 'Нет'}</Text>
-                    <Text style={styles.statLabel}>Рейтинг</Text>
-                  </View>
+                </LinearGradient>
+                <View style={styles.changeAvatarButton}>
+                  <Ionicons name="camera" size={18} color="#fff" />
                 </View>
-              </Card.Content>
-            </Card>
+              </TouchableOpacity>
 
-            {/* Action Buttons */}
-            <View style={styles.actionsContainer}>
-              <Button
-                mode="contained"
-                onPress={handleCreateVideo}
-                style={styles.actionButton}
-                icon="video-plus"
-              >
-                Создать видеорекламу
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={handleSupportPress}
-                style={styles.actionButton}
-                icon="help-circle"
-              >
-                Поддержка
-              </Button>
+              {/* Username */}
+              <Text style={styles.username}>@{user?.name?.toLowerCase().replace(/\s/g, '_')}</Text>
+
+              {/* Stats Row - TikTok Style */}
+              <View style={styles.statsRow}>
+                <TouchableOpacity style={styles.statItem}>
+                  <Text style={styles.statNumber}>{formatCount(user?.followingCount || 0)}</Text>
+                  <Text style={styles.statLabel}>Подписки</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.statItem} onPress={handleSubscribersPress}>
+                  <Text style={styles.statNumber}>{formatCount(user?.subscribersCount || 0)}</Text>
+                  <Text style={styles.statLabel}>Подписчики</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.statItem}>
+                  <Text style={styles.statNumber}>
+                    {formatCount(videos.reduce((sum, v) => sum + (v.likeCount || v.likes || 0), 0))}
+                  </Text>
+                  <Text style={styles.statLabel}>Лайки</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Bio */}
+              {user?.bio && (
+                <Text style={styles.bio}>{user.bio}</Text>
+              )}
+
+              {/* Action Buttons */}
+              <View style={styles.actionButtons}>
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.primaryButton]} 
+                  onPress={handleCreateVideo}
+                >
+                  <Ionicons name="add" size={20} color="#fff" />
+                  <Text style={styles.primaryButtonText}>Создать видео</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.secondaryButton]} 
+                  onPress={handleSupportPress}
+                >
+                  <Ionicons name="help-circle-outline" size={20} color="#000" />
+                  <Text style={styles.secondaryButtonText}>Поддержка</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Quick Settings */}
+              <View style={styles.quickSettings}>
+                <TouchableOpacity style={styles.quickSettingItem} onPress={handleEditProfile}>
+                  <Ionicons name="person-outline" size={24} color="#000" />
+                  <Text style={styles.quickSettingText}>Профиль</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.quickSettingItem} onPress={handleSubscribersPress}>
+                  <Ionicons name="people-outline" size={24} color="#000" />
+                  <Text style={styles.quickSettingText}>Подписчики</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {/* Settings */}
-            <Card style={styles.settingsCard}>
-              <Card.Content>
-                <Title style={styles.sectionTitle}>Настройки</Title>
-                
-                <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
-                  <Ionicons name="person" size={24} color="#666" />
-                  <Text style={styles.settingText}>Редактировать профиль</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </TouchableOpacity>
-                
-                <Divider style={styles.divider} />
-                
-                <TouchableOpacity style={styles.settingItem} onPress={handleSubscribersPress}>
-                  <Ionicons name="people" size={24} color="#666" />
-                  <Text style={styles.settingText}>Подписчики</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </TouchableOpacity>
-                
-                <Divider style={styles.divider} />
-                
-                <TouchableOpacity style={styles.settingItem} onPress={handleSupportPress}>
-                  <Ionicons name="chatbubble" size={24} color="#666" />
-                  <Text style={styles.settingText}>Служба поддержки</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </TouchableOpacity>
-                
-                <Divider style={styles.divider} />
-                
-                <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
-                  <Ionicons name="log-out" size={24} color="#F44336" />
-                  <Text style={[styles.settingText, { color: '#F44336' }]}>Выйти</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </TouchableOpacity>
-              </Card.Content>
-            </Card>
-
-            {/* Videos Section */}
-            <View style={styles.videosHeader}>
-              <Title style={styles.sectionTitle}>Мои видеорекламы</Title>
-              <Text style={styles.videosCount}>{videos.length} видео</Text>
+            {/* Content Tabs - TikTok Style */}
+            <View style={styles.tabsContainer}>
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'videos' && styles.activeTab]}
+                onPress={() => handleTabChange('videos')}
+              >
+                <MaterialCommunityIcons 
+                  name="grid" 
+                  size={24} 
+                  color={activeTab === 'videos' ? '#000' : '#999'} 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'drafts' && styles.activeTab]}
+                onPress={() => handleTabChange('drafts')}
+              >
+                <Ionicons 
+                  name="lock-closed" 
+                  size={24} 
+                  color={activeTab === 'drafts' ? '#000' : '#999'} 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'private' && styles.activeTab]}
+                onPress={() => handleTabChange('private')}
+              >
+                <Ionicons 
+                  name="bookmark" 
+                  size={24} 
+                  color={activeTab === 'private' ? '#000' : '#999'} 
+                />
+              </TouchableOpacity>
             </View>
           </>
         }
         data={videos}
         renderItem={renderVideo}
         keyExtractor={(item) => item.id}
-        numColumns={2}
+        numColumns={3}
         contentContainerStyle={styles.videosList}
+        columnWrapperStyle={styles.videoRow}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -352,18 +383,17 @@ const MasterProfileScreen = ({ navigation }: any) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="videocam-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>Нет видеореклам</Text>
+            <Text style={styles.emptyText}>Нет видео</Text>
             <Text style={styles.emptySubtext}>
-              Создайте свое первое видеорекламу
+              Создайте свое первое видео
             </Text>
-            <Button
-              mode="contained"
+            <TouchableOpacity
+              style={[styles.actionButton, styles.primaryButton, { marginTop: 16 }]}
               onPress={handleCreateVideo}
-              style={styles.emptyButton}
-              icon="video-plus"
             >
-              Создать видео
-            </Button>
+              <Ionicons name="add" size={20} color="#fff" />
+              <Text style={styles.primaryButtonText}>Создать видео</Text>
+            </TouchableOpacity>
           </View>
         }
       />
@@ -374,47 +404,87 @@ const MasterProfileScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
+  
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
+    backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
     borderBottomColor: '#e0e0e0',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  headerButton: {
+    padding: 4,
+    width: 40,
+    alignItems: 'center',
   },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+
+  // Loading
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff',
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+    fontSize: 15,
+    color: '#8E8E93',
   },
-  profileCard: {
-    margin: 16,
-    elevation: 2,
+
+  // Profile Header - TikTok Style
+  profileHeader: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
   },
-  profileContent: {
+  
+  // Avatar with gradient border
+  avatarContainer: {
+    marginBottom: 16,
+    position: 'relative',
+  },
+  avatarGradient: {
+    width: AVATAR_SIZE + 6,
+    height: AVATAR_SIZE + 6,
+    borderRadius: (AVATAR_SIZE + 6) / 2,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
+  avatarInner: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: AVATAR_SIZE - 4,
+    height: AVATAR_SIZE - 4,
+    borderRadius: (AVATAR_SIZE - 4) / 2,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#666',
   },
   avatarLoading: {
     position: 'absolute',
@@ -423,159 +493,199 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 40,
+    borderRadius: AVATAR_SIZE / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
   changeAvatarButton: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    bottom: 2,
+    right: 2,
+    backgroundColor: '#FE2C55',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
   },
-  profileInfo: {
-    alignItems: 'center',
-    marginBottom: 16,
+
+  // Username
+  username: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 20,
   },
-  profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  profileType: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  profileBio: {
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  profileStats: {
+
+  // Stats Row - TikTok Style
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    gap: 32,
   },
-  statContainer: {
+  statItem: {
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#3b82f6',
+    color: '#000',
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#8E8E93',
     marginTop: 2,
   },
-  actionsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
+
+  // Bio
+  bio: {
+    fontSize: 14,
+    color: '#000',
+    textAlign: 'center',
+    lineHeight: 20,
     marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+
+  // Action Buttons
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 20,
+    width: '100%',
   },
   actionButton: {
     flex: 1,
-    marginHorizontal: 4,
-  },
-  settingsCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
+    borderRadius: 4,
+    gap: 6,
   },
-  settingText: {
-    flex: 1,
-    fontSize: 16,
-    marginLeft: 12,
+  primaryButton: {
+    backgroundColor: '#FE2C55',
   },
-  divider: {
-    marginVertical: 8,
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
-  videosHeader: {
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  secondaryButtonText: {
+    color: '#000',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // Quick Settings
+  quickSettings: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    gap: 32,
+    justifyContent: 'center',
   },
-  videosCount: {
-    fontSize: 14,
+  quickSettingItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  quickSettingText: {
+    fontSize: 12,
     color: '#666',
   },
+
+  // Tabs - TikTok Style
+  tabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#000',
+  },
+
+  // Videos Grid - 3 columns
   videosList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingTop: 2,
+  },
+  videoRow: {
+    justifyContent: 'flex-start',
   },
   videoCard: {
-    flex: 1,
-    margin: 4,
-    elevation: 2,
+    width: CARD_WIDTH,
+    height: CARD_WIDTH * 1.4,
+    marginBottom: 2,
+    marginRight: 2,
+    backgroundColor: '#f0f0f0',
     position: 'relative',
   },
-  thumbnail: {
-    height: 120,
+  videoThumbnail: {
+    width: '100%',
+    height: '100%',
   },
-  videoContent: {
+  videoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 8,
-  },
-  videoTitle: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 8,
-  },
-  videoStats: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
   },
-  statItem: {
+  videoStat: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
-  statText: {
-    marginLeft: 4,
+  videoStatText: {
     fontSize: 12,
-    color: '#666',
+    color: '#fff',
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  deleteButton: {
+  videoDeleteButton: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
+  // Empty State
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 80,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#666',
+    fontSize: 16,
+    color: '#8E8E93',
     marginTop: 16,
-    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
+    color: '#C7C7CC',
     textAlign: 'center',
-    marginBottom: 16,
-  },
-  emptyButton: {
     marginTop: 8,
   },
 });

@@ -42,9 +42,9 @@ const AuditLog: React.FC<AuditLogProps> = () => {
         limit: 50,
         ...filters
       };
-      const response = await apiService.get('/admin/audit-log', params);
-      setLogs((response as any).data.logs);
-      setTotalPages((response as any).data.pagination.pages);
+      const response = await apiService.get<any>('/admin/audit-log', params);
+      setLogs(response.logs || []);
+      setTotalPages(response.pagination?.pages || 1);
     } catch (error) {
       console.error('Failed to load audit logs:', error);
     } finally {
@@ -90,7 +90,7 @@ const AuditLog: React.FC<AuditLogProps> = () => {
     if (action.includes('delete')) return 'text-red-600';
     if (action.includes('create')) return 'text-green-600';
     if (action.includes('update')) return 'text-blue-600';
-    return 'text-gray-600';
+    return 'text-gray-300';
   };
 
   const formatJson = (data: any) => {
@@ -106,18 +106,18 @@ const AuditLog: React.FC<AuditLogProps> = () => {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Журнал аудита</h2>
+        <h2 className="text-2xl font-bold text-white">Журнал аудита</h2>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow mb-6 p-4">
+      <div className="bg-gray-800 rounded-lg shadow mb-6 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Действие</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Действие</label>
             <select
               value={filters.action}
               onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
             >
               <option value="">Все действия</option>
               <option value="video_upload">Загрузка видео</option>
@@ -131,11 +131,11 @@ const AuditLog: React.FC<AuditLogProps> = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Тип ресурса</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Тип ресурса</label>
             <select
               value={filters.resourceType}
               onChange={(e) => setFilters({ ...filters, resourceType: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
             >
               <option value="">Все типы</option>
               <option value="video">Видео</option>
@@ -144,83 +144,83 @@ const AuditLog: React.FC<AuditLogProps> = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Админ</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Админ</label>
             <input
               type="text"
               value={filters.adminId}
               onChange={(e) => setFilters({ ...filters, adminId: e.target.value })}
               placeholder="ID админа..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="w-full bg-gray-700 text-white placeholder-gray-400 border border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
             />
           </div>
         </div>
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-gray-800 rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Время
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Админ
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Действие
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Ресурс
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Изменения
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   IP
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-400">
                     Загрузка...
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-400">
                     Записи не найдены
                   </td>
                 </tr>
               ) : (
                 logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <tr key={log.id} className="hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {formatDate(log.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-white">
                         {log.admin_first_name} {log.admin_last_name}
                       </div>
-                      <div className="text-sm text-gray-500">@{log.admin_username}</div>
+                      <div className="text-sm text-gray-400">@{log.admin_username}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`text-sm font-medium ${getActionColor(log.action)}`}>
                         {getActionLabel(log.action)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       <div>{getResourceTypeLabel(log.resource_type)}</div>
                       <div className="text-xs text-gray-400">{log.resource_id}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-400">
                         {log.old_values && log.new_values ? (
                           <details className="cursor-pointer">
-                            <summary className="hover:text-gray-700">Показать изменения</summary>
+                            <summary className="hover:text-gray-300">Показать изменения</summary>
                             <div className="mt-2 space-y-2">
                               <div>
                                 <strong className="text-red-600">Было:</strong>
@@ -241,7 +241,7 @@ const AuditLog: React.FC<AuditLogProps> = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {log.ip_address}
                     </td>
                   </tr>
@@ -253,26 +253,26 @@ const AuditLog: React.FC<AuditLogProps> = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-700 sm:px-6">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-white bg-gray-700 hover:bg-gray-600 disabled:opacity-50"
               >
                 Предыдущая
               </button>
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-white bg-gray-700 hover:bg-gray-600 disabled:opacity-50"
               >
                 Следующая
               </button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-300">
                   Страница <span className="font-medium">{currentPage}</span> из{' '}
                   <span className="font-medium">{totalPages}</span>
                 </p>
@@ -282,14 +282,14 @@ const AuditLog: React.FC<AuditLogProps> = () => {
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-600 bg-gray-700 text-sm font-medium text-white hover:bg-gray-600 disabled:opacity-50"
                   >
                     Предыдущая
                   </button>
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-600 bg-gray-700 text-sm font-medium text-white hover:bg-gray-600 disabled:opacity-50"
                   >
                     Следующая
                   </button>

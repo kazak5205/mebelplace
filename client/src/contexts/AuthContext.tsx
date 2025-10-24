@@ -9,8 +9,10 @@ interface AuthContextType {
   isClient: boolean
   isMaster: boolean
   isAdmin: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (userData: { email: string; username: string; password: string; firstName?: string; lastName?: string; role?: 'user' | 'master' | 'admin' }) => Promise<void>
+  login: (phone: string, password: string) => Promise<void>
+  sendSmsCode: (phone: string) => Promise<{ code?: string }>
+  verifySmsCode: (phone: string, code: string) => Promise<void>
+  register: (userData: { phone: string; username: string; password: string; firstName?: string; lastName?: string; role?: 'user' | 'master' | 'admin' }) => Promise<void>
   logout: () => Promise<void>
   updateUser: (userData: Partial<User>) => Promise<void>
 }
@@ -64,20 +66,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth()
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = async (phone: string, password: string) => {
     try {
-      const response = await authService.login(email, password)
-      // Токены уже сохранены в authService.login
+      const response = await authService.login(phone, password)
+      // Токены уже сохранены в loginService
       setUser(response.user)
     } catch (error) {
       throw error
     }
   }
 
-  const register = async (userData: { email: string; username: string; password: string; firstName?: string; lastName?: string; role?: 'user' | 'master' | 'admin' }) => {
+  const sendSmsCode = async (phone: string) => {
+    try {
+      return await authService.sendSmsCode(phone)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  const verifySmsCode = async (phone: string, code: string) => {
+    try {
+      await authService.verifySmsCode(phone, code)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  const register = async (userData: { phone: string; username: string; password: string; firstName?: string; lastName?: string; role?: 'user' | 'master' | 'admin' }) => {
     try {
       const response = await authService.register(userData)
-      // Токены уже сохранены в authService.register
+      // Токены уже сохранены в registerService
       setUser(response.user)
     } catch (error) {
       throw error
@@ -87,7 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       await authService.logout()
-      // Токены уже удалены в authService.logout
+      // Токены уже удалены в logoutService
     } catch (error) {
       console.error('Logout error:', error)
       // Всё равно очищаем токены локально
@@ -121,6 +139,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isMaster: user?.role === 'master',
     isAdmin: user?.role === 'admin',
     login,
+    sendSmsCode,
+    verifySmsCode,
     register,
     logout,
     updateUser

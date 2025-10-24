@@ -36,7 +36,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         auth: {
           token: localStorage.getItem('accessToken')
         },
-        transports: ['websocket']
+        transports: ['polling', 'websocket'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5
       })
 
       newSocket.on('connect', () => {

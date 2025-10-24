@@ -843,6 +843,171 @@ router.delete('/categories/:id', authenticateToken, requireRole(['admin']), logA
   }
 });
 
+// ==================== SUPPORT TICKETS ====================
+
+// GET /api/admin/support/tickets - Get all support tickets
+router.get('/support/tickets', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, priority } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT 
+        st.*,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.phone,
+        admin_u.username as assigned_admin_username,
+        (SELECT COUNT(*) FROM support_responses WHERE ticket_id = st.id) as response_count
+      FROM support_tickets st
+      JOIN users u ON st.user_id = u.id
+      LEFT JOIN users admin_u ON st.assigned_to = admin_u.id
+    `;
+    
+    const whereConditions = [];
+    const params = [];
+    let paramCount = 0;
+
+    if (status) {
+      whereConditions.push(`st.status = $${++paramCount}`);
+      params.push(status);
+    }
+
+    if (priority) {
+      whereConditions.push(`st.priority = $${++paramCount}`);
+      params.push(priority);
+    }
+
+    if (whereConditions.length > 0) {
+      query += ` WHERE ${whereConditions.join(' AND ')}`;
+    }
+
+    query += `
+      ORDER BY st.created_at DESC
+      LIMIT $${++paramCount} OFFSET $${++paramCount}
+    `;
+    
+    params.push(limit, offset);
+
+    const result = await pool.query(query, params);
+
+    // Get total count
+    let countQuery = `SELECT COUNT(*) as total FROM support_tickets st`;
+    if (whereConditions.length > 0) {
+      countQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+    }
+
+    const countResult = await pool.query(countQuery, params.slice(0, -2));
+
+    res.json({
+      success: true,
+      data: {
+        tickets: result.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: parseInt(countResult.rows[0].total),
+          pages: Math.ceil(parseInt(countResult.rows[0].total) / limit)
+        }
+      },
+      message: 'Support tickets retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Admin support tickets error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve support tickets',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// POST /api/admin/support/tickets/:id/response - Admin response to ticket
+router.post('/support/tickets/:id/response', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const ticketId = req.params.id;
+    const adminId = req.user.id;
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Вставляем ответ с is_admin_response = true
+    const result = await pool.query(
+      'INSERT INTO support_responses (ticket_id, user_id, message, is_admin_response) VALUES ($1, $2, $3, true) RETURNING *',
+      [ticketId, adminId, message]
+    );
+
+    // Обновляем статус тикета на "in_progress" если был "open"
+    await pool.query(
+      `UPDATE support_tickets 
+       SET status = CASE WHEN status = 'open' THEN 'in_progress' ELSE status END,
+           assigned_to = $1,
+           updated_at = NOW() 
+       WHERE id = $2`,
+      [adminId, ticketId]
+    );
+
+    res.status(201).json({
+      success: true,
+      data: result.rows[0],
+      message: 'Admin response added successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Admin response error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add admin response',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// PUT /api/admin/support/tickets/:id/status - Update ticket status
+router.put('/support/tickets/:id/status', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const ticketId = req.params.id;
+    const { status } = req.body;
+
+    if (!['open', 'in_progress', 'closed'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    await pool.query(
+      'UPDATE support_tickets SET status = $1, updated_at = NOW() WHERE id = $2',
+      [status, ticketId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Ticket status updated successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Update ticket status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update ticket status',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // ==================== AUDIT LOG ====================
 
 // GET /api/admin/audit-log - Get admin audit log

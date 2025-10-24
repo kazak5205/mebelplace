@@ -35,14 +35,9 @@ const OrderDetailsScreen = ({ route, navigation }: any) => {
   const loadOrderDetails = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getOrderById(orderId);
-      
-      if (response.success) {
-        setOrder(response.data);
-      } else {
-        Alert.alert('Ошибка', 'Не удалось загрузить заявку');
-        navigation.goBack();
-      }
+      // Синхронизировано с web: apiService.getOrderById возвращает order
+      const order = await apiService.getOrderById(orderId);
+      setOrder(order);
     } catch (error) {
       console.error('Error loading order details:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при загрузке заявки');
@@ -63,16 +58,13 @@ const OrderDetailsScreen = ({ route, navigation }: any) => {
         
         try {
           setIsResponding(true);
-          const response = await apiService.respondToOrder(order.id, {
+          // Синхронизировано с web: respondToOrder возвращает response
+          await apiService.respondToOrder(order.id, {
             message: message.trim(),
           });
           
-          if (response.success) {
-            Alert.alert('Успех', 'Ваш отклик отправлен');
-            loadOrderDetails(); // Перезагружаем данные
-          } else {
-            Alert.alert('Ошибка', 'Не удалось отправить отклик');
-          }
+          Alert.alert('Успех', 'Ваш отклик отправлен');
+          loadOrderDetails(); // Перезагружаем данные
         } catch (error) {
           console.error('Error responding to order:', error);
           Alert.alert('Ошибка', 'Произошла ошибка при отправке отклика');
@@ -95,14 +87,10 @@ const OrderDetailsScreen = ({ route, navigation }: any) => {
           text: 'Принять',
           onPress: async () => {
             try {
-              const response = await apiService.acceptOrderResponse(order.id, responseId);
-              
-              if (response.success) {
-                Alert.alert('Успех', 'Отклик принят');
-                loadOrderDetails();
-              } else {
-                Alert.alert('Ошибка', 'Не удалось принять отклик');
-              }
+              // Синхронизировано с web: acceptOrderResponse возвращает result
+              await apiService.acceptOrderResponse(order.id, responseId);
+              Alert.alert('Успех', 'Отклик принят');
+              loadOrderDetails();
             } catch (error) {
               console.error('Error accepting response:', error);
               Alert.alert('Ошибка', 'Произошла ошибка');

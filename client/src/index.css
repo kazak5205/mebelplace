@@ -15,14 +15,14 @@
   }
 
   [data-theme="light"] {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --text-primary: #0f0f0f;
-    --text-secondary: rgba(15, 15, 15, 0.7);
+    --bg-primary: #000000;
+    --bg-secondary: #1a1a1a;
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
     --accent-primary: #f97316;
     --accent-secondary: #ea580c;
-    --glass-bg: rgba(249, 115, 22, 0.1);
-    --glass-border: rgba(249, 115, 22, 0.2);
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
   }
   
   body {
@@ -30,7 +30,7 @@
     color: var(--text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.5s ease, color 0.5s ease;
   }
   
   html {
@@ -45,12 +45,12 @@
     border: 1px solid var(--glass-border);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   
   .glass-card-hover {
     @apply glass-card;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   
   .glass-card-hover:hover {
@@ -76,7 +76,7 @@
     padding: 8px 16px;
     color: var(--text-primary);
     font-weight: 500;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   
   .glass-button:hover {
@@ -97,7 +97,7 @@
     border-radius: 8px;
     padding: 12px 16px;
     color: var(--text-primary);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   
   .glass-input::placeholder {
@@ -108,6 +108,27 @@
     outline: none;
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  }
+
+  /* Fix for select and option elements */
+  select.glass-input,
+  select.glass-input option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  /* Fallback для нативных option элементов (когда браузер показывает системный UI) */
+  option {
+    background-color: white;
+    color: black;
+  }
+  
+  /* Для темных select элементов */
+  select.glass-input option,
+  select.bg-gray-700 option,
+  select[class*="bg-gray-"] option {
+    background-color: #1a1a1a;
+    color: #ffffff;
   }
   
   .gradient-text {

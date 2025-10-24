@@ -40,7 +40,7 @@ const Footer = () => {
               Пользовательское соглашение
             </Link>
             <a
-              href="mailto:support@mebelplace.com.kz"
+              href="mailto:bekaron.company@gmail.com"
               className="text-gray-400 hover:text-orange-400 transition-colors duration-200"
             >
               Поддержка

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Upload, MapPin, Tag } from 'lucide-react'
+import { ArrowLeft, Upload, MapPin, FileText } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
 import { useAuth } from '../contexts/AuthContext'
@@ -10,32 +10,22 @@ const CreateOrderPage: React.FC = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [_error, setError] = useState('')
   const [regions, setRegions] = useState<string[]>([])
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
-    city: '',
+    location: '',
     region: '',
-    address: '',
-    images: [] as string[]
+    images: [] as File[]
   })
 
   useEffect(() => {
+    // Загружаем регионы
     orderService.getRegions()
       .then(setRegions)
       .catch(() => setRegions([]))
   }, [])
-
-  const categories = [
-    'Мебель',
-    'Ремонт',
-    'Дизайн интерьера',
-    'Сантехника',
-    'Электрика',
-    'Отделка',
-    'Другое'
-  ]
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -46,40 +36,64 @@ const CreateOrderPage: React.FC = () => {
     const files = e.target.files
     if (!files) return
 
-    // Временно сохраняем файлы локально, они будут загружены при создании заказа
-    const fileURLs = Array.from(files).map(file => URL.createObjectURL(file))
-    setFormData(prev => ({ ...prev, images: [...prev.images, ...fileURLs] }))
+    // Сохраняем File объекты для отправки на сервер
+    const newFiles = Array.from(files)
+    setFormData(prev => ({ ...prev, images: [...prev.images, ...newFiles] }))
+  }
+
+  const handleLabelClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const input = document.getElementById('image-upload') as HTMLInputElement
+    if (input) {
+      input.click()
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
 
+    if (!formData.title.trim() || !formData.description.trim()) {
+      setError('Пожалуйста, заполните название и описание заявки')
+      return
+    }
+
     try {
       setLoading(true)
+      setError('')
       
       // Создаем FormData для отправки с файлами
       const submitData = new FormData()
       submitData.append('title', formData.title)
       submitData.append('description', formData.description)
-      submitData.append('category', formData.category)
-      submitData.append('location', formData.city)
+      submitData.append('location', formData.location)
       submitData.append('region', formData.region)
       
-      // Добавляем изображения (пока пустые URL, нужно будет обработать файлы)
-      // TODO: Сохранить File объекты вместо URL.createObjectURL
+      // Добавляем изображения
+      formData.images.forEach((file) => {
+        submitData.append('images', file)
+      })
+      
+      console.log('Creating order with data:', {
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        region: formData.region,
+        imagesCount: formData.images.length
+      })
       
       await orderService.createOrder(submitData)
-      navigate('/orders')
-    } catch (error) {
+      navigate('/user/orders')
+    } catch (error: any) {
       console.error('Failed to create order:', error)
+      setError(error?.response?.data?.message || error?.message || 'Не удалось создать заявку. Попробуйте ещё раз.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 pb-56">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -94,10 +108,37 @@ const CreateOrderPage: React.FC = () => {
         <h1 className="text-3xl font-bold gradient-text">Создать заявку</h1>
       </motion.div>
 
-      <motion.form
+      {/* Info Card */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
+      >
+        <GlassCard className="p-6">
+          <div className="flex items-start space-x-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white mb-2">
+                Как создать заявку
+              </h2>
+              <ol className="text-white/70 text-sm leading-relaxed space-y-2 list-decimal list-inside">
+                <li>Прикрепите фото мебели (из интернета или своё).</li>
+                <li>В описании укажите размеры, цвет и другие параметры.</li>
+                <li>Отправьте заявку — её увидят все мебельные компании.</li>
+                <li>В «Мессенджере» вы получите ответы с ценой и сроками установки.</li>
+                <li>После этого вы сможете обсудить с компаниями все детали напрямую в чате.</li>
+              </ol>
+            </div>
+          </div>
+        </GlassCard>
+      </motion.div>
+
+      <motion.form
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
         onSubmit={handleSubmit}
         className="space-y-6"
       >
@@ -135,28 +176,6 @@ const CreateOrderPage: React.FC = () => {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Категория *
-                </label>
-                <div className="relative">
-                  <Tag className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    required
-                    className="glass-input w-full pl-12"
-                  >
-                    <option value="">Выберите категорию</option>
-                    {categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
           </div>
         </GlassCard>
 
@@ -193,8 +212,8 @@ const CreateOrderPage: React.FC = () => {
                   <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
                   <input
                     type="text"
-                    name="city"
-                    value={formData.city}
+                    name="location"
+                    value={formData.location}
                     onChange={handleInputChange}
                     required
                     className="glass-input w-full pl-12"
@@ -202,25 +221,11 @@ const CreateOrderPage: React.FC = () => {
                   />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Адрес
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="glass-input w-full"
-                  placeholder="Улица, дом, квартира"
-                />
-              </div>
             </div>
           </div>
         </GlassCard>
 
-        <GlassCard className="p-6">
+        <GlassCard className="p-6 mb-8">
           <h2 className="text-xl font-bold text-white mb-4">Фотографии</h2>
           
           <div className="space-y-4">
@@ -237,20 +242,21 @@ const CreateOrderPage: React.FC = () => {
                 className="hidden"
                 id="image-upload"
               />
-              <label
-                htmlFor="image-upload"
-                className="glass-button cursor-pointer inline-block"
+              <button
+                type="button"
+                onClick={handleLabelClick}
+                className="glass-button cursor-pointer relative z-[60]"
               >
                 Выбрать файлы
-              </label>
+              </button>
             </div>
 
             {formData.images.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {formData.images.map((image, index) => (
+                {formData.images.map((file, index) => (
                   <div key={index} className="aspect-square bg-white/10 rounded-lg overflow-hidden">
                     <img
-                      src={image}
+                      src={URL.createObjectURL(file)}
                       alt={`Upload ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -261,12 +267,7 @@ const CreateOrderPage: React.FC = () => {
           </div>
         </GlassCard>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex justify-end space-x-4"
-        >
+        <div className="flex justify-end space-x-4 pt-6">
           <button
             type="button"
             onClick={() => navigate('/orders')}
@@ -279,11 +280,11 @@ const CreateOrderPage: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             disabled={loading}
-            className="glass-button bg-gradient-to-r from-blue-500 to-purple-500 disabled:opacity-50"
+            className="glass-button bg-gradient-to-r from-orange-500 to-orange-600 disabled:opacity-50"
           >
             {loading ? 'Создание...' : 'Создать заявку'}
           </motion.button>
-        </motion.div>
+        </div>
       </motion.form>
     </div>
   )

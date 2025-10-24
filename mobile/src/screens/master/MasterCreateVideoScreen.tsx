@@ -66,7 +66,7 @@ const MasterCreateVideoScreen = ({ navigation }: any) => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: true,
-        quality: 0.8,
+        quality: 1.0, // Максимальное качество - не сжимать на клиенте
         videoMaxDuration: 300, // 5 минут максимум
       });
 
@@ -78,7 +78,7 @@ const MasterCreateVideoScreen = ({ navigation }: any) => {
         try {
           const thumbnail = await VideoThumbnails.getThumbnailAsync(video.uri, {
             time: 1000, // 1 секунда
-            quality: 0.8,
+            quality: 0.9, // Высокое качество превью
           });
           setThumbnailUri(thumbnail.uri);
         } catch (error) {
@@ -143,24 +143,21 @@ const MasterCreateVideoScreen = ({ navigation }: any) => {
       formData.append('tags', JSON.stringify(tags));
       formData.append('isPromotional', isPromotional.toString());
 
-      const response = await videoService.uploadVideo(formData, (progress) => {
+      // Синхронизировано с web: uploadVideo возвращает video
+      await videoService.uploadVideo(formData, (progress) => {
         setUploadProgress(progress);
       });
       
-      if (response.success) {
-        Alert.alert(
-          'Успех',
-          'Видеореклама успешно создана',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Ошибка', 'Не удалось создать видеорекламу');
-      }
+      Alert.alert(
+        'Успех',
+        'Видеореклама успешно создана',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } catch (error) {
       console.error('Error uploading video:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при создании видеорекламы');

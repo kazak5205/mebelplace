@@ -52,21 +52,19 @@ const EnhancedChatScreen = ({ route, navigation }: any) => {
   const loadChatData = async () => {
     try {
       if (chatId) {
-        const response = await apiService.getChatById(chatId);
-        if (response.success) {
-          setChat(response.data);
-        }
+        // Синхронизировано с web: getChatById возвращает chat
+        const chat = await apiService.getChatById(chatId);
+        setChat(chat);
       } else if (masterId) {
         // Создаем новый чат с мастером
-        const response = await apiService.createChatWithUser(masterId);
-        if (response.success) {
-          setChat(response.data);
-          if (initialMessage) {
-            // Отправляем начальное сообщение
-            setTimeout(() => {
-              handleSendMessage(initialMessage);
-            }, 1000);
-          }
+        // Синхронизировано с web: createChatWithUser возвращает chat
+        const chat = await apiService.createChatWithUser(masterId);
+        setChat(chat);
+        if (initialMessage) {
+          // Отправляем начальное сообщение
+          setTimeout(() => {
+            handleSendMessage(initialMessage);
+          }, 1000);
         }
       }
     } catch (error) {
@@ -77,13 +75,11 @@ const EnhancedChatScreen = ({ route, navigation }: any) => {
   const loadMessages = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getChatMessages(chatId || chat?.id || '');
-      
-      if (response.success) {
-        setMessages(response.data);
-        // Отмечаем сообщения как прочитанные
-        markMessagesAsRead();
-      }
+      // Синхронизировано с web: getChatMessages возвращает messages
+      const messages = await apiService.getChatMessages(chatId || chat?.id || '');
+      setMessages(messages || []);
+      // Отмечаем сообщения как прочитанные
+      markMessagesAsRead();
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
@@ -149,18 +145,14 @@ const EnhancedChatScreen = ({ route, navigation }: any) => {
         videoId: videoId, // Если есть ссылка на видео
       };
 
-      const response = await apiService.sendMessage(messageData);
+      // Синхронизировано с web: sendMessage возвращает message
+      const message = await apiService.sendMessage(messageData);
+      setMessages(prev => [...prev, message]);
+      setNewMessage('');
+      scrollToBottom();
       
-      if (response.success) {
-        setMessages(prev => [...prev, response.data]);
-        setNewMessage('');
-        scrollToBottom();
-        
-        // Отправляем через сокет
-        emit('send_message', response.data);
-      } else {
-        Alert.alert('Ошибка', 'Не удалось отправить сообщение');
-      }
+      // Отправляем через сокет
+      emit('send_message', message);
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при отправке сообщения');
@@ -186,14 +178,10 @@ const EnhancedChatScreen = ({ route, navigation }: any) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await apiService.leaveChat(chatId || chat?.id || '');
-              
-              if (response.success) {
-                Alert.alert('Успех', 'Переписка удалена');
-                navigation.goBack();
-              } else {
-                Alert.alert('Ошибка', 'Не удалось удалить переписку');
-              }
+              // Синхронизировано с web: leaveChat возвращает result
+              await apiService.leaveChat(chatId || chat?.id || '');
+              Alert.alert('Успех', 'Переписка удалена');
+              navigation.goBack();
             } catch (error) {
               console.error('Error deleting chat:', error);
               Alert.alert('Ошибка', 'Произошла ошибка при удалении');

@@ -141,6 +141,34 @@ class NotificationService {
     return results;
   }
 
+  // Уведомление мастерам о новой заявке
+  async notifyNewOrder(masterId, orderTitle, clientName) {
+    const title = 'Новая заявка';
+    const message = `Новая заявка "${orderTitle}" от клиента ${clientName}`;
+    
+    try {
+      // Сохраняем в базу
+      await this.createNotification(masterId, 'new_order', title, message, { orderTitle, clientName });
+      
+      // Опционально отправляем push
+      try {
+        await pushService.sendToUser(masterId, {
+          title,
+          body: message,
+          icon: '/icons/icon-192x192.png',
+          data: { url: '/orders' }
+        });
+      } catch (pushError) {
+        console.log('Push notification failed for master', masterId, ':', pushError.message);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error notifying master about new order:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Уведомление о новом отклике на заявку
   async notifyNewOrderResponse(clientId, orderTitle, masterName) {
     const title = 'Новый отклик на заявку';

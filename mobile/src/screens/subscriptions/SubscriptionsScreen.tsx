@@ -19,7 +19,8 @@ import {
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@shared/contexts/AuthContext';
-import { subscriptionService } from '../../services/subscriptionService';
+import { userService } from '../../services/userService';
+import { apiService } from '../../services/apiService';
 import type { Master } from '@shared/types';
 
 const SubscriptionsScreen = ({ navigation }: any) => {
@@ -39,11 +40,29 @@ const SubscriptionsScreen = ({ navigation }: any) => {
         setIsLoading(true);
       }
 
-      const response = await subscriptionService.get();
+      // Синхронизировано с web: используем userService.getSubscriptions
+      if (!user) return;
       
-      if (response.success) {
-        setMasters(response.data);
-      }
+      const data: any = await userService.getSubscriptions(user.id);
+      const subs = data.subscriptions || data || [];
+      
+      // Для каждого мастера дозагружаем актуальные данные (как на web)
+      const subsWithCounts = await Promise.all(
+        subs.map(async (sub: any) => {
+          try {
+            const masterData: any = await apiService.get(`/users/${sub.id}`);
+            return {
+              ...sub,
+              subscribersCount: (masterData.data || masterData).subscribers_count || (masterData.data || masterData).subscribersCount || 0
+            };
+          } catch (error) {
+            console.error(`Failed to load master ${sub.id}:`, error);
+            return sub;
+          }
+        })
+      );
+      
+      setMasters(subsWithCounts);
     } catch (error) {
       console.error('Error loading subscriptions:', error);
     } finally {
@@ -67,14 +86,10 @@ const SubscriptionsScreen = ({ navigation }: any) => {
           text: 'Отписаться',
           onPress: async () => {
             try {
-              const response = await subscriptionService.unsubscribe(masterId);
-              
-              if (response.success) {
-                setMasters(prev => prev.filter(master => master.id !== masterId));
-                Alert.alert('Успех', 'Вы отписались от мастера');
-              } else {
-                Alert.alert('Ошибка', 'Не удалось отписаться');
-              }
+              // Синхронизировано с web: используем userService.unsubscribe
+              await userService.unsubscribe(masterId);
+              setMasters(prev => prev.filter(master => master.id !== masterId));
+              Alert.alert('Успех', 'Вы отписались от мастера');
             } catch (error) {
               console.error('Error unsubscribing:', error);
               Alert.alert('Ошибка', 'Произошла ошибка при отписке');

@@ -17,11 +17,13 @@ import { videoService } from '../services/videoService'
 import { useSocket } from '../contexts/SocketContext'
 import { useAuth } from '../contexts/AuthContext'
 import OrderButton from './OrderButton'
+import Header from './Header'
+import BottomNavigation from './BottomNavigation'
 
 interface VideoPlayerProps {
   videos: Video[]
   initialIndex: number
-  onClose: () => void
+  onClose?: () => void
   onVideoChange?: (video: Video) => void
 }
 
@@ -41,7 +43,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
-  const [videoStates, setVideoStates] = useState<Record<string, { isLiked: boolean, likesCount: number }>>(  {})
+  const [videoStates, setVideoStates] = useState<Record<string, { isLiked: boolean, likeCount: number }>>(  {})
   const [bookmarkStates, setBookmarkStates] = useState<Record<string, boolean>>({})
   
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
@@ -55,7 +57,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const currentVideo = videos[currentIndex]
   
   // Проверка: может ли пользователь комментировать это видео
-  const canComment = !user || user.role !== 'master' || currentVideo?.master?.id === user.id
+  // Клиенты могут комментировать любые видео
+  // Мастера могут комментировать только свои видео
+  const canComment = !user || user.role !== 'master' || 
+    currentVideo?.master?.id === user.id || 
+    currentVideo?.authorId === user.id || 
+    currentVideo?.author_id === user.id ||
+    currentVideo?.masterId === user.id
 
   useEffect(() => {
     if (onVideoChange && currentVideo) {
@@ -64,12 +72,32 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [currentIndex, currentVideo, onVideoChange])
 
   useEffect(() => {
-    // Загружаем комментарии для текущего видео
+    // Загружаем комментарии и статус лайка для текущего видео
     if (currentVideo) {
       loadComments()
       recordView()
+      loadVideoLikeStatus()
     }
   }, [currentVideo])
+  
+  // Загружаем статус лайка для текущего видео
+  const loadVideoLikeStatus = async () => {
+    if (!currentVideo || !user) return
+    
+    try {
+      const video: any = await videoService.getVideo(currentVideo.id)
+      // Обновляем состояние с реальным is_liked из API (null считаем как false)
+      setVideoStates(prev => ({
+        ...prev,
+        [currentVideo.id]: {
+          isLiked: video.is_liked === true || video.isLiked === true,  // явная проверка на true
+          likeCount: video.likes || video.like_count || 0
+        }
+      }))
+    } catch (error) {
+      console.error('Failed to load video like status:', error)
+    }
+  }
 
   useEffect(() => {
     // Автовоспроизведение текущего видео
@@ -113,7 +141,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           ...prev,
           [data.videoId]: {
             isLiked: data.liked,
-            likesCount: data.likes
+            likeCount: data.likes
           }
         }))
       }
@@ -199,23 +227,28 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleLike = async () => {
     if (!currentVideo) return
+    if (!user) {
+      // Если пользователь не авторизован - перенаправляем на логин
+      window.location.href = '/login'
+      return
+    }
+    
     try {
-      const currentState = videoStates[currentVideo.id] || { 
-        isLiked: currentVideo.isLiked, 
-        likesCount: currentVideo.likesCount 
-      }
-
-      // Используем toggleLike
-      await videoService.toggleLike(currentVideo.id)
+      // Используем toggleLike и получаем реальное состояние от API
+      const response: any = await videoService.toggleLike(currentVideo.id)
+      
+      // Используем данные из API вместо угадывания
       setVideoStates(prev => ({
         ...prev,
         [currentVideo.id]: {
-          isLiked: !currentState.isLiked,
-          likesCount: currentState.isLiked ? currentState.likesCount - 1 : currentState.likesCount + 1
+          isLiked: response.is_liked,   // API возвращает is_liked
+          likeCount: response.likes     // реальное количество из API
         }
       }))
       
-      emit('video_like', { videoId: currentVideo.id })
+      // НЕ эмитим video_like через socket - это создаёт двойной toggle!
+      // REST API уже обработал лайк, socket handler сделает DELETE если эмитить
+      // emit('video_like', { videoId: currentVideo.id })
     } catch (error) {
       console.error('Failed to like video:', error)
     }
@@ -225,7 +258,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!currentVideo) return
     try {
       const isCurrentlyBookmarked = bookmarkStates[currentVideo.id] || false
-      await videoService.toggleLike(currentVideo.id) // Временно, нужно добавить toggleBookmark в API
+      
+      if (isCurrentlyBookmarked) {
+        await videoService.removeBookmark(currentVideo.id)
+      } else {
+        await videoService.addBookmark(currentVideo.id)
+      }
+      
       setBookmarkStates(prev => ({
         ...prev,
         [currentVideo.id]: !isCurrentlyBookmarked
@@ -235,16 +274,63 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!currentVideo) return
-    if (navigator.share) {
-      navigator.share({
-        title: currentVideo.title,
-        text: currentVideo.description,
-        url: window.location.href
-      })
-    } else {
-      navigator.clipboard.writeText(window.location.href)
+    
+    const shareUrl = `${window.location.origin}/?videoId=${currentVideo.id}`
+    const shareData = {
+      title: currentVideo.title || 'Видео на MebelPlace',
+      text: currentVideo.description || 'Посмотрите это видео на MebelPlace',
+      url: shareUrl
+    }
+    
+    console.log('Share clicked', { shareUrl, shareData })
+    
+    try {
+      // Пробуем Web Share API
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        console.log('Using Web Share API')
+        await navigator.share(shareData)
+        console.log('Share successful')
+        return
+      }
+      
+      // Fallback на clipboard
+      console.log('Using clipboard fallback')
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl)
+        alert('Ссылка скопирована в буфер обмена! ✓')
+        return
+      }
+      
+      // Последний fallback - создаем временный input
+      console.log('Using input fallback')
+      const textArea = document.createElement('textarea')
+      textArea.value = shareUrl
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      try {
+        document.execCommand('copy')
+        alert('Ссылка скопирована! ✓')
+      } catch (err) {
+        console.error('Copy command failed:', err)
+        alert(`Скопируйте ссылку: ${shareUrl}`)
+      } finally {
+        document.body.removeChild(textArea)
+      }
+      
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        console.log('Share cancelled by user')
+        return
+      }
+      console.error('Share failed:', error)
+      alert(`Ссылка на видео: ${shareUrl}`)
     }
   }
 
@@ -303,17 +389,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }
 
-  const handleLikeComment = async (commentId: string, isLiked: boolean) => {
+  const handleLikeComment = async (commentId: string, _isLiked: boolean) => {
     try {
-      // Используем toggleCommentLike
-      await videoService.toggleCommentLike(commentId)
+      // Используем toggleCommentLike и получаем реальное состояние
+      const response: any = await videoService.toggleCommentLike(commentId)
       
       setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
           return {
             ...comment,
-            is_liked: !isLiked,
-            likes: isLiked ? comment.likes - 1 : comment.likes + 1
+            is_liked: response.is_liked,   // API возвращает is_liked
+            likes: response.likes          // используем реальное количество
           }
         }
         if (comment.replies) {
@@ -321,8 +407,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             if (reply.id === commentId) {
               return {
                 ...reply,
-                is_liked: !isLiked,
-                likes: isLiked ? reply.likes - 1 : reply.likes + 1
+                is_liked: response.is_liked,
+                likes: response.likes
               }
             }
             return reply
@@ -335,19 +421,29 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+  const formatTimeAgo = (dateString: string | undefined | null) => {
+    if (!dateString) return 'недавно'
     
-    if (diffInSeconds < 60) return 'только что'
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}м назад`
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}ч назад`
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}д назад`
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return 'недавно'
+      
+      const now = new Date()
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+      
+      if (diffInSeconds < 60) return 'только что'
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}м назад`
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}ч назад`
+      if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}д назад`
+      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error)
+      return 'недавно'
+    }
   }
 
-  const formatCount = (count: number) => {
+  const formatCount = (count: number | undefined | null) => {
+    if (count === undefined || count === null) return '0'
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
     return count.toString()
@@ -358,21 +454,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }
 
   const videoState = videoStates[currentVideo.id] || {
-    isLiked: currentVideo.isLiked,
-    likesCount: currentVideo.likesCount
+    isLiked: currentVideo.isLiked || false,
+    likeCount: parseInt(currentVideo.likeCount as any) || currentVideo.likes || 0
   }
 
   return (
-    <div ref={containerRef} className="fixed inset-0 bg-black z-50 overflow-hidden">
-      {/* Close Button */}
-      <motion.button
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        onClick={onClose}
-        className="absolute top-4 left-4 z-50 p-2 rounded-full bg-black/30 backdrop-blur-sm text-white"
-      >
-        <X className="w-6 h-6" />
-      </motion.button>
+    <>
+      <Header />
+      <div ref={containerRef} className="fixed inset-0 bg-black z-40 overflow-hidden pt-16 pb-20">
+        {/* Close Button - только если задан onClose */}
+        {onClose && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={onClose}
+            className="absolute top-4 left-4 z-50 p-2 rounded-full bg-black/30 backdrop-blur-sm text-white"
+          >
+            <X className="w-6 h-6" />
+          </motion.button>
+        )}
 
       {/* Вертикальная лента видео (TikTok style) */}
       <motion.div
@@ -399,15 +499,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
 
           {/* Правая панель действий (TikTok style) */}
-          <div className="absolute right-4 bottom-24 flex flex-col items-center space-y-6">
+          <div className="absolute right-4 bottom-24 flex flex-col items-center space-y-6 z-[100]">
             {/* Аватар автора */}
             <div className="relative">
               <button
-                onClick={() => currentVideo.master?.id && navigate(`/master/${currentVideo.master.id}`)}
+                onClick={() => (currentVideo.masterId || currentVideo.authorId) && navigate(`/master/${currentVideo.masterId || currentVideo.authorId}`)}
                 className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold border-2 border-white"
                 aria-label="Канал мастера"
               >
-                {currentVideo.master?.name?.charAt(0).toUpperCase() || 'M'}
+                {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
               </button>
               <motion.button
                 whileTap={{ scale: 0.9 }}
@@ -429,7 +529,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 />
               </div>
               <span className="text-white text-xs font-semibold">
-                {formatCount(videoState.likesCount)}
+                {formatCount(videoState.likeCount)}
               </span>
             </motion.button>
 
@@ -443,7 +543,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <MessageCircle className="w-7 h-7 text-white" />
               </div>
               <span className="text-white text-xs font-semibold">
-                {formatCount(currentVideo.commentsCount)}
+                {formatCount(currentVideo.commentCount)}
               </span>
             </motion.button>
 
@@ -472,21 +572,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
 
           {/* Кнопка заказа */}
-          {user && isClient && currentVideo.masterId !== user.id && (
-            <div className="absolute left-4 right-4 bottom-24 sm:bottom-28 flex justify-center z-[60]">
+          {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
+            <div className="absolute left-4 right-4 bottom-32 sm:bottom-36 flex justify-center z-[60]">
               <OrderButton video={currentVideo} className="w-full max-w-md" />
             </div>
           )}
 
           {/* Нижняя информация о видео */}
-          <div className="absolute left-0 right-0 bottom-0 p-4 pb-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+          <div className="absolute left-0 right-0 bottom-0 p-4 pb-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-[10]">
             <div className="max-w-md">
               <div className="flex items-center space-x-2 mb-3">
                 <button
-                  onClick={() => currentVideo.master?.id && navigate(`/master/${currentVideo.master.id}`)}
+                  onClick={() => (currentVideo.masterId || currentVideo.authorId) && navigate(`/master/${currentVideo.masterId || currentVideo.authorId}`)}
                   className="text-white font-bold hover:underline"
                 >
-                  @{currentVideo.master?.name || 'Master'}
+                  @{currentVideo.username || currentVideo.master?.name || 'Master'}
                 </button>
                 <span className="text-white/70 text-sm">•</span>
                 <span className="text-white/70 text-sm">{formatTimeAgo(currentVideo.createdAt)}</span>
@@ -552,7 +652,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 setShowComments(false)
               }
             }}
-            className="absolute inset-x-0 bottom-0 max-h-[75vh] bg-black/95 backdrop-blur-xl rounded-t-3xl flex flex-col"
+            className="absolute inset-x-0 bottom-0 h-[75vh] bg-black/95 backdrop-blur-xl rounded-t-3xl flex flex-col z-[100]"
           >
             {/* Ручка для свайпа */}
             <div className="flex justify-center py-3">
@@ -567,7 +667,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
 
             {/* Список комментариев */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-24 space-y-4">
               {comments.length === 0 ? (
                 <div className="text-center text-white/60 py-8">
                   <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -687,8 +787,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
             </div>
 
-            {/* Форма комментария */}
-            <div className="px-4 py-3 border-t border-white/10">
+            {/* Форма комментария - ЗАФИКСИРОВАНА ВНИЗУ */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 py-3 pb-20 bg-black/95 backdrop-blur-xl border-t border-white/10">
               {canComment ? (
                 <form onSubmit={handleSubmitComment} className="flex space-x-3">
                   <input
@@ -717,7 +817,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+      <BottomNavigation />
+    </>
   )
 }
 

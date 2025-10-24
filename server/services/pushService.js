@@ -5,13 +5,13 @@ class PushService {
   constructor() {
     // VAPID ключи для Web Push (генерируются один раз)
     this.vapidKeys = {
-      publicKey: process.env.VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa40HI0F8yVgK1eQ_O4VXQ9UYtWNf-Tew1_YhR0k7B1S8KVfU6Sx1gEo7B0Vk',
-      privateKey: process.env.VAPID_PRIVATE_KEY || 'p256dh'
+      publicKey: process.env.VAPID_PUBLIC_KEY || 'BB2c671HCIVlU9SM0fElC5UxglxeN4op3302Q0WjqTJYmIWtrFwtzKkCKPSF5bEKAu_c18UszTcIUPdSAjHcl2I',
+      privateKey: process.env.VAPID_PRIVATE_KEY || 'dbt52gwj_FcR0eESgopjt0fF2nE4hmny5-keKm4OE_4'
     };
 
     // Настройка web-push
     webpush.setVapidDetails(
-      'mailto:mebelplace@example.com',
+      'mailto:support@mebelplace.com.kz',
       this.vapidKeys.publicKey,
       this.vapidKeys.privateKey
     );

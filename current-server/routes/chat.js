@@ -329,12 +329,20 @@ router.get('/:id/messages', authenticateToken, async (req, res) => {
       [chatId, userId]
     );
 
+    // Если пользователь не участник чата, проверяем, является ли он админом
     if (accessResult.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied',
-        timestamp: new Date().toISOString()
-      });
+      const userResult = await pool.query(
+        'SELECT role FROM users WHERE id = $1',
+        [userId]
+      );
+
+      if (userResult.rows.length === 0 || userResult.rows[0].role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied',
+          timestamp: new Date().toISOString()
+        });
+      }
     }
 
     // Получение сообщений
@@ -358,14 +366,20 @@ router.get('/:id/messages', authenticateToken, async (req, res) => {
       [chatId, userId]
     );
 
+    // Парсинг metadata для каждого сообщения
+    const messages = messagesResult.rows.map(row => ({
+      ...row,
+      metadata: row.metadata ? JSON.parse(row.metadata) : null
+    }));
+
     res.json({
       success: true,
       data: {
-        messages: messagesResult.rows.reverse(), // Возвращаем в хронологическом порядке
+        messages: messages.reverse(), // Возвращаем в хронологическом порядке
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: messagesResult.rows.length
+          total: messages.length
         }
       },
       message: 'Messages retrieved successfully',
@@ -409,12 +423,20 @@ const sendMessageHandler = async (req, res) => {
       [chatId, userId]
     );
 
+    // Если пользователь не участник чата, проверяем, является ли он админом
     if (accessResult.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied',
-        timestamp: new Date().toISOString()
-      });
+      const userResult = await pool.query(
+        'SELECT role FROM users WHERE id = $1',
+        [userId]
+      );
+
+      if (userResult.rows.length === 0 || userResult.rows[0].role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied',
+          timestamp: new Date().toISOString()
+        });
+      }
     }
 
     let messageContent = content;
@@ -484,7 +506,7 @@ const sendMessageHandler = async (req, res) => {
         file_path: message.file_path,
         file_name: message.file_name,
         file_size: message.file_size,
-        metadata: message.metadata,
+        metadata: message.metadata ? JSON.parse(message.metadata) : null,
         created_at: message.created_at,
         sender: message.sender
       });

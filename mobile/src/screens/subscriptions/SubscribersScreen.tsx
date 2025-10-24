@@ -42,20 +42,18 @@ const SubscribersScreen = ({ navigation }: any) => {
       }
 
       // Предполагаем, что у нас есть endpoint для получения подписчиков мастера
+      // Синхронизировано с web: getSubscribers возвращает subscribers
       const response = await subscriptionService.getSubscribers(user?.id || '', pageNum, 20);
+      const newSubscribers = response || [];
       
-      if (response.success) {
-        const newSubscribers = response.data;
-        
-        if (isRefresh || pageNum === 1) {
-          setSubscribers(newSubscribers);
-        } else {
-          setSubscribers(prev => [...prev, ...newSubscribers]);
-        }
-        
-        setHasMore(newSubscribers.length === 20);
-        setPage(pageNum);
+      if (isRefresh || pageNum === 1) {
+        setSubscribers(newSubscribers);
+      } else {
+        setSubscribers(prev => [...prev, ...newSubscribers]);
       }
+      
+      setHasMore(newSubscribers.length === 20);
+      setPage(pageNum);
     } catch (error) {
       console.error('Error loading subscribers:', error);
     } finally {

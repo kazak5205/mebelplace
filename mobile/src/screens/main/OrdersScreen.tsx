@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+/**
+ * OrdersScreen - TikTok-style orders list for users
+ * Синхронизировано с web OrdersPage - dark theme, glass effect, animations
+ */
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,11 +11,14 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  TextInput,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService } from '../../services/orderService';
+import { FadeInView } from '../../components/TikTokAnimations';
 
 interface Order {
   id: string;
@@ -20,6 +27,7 @@ interface Order {
   images: string[];
   status: string;
   category: string;
+  region: string;
   created_at: string;
   response_count: number;
 }
@@ -29,6 +37,8 @@ const OrdersScreen = ({ navigation }: any) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     loadOrders();
@@ -37,10 +47,8 @@ const OrdersScreen = ({ navigation }: any) => {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const response = await orderService.getOrders({ page: 1, limit: 20 });
-      if (response.success) {
-        setOrders(response.data.orders || []);
-      }
+      const response = await orderService.getOrders({ page: 1, limit: 50 });
+      setOrders(response.orders || []);
     } catch (error) {
       console.error('Error loading orders:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить заявки');
@@ -55,380 +63,387 @@ const OrdersScreen = ({ navigation }: any) => {
     setRefreshing(false);
   };
 
-  const handleOrderPress = (order: Order) => {
-    navigation.navigate('OrderDetails' as never, { orderId: order.id } as never);
-  };
-
-  const handleResponsesPress = (order: Order) => {
-    navigation.navigate('OrderResponses' as never, { orderId: order.id } as never);
-  };
-
-  const handleDeleteOrder = async (orderId: string) => {
-    Alert.alert(
-      'Удалить заявку',
-      'Вы уверены, что хотите удалить эту заявку?',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // TODO: Implement delete order API
-              setOrders(prev => prev.filter(order => order.id !== orderId));
-              Alert.alert('Успех', 'Заявка удалена');
-            } catch (error) {
-              console.error('Error deleting order:', error);
-              Alert.alert('Ошибка', 'Не удалось удалить заявку');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handlePinOrder = async (orderId: string) => {
-    try {
-      // TODO: Implement pin order API
-      Alert.alert('Успех', 'Заявка закреплена');
-    } catch (error) {
-      console.error('Error pinning order:', error);
-      Alert.alert('Ошибка', 'Не удалось закрепить заявку');
-    }
-  };
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         order.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return '#f59e0b';
-      case 'accepted':
-        return '#10b981';
-      case 'in_progress':
-        return '#3b82f6';
-      case 'completed':
-        return '#6b7280';
-      case 'cancelled':
-        return '#ef4444';
-      default:
-        return '#6b7280';
+      case 'pending': return '#fbbf24';
+      case 'in_progress': return '#60a5fa';
+      case 'completed': return '#34d399';
+      case 'cancelled': return '#ef4444';
+      default: return '#6b7280';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'Ожидает';
-      case 'accepted':
-        return 'Принято';
-      case 'in_progress':
-        return 'В работе';
-      case 'completed':
-        return 'Завершено';
-      case 'cancelled':
-        return 'Отменено';
-      default:
-        return status;
+      case 'pending': return 'Ожидает';
+      case 'in_progress': return 'В работе';
+      case 'completed': return 'Завершено';
+      case 'cancelled': return 'Отменено';
+      default: return status;
     }
   };
 
-  const renderOrder = ({ item }: { item: Order }) => (
-    <TouchableOpacity 
-      style={styles.orderCard}
-      onPress={() => handleOrderPress(item)}
-    >
-      <View style={styles.orderHeader}>
-        <View style={styles.orderInfo}>
-          <Text style={styles.orderTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
-          <Text style={styles.orderDescription} numberOfLines={2}>
-            {item.description}
-          </Text>
-          <View style={styles.orderMeta}>
-            <Text style={styles.orderCategory}>{item.category}</Text>
-            <Text style={styles.orderDate}>
-              {new Date(item.created_at).toLocaleDateString('ru-RU')}
-            </Text>
+  const renderOrder = ({ item, index }: { item: Order; index: number }) => (
+    <FadeInView delay={index * 50}>
+      <TouchableOpacity 
+        style={styles.orderCard}
+        onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
+        activeOpacity={0.9}
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.cardGradient}
+        >
+          <View style={styles.cardContent}>
+            {/* Header */}
+            <View style={styles.orderHeader}>
+              <View style={styles.orderTitleSection}>
+                <Text style={styles.orderTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                <Text style={styles.orderDescription} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              </View>
+              
+              {item.images && item.images.length > 0 && (
+                <Image
+                  source={{ uri: item.images[0] }}
+                  style={styles.orderThumbnail}
+                  resizeMode="cover"
+                />
+              )}
+            </View>
+
+            {/* Meta */}
+            <View style={styles.orderMeta}>
+              <View style={styles.metaItem}>
+                <Ionicons name="pricetag-outline" size={14} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.metaText}>{item.category || 'Без категории'}</Text>
+              </View>
+              
+              {item.region && (
+                <View style={styles.metaItem}>
+                  <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.metaText}>{item.region}</Text>
+                </View>
+              )}
+              
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.metaText}>
+                  {new Date(item.created_at).toLocaleDateString('ru-RU')}
+                </Text>
+              </View>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.orderFooter}>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+                <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+              </View>
+              
+              {item.response_count > 0 && (
+                <TouchableOpacity
+                  style={styles.responsesButton}
+                  onPress={() => navigation.navigate('OrderResponses', { orderId: item.id })}
+                >
+                  <Ionicons name="chatbubbles" size={16} color="#f97316" />
+                  <Text style={styles.responsesText}>{item.response_count} откликов</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-        </View>
-        
-        {item.images && item.images.length > 0 && (
-          <Image 
-            source={{ uri: `https://mebelplace.com.kz${item.images[0]}` }}
-            style={styles.orderImage}
-            resizeMode="cover"
-          />
-        )}
-      </View>
-
-      <View style={styles.orderFooter}>
-        <View style={styles.statusContainer}>
-          <View 
-            style={[
-              styles.statusBadge, 
-              { backgroundColor: getStatusColor(item.status) }
-            ]}
-          >
-            <Text style={styles.statusText}>
-              {getStatusText(item.status)}
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity 
-          style={styles.responsesButton}
-          onPress={() => handleResponsesPress(item)}
-        >
-          <Ionicons name="chatbubble-outline" size={16} color="#f97316" />
-          <Text style={styles.responsesText}>
-            Ответы ({item.response_count})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Swipe Actions */}
-      <View style={styles.swipeActions}>
-        <TouchableOpacity 
-          style={styles.swipeAction}
-          onPress={() => handlePinOrder(item.id)}
-        >
-          <Ionicons name="pin" size={20} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.swipeAction, { backgroundColor: '#ef4444' }]}
-          onPress={() => handleDeleteOrder(item.id)}
-        >
-          <Ionicons name="trash" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+        </LinearGradient>
+      </TouchableOpacity>
+    </FadeInView>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Загрузка заявок...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#f97316" />
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* Search & Filter - TikTok Style */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Мои заявки</Text>
-        <TouchableOpacity 
-          style={styles.createButton}
-          onPress={() => navigation.navigate('CreateOrder' as never)}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Поиск заявок..."
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Status Filter */}
+        <View style={styles.filters}>
+          {[
+            { key: 'all', label: 'Все' },
+            { key: 'pending', label: 'Ожидает' },
+            { key: 'in_progress', label: 'В работе' },
+            { key: 'completed', label: 'Завершено' },
+          ].map((filter) => (
+            <TouchableOpacity
+              key={filter.key}
+              style={[
+                styles.filterChip,
+                statusFilter === filter.key && styles.filterChipActive
+              ]}
+              onPress={() => setStatusFilter(filter.key)}
+            >
+              <Text style={[
+                styles.filterText,
+                statusFilter === filter.key && styles.filterTextActive
+              ]}>
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {orders.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="document-outline" size={64} color="#9ca3af" />
-          <Text style={styles.emptyTitle}>Нет заявок</Text>
-          <Text style={styles.emptyDescription}>
-            Создайте свою первую заявку, чтобы мастера могли предложить вам свои услуги
-          </Text>
-          <TouchableOpacity 
-            style={styles.emptyButton}
-            onPress={() => navigation.navigate('CreateOrder' as never)}
-          >
-            <Text style={styles.emptyButtonText}>Создать заявку</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={orders}
-          renderItem={renderOrder}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={styles.listContainer}
-        />
-      )}
-    </SafeAreaView>
+      {/* Orders List */}
+      <FlatList
+        data={filteredOrders}
+        renderItem={renderOrder}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor="#f97316"
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="document-text-outline" size={64} color="rgba(255,255,255,0.2)" />
+            <Text style={styles.emptyText}>Нет заявок</Text>
+            <Text style={styles.emptySubtext}>
+              {searchQuery ? 'Попробуйте изменить запрос' : 'Создайте первую заявку'}
+            </Text>
+          </View>
+        }
+      />
+
+      {/* FAB - Create Order */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('CreateOrder')}
+        activeOpacity={0.9}
+      >
+        <LinearGradient
+          colors={['#f97316', '#ea580c']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#000',
   },
   loadingContainer: {
     flex: 1,
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    color: '#6b7280',
-    fontSize: 16,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#111',
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  createButton: {
-    backgroundColor: '#f97316',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
+  searchBar: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    marginBottom: 12,
   },
-  emptyContainer: {
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyDescription: {
     fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
-  },
-  emptyButton: {
-    backgroundColor: '#f97316',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
     color: '#fff',
-    fontSize: 16,
+    paddingVertical: 8,
+  },
+  filters: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  filterChipActive: {
+    backgroundColor: '#f97316',
+    borderColor: '#f97316',
+  },
+  filterText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
     fontWeight: '600',
   },
-  listContainer: {
+  filterTextActive: {
+    color: '#fff',
+  },
+  listContent: {
     padding: 16,
+    paddingBottom: 100,
   },
   orderCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  cardGradient: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  cardContent: {
+    padding: 16,
   },
   orderHeader: {
     flexDirection: 'row',
-    padding: 16,
+    gap: 12,
+    marginBottom: 12,
   },
-  orderInfo: {
+  orderTitleSection: {
     flex: 1,
-    marginRight: 12,
   },
   orderTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 6,
   },
   orderDescription: {
     fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 12,
-    lineHeight: 20,
+    color: 'rgba(255,255,255,0.6)',
   },
-  orderMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  orderCategory: {
-    fontSize: 12,
-    color: '#f97316',
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  orderDate: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  orderImage: {
+  orderThumbnail: {
     width: 80,
     height: 80,
     borderRadius: 8,
+  },
+  orderMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 12,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
   },
   orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  statusContainer: {
-    flex: 1,
   },
   statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
   statusText: {
     fontSize: 12,
-    color: '#fff',
     fontWeight: '600',
+    color: '#fff',
   },
   responsesButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef3c7',
+    backgroundColor: 'rgba(249,115,22,0.1)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 12,
+    gap: 6,
   },
   responsesText: {
     fontSize: 12,
-    color: '#f97316',
-    marginLeft: 4,
     fontWeight: '600',
+    color: '#f97316',
   },
-  swipeActions: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    flexDirection: 'row',
+  emptyContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
   },
-  swipeAction: {
-    backgroundColor: '#3b82f6',
-    width: 60,
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 80,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fabGradient: {
+    width: '100%',
     height: '100%',
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
   },

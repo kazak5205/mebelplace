@@ -35,13 +35,9 @@ const OrderResponsesScreen = ({ route, navigation }: any) => {
   const loadResponses = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getOrderResponses(orderId);
-      
-      if (response.success) {
-        setResponses(response.data);
-      } else {
-        Alert.alert('Ошибка', 'Не удалось загрузить отклики');
-      }
+      // Синхронизировано с web: getOrderResponses возвращает responses
+      const responses = await apiService.getOrderResponses(orderId);
+      setResponses(responses || []);
     } catch (error) {
       console.error('Error loading responses:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при загрузке откликов');
@@ -60,14 +56,10 @@ const OrderResponsesScreen = ({ route, navigation }: any) => {
           text: 'Принять',
           onPress: async () => {
             try {
-              const response = await apiService.acceptOrderResponse(orderId, responseId);
-              
-              if (response.success) {
-                Alert.alert('Успех', 'Отклик принят');
-                loadResponses();
-              } else {
-                Alert.alert('Ошибка', 'Не удалось принять отклик');
-              }
+              // Синхронизировано с web: acceptOrderResponse возвращает result
+              await apiService.acceptOrderResponse(orderId, responseId);
+              Alert.alert('Успех', 'Отклик принят');
+              loadResponses();
             } catch (error) {
               console.error('Error accepting response:', error);
               Alert.alert('Ошибка', 'Произошла ошибка при принятии отклика');
@@ -88,14 +80,10 @@ const OrderResponsesScreen = ({ route, navigation }: any) => {
           text: 'Отклонить',
           onPress: async () => {
             try {
-              const response = await apiService.rejectOrderResponse(orderId, responseId);
-              
-              if (response.success) {
-                Alert.alert('Успех', 'Отклик отклонен');
-                loadResponses();
-              } else {
-                Alert.alert('Ошибка', 'Не удалось отклонить отклик');
-              }
+              // Синхронизировано с web: rejectOrderResponse возвращает result
+              await apiService.rejectOrderResponse(orderId, responseId);
+              Alert.alert('Успех', 'Отклик отклонен');
+              loadResponses();
             } catch (error) {
               console.error('Error rejecting response:', error);
               Alert.alert('Ошибка', 'Произошла ошибка при отклонении отклика');

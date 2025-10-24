@@ -1,5 +1,5 @@
 /**
- * Master Channel Screen - Профиль мастера с видео и информацией
+ * Master Channel Screen - Профиль мастера в стиле TikTok
  * Синхронизирован с client/src/pages/MasterChannelPage.tsx
  */
 import React, { useState, useEffect } from 'react';
@@ -12,37 +12,59 @@ import {
   Dimensions,
   FlatList,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import {
   Text,
-  Card,
   Avatar,
   Button,
-  Chip,
   ActivityIndicator,
-  Divider,
 } from 'react-native-paper';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { apiService } from '../../services/apiService';
-import { useAuth } from '@shared/contexts/AuthContext';
+import { userService } from '../../services/userService';
+import { videoService } from '../../services/videoService';
+import { useAuth } from '../../contexts/AuthContext';
 import type { User, Video } from '@shared/types';
+import { FadeInView, ScaleInView, SlideInView } from '../../components/TikTokAnimations';
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.45;
+const { width, height } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 3; // 3 колонки как в TikTok
+const AVATAR_SIZE = 100;
 
 interface MasterChannelScreenProps {
   route: any;
   navigation: any;
 }
 
+type TabType = 'videos' | 'likes' | 'saved';
+
+// Расширенный тип User с дополнительными полями от бэка
+interface ExtendedUser extends User {
+  name?: string;
+  bio?: string;
+  specialties?: string[];
+  location?: {
+    city: string;
+    region?: string;
+  };
+  rating?: number;
+  reviewsCount?: number;
+  followingCount?: number;
+  followersCount?: number;
+}
+
 const MasterChannelScreen: React.FC<MasterChannelScreenProps> = ({ route, navigation }) => {
   const { masterId } = route.params;
   const { user } = useAuth();
   
-  const [master, setMaster] = useState<User | null>(null);
+  const [master, setMaster] = useState<ExtendedUser | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [likedVideos, setLikedVideos] = useState<Video[]>([]);
+  const [savedVideos, setSavedVideos] = useState<Video[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('videos');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -57,27 +79,32 @@ const MasterChannelScreen: React.FC<MasterChannelScreenProps> = ({ route, naviga
     try {
       setIsLoading(true);
       
-      // Загружаем видео мастера
-      const videosResponse = await apiService.getVideos(1, 50);
-      
-      if (videosResponse.success && videosResponse.data?.length > 0) {
-        const masterVideos = Array.isArray(videosResponse.data) 
-          ? videosResponse.data.filter((v: any) => v.master?.id === masterId || v.author?.id === masterId)
-          : [];
-        
-        setVideos(masterVideos);
-        
-        // Берем информацию о мастере из первого видео
-        if (masterVideos.length > 0) {
-          const masterInfo = masterVideos[0].master || masterVideos[0].author;
-          setMaster(masterInfo);
-          setSelectedVideo(masterVideos[0]);
-        }
+      // Загружаем информацию о мастере (apiService.get уже возвращает data)
+      const userData:any = await apiService.get(`/users/${masterId}`);
+      if (userData) {
+        setMaster(userData as ExtendedUser);
       }
       
-      // Загрузить информацию о подписке (пока закомментировано - endpoint будет добавлен позже)
-      // const followResponse = await apiService.get(`/users/${masterId}/following`);
-      // setIsFollowing(followResponse.data?.isFollowing || false);
+      // Загружаем видео мастера (videoService.getVideos возвращает { videos: [], pagination: {} })
+      const videosResponse:any = await videoService.getVideos({ 
+        masterId,
+        page: 1,
+        limit: 50 
+      } as any);
+      
+      if (videosResponse && videosResponse.videos) {
+        setVideos(videosResponse.videos as Video[]);
+      }
+      
+      // Загружаем статус подписки
+      if (user && !isOwner) {
+        try {
+          const subscriptionStatus:any = await userService.getSubscriptionStatus(masterId);
+          setIsFollowing(subscriptionStatus?.isSubscribed || false);
+        } catch (error) {
+          console.error('Error loading subscription status:', error);
+        }
+      }
       
     } catch (error) {
       console.error('Error loading master data:', error);
@@ -93,14 +120,19 @@ const MasterChannelScreen: React.FC<MasterChannelScreenProps> = ({ route, naviga
   };
 
   const handleFollow = async () => {
+    if (!user) {
+      // Если пользователь не авторизован, можно показать алерт или перенаправить на логин
+      return;
+    }
+    
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
       if (isFollowing) {
-        // await apiService.unfollowUser(masterId);
+        await userService.unsubscribe(masterId);
         setIsFollowing(false);
       } else {
-        // await apiService.followUser(masterId);
+        await userService.subscribe(masterId);
         setIsFollowing(true);
       }
     } catch (error) {
@@ -156,6 +188,22 @@ const MasterChannelScreen: React.FC<MasterChannelScreenProps> = ({ route, naviga
     );
   }
 
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const getCurrentVideos = () => {
+    switch (activeTab) {
+      case 'likes':
+        return likedVideos;
+      case 'saved':
+        return savedVideos;
+      default:
+        return videos;
+    }
+  };
+
   const renderVideoItem = ({ item, index }: { item: Video; index: number }) => (
     <TouchableOpacity onPress={() => handleVideoPress(item, index)} style={styles.videoCard}>
       <Image
@@ -164,364 +212,504 @@ const MasterChannelScreen: React.FC<MasterChannelScreenProps> = ({ route, naviga
         resizeMode="cover"
       />
       <View style={styles.videoOverlay}>
-        <View style={styles.videoStats}>
-          <View style={styles.videoStat}>
-            <Ionicons name="play" size={14} color="#fff" />
-            <Text style={styles.videoStatText}>{formatCount(item.viewsCount)}</Text>
-          </View>
-          <View style={styles.videoStat}>
-            <Ionicons name="heart" size={14} color="#fff" />
-            <Text style={styles.videoStatText}>{formatCount(item.likesCount)}</Text>
-          </View>
+        <View style={styles.videoStat}>
+          <Ionicons name="play" size={16} color="#fff" />
+          <Text style={styles.videoStatText}>
+            {formatCount(item.views || (item as any).views_count || (item as any).viewsCount || 0)}
+          </Text>
         </View>
       </View>
-      <Text style={styles.videoTitle} numberOfLines={2}>
-        {item.title}
-      </Text>
     </TouchableOpacity>
   );
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Профиль мастера</Text>
-        <View style={styles.headerRight} />
+        <Text style={styles.headerTitle}>{master.name}</Text>
+        <TouchableOpacity style={styles.headerButton}>
+          <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
+        </TouchableOpacity>
       </View>
 
-      {/* Master Info Card */}
-      <Card style={styles.masterCard}>
-        <Card.Content>
-          <View style={styles.masterHeader}>
-            {master.avatar ? (
-              <Avatar.Image size={80} source={{ uri: master.avatar }} />
-            ) : (
-              <Avatar.Text size={80} label={master.name.charAt(0).toUpperCase()} />
-            )}
-            
-            <View style={styles.masterInfo}>
-              <Text style={styles.masterName}>{master.name}</Text>
-              
-              {master.specialties && master.specialties.length > 0 && (
-                <Text style={styles.masterSpecialties} numberOfLines={2}>
-                  {master.specialties.join(', ')}
-                </Text>
-              )}
-              
-              <View style={styles.masterStats}>
-                {master.rating && (
-                  <View style={styles.statItem}>
-                    <Ionicons name="star" size={16} color="#f59e0b" />
-                    <Text style={styles.statText}>
-                      {master.rating.toFixed(1)} ({master.reviewsCount})
-                    </Text>
-                  </View>
-                )}
-                
-                {master.location && (
-                  <View style={styles.statItem}>
-                    <Ionicons name="location-outline" size={16} color="#666" />
-                    <Text style={styles.statText}>
-                      {master.location.city}
-                    </Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* TikTok Style Profile Header */}
+        <View style={styles.profileHeader}>
+          {/* Avatar with gradient border */}
+          <ScaleInView duration={600} style={styles.avatarContainer}>
+            <LinearGradient
+              colors={['#FE2C55', '#FFC107', '#00F2EA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.avatarGradient}
+            >
+              <View style={styles.avatarInner}>
+                {master.avatar ? (
+                  <Image source={{ uri: master.avatar }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                    <Text style={styles.avatarText}>{(master.name || master.username || 'M').charAt(0).toUpperCase()}</Text>
                   </View>
                 )}
               </View>
-            </View>
-          </View>
+            </LinearGradient>
+          </ScaleInView>
 
-          <Divider style={styles.divider} />
+          {/* Username */}
+          <FadeInView delay={200} duration={500}>
+            <Text style={styles.username}>@{(master.name || master.username || 'master').toLowerCase().replace(/\s/g, '_')}</Text>
+          </FadeInView>
+
+          {/* Stats Row - TikTok Style */}
+          <SlideInView delay={300} from="bottom" style={styles.statsRow}>
+            <TouchableOpacity style={styles.statItem}>
+              <Text style={styles.statNumber}>
+                {formatCount(master.followingCount || (master as any).following_count || 0)}
+              </Text>
+              <Text style={styles.statLabel}>Подписки</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.statItem}>
+              <Text style={styles.statNumber}>
+                {formatCount((master as any).subscribersCount || (master as any).subscribers_count || master.followersCount || (master as any).followers_count || 0)}
+              </Text>
+              <Text style={styles.statLabel}>Подписчики</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.statItem}>
+              <Text style={styles.statNumber}>
+                {formatCount(videos.reduce((sum, v) => sum + (v.likeCount || (v as any).like_count || v.likes || 0), 0))}
+              </Text>
+              <Text style={styles.statLabel}>Лайки</Text>
+            </TouchableOpacity>
+          </SlideInView>
 
           {/* Action Buttons */}
-          <View style={styles.actionButtons}>
+          <FadeInView delay={400} duration={500} style={styles.actionButtons}>
             {isOwner ? (
-              <Button
-                mode="contained"
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.primaryButton]} 
                 onPress={handleUploadVideo}
-                icon="video-plus"
-                style={styles.actionButton}
-                buttonColor="#f97316"
               >
-                Загрузить видео
-              </Button>
+                <Ionicons name="add" size={20} color="#fff" />
+                <Text style={styles.primaryButtonText}>Загрузить видео</Text>
+              </TouchableOpacity>
             ) : (
               <>
-                <Button
-                  mode={isFollowing ? 'outlined' : 'contained'}
+                <TouchableOpacity 
+                  style={[styles.actionButton, isFollowing ? styles.followingButton : styles.primaryButton]} 
                   onPress={handleFollow}
-                  icon={isFollowing ? 'check' : 'plus'}
-                  style={[styles.actionButton, styles.followButton]}
-                  buttonColor={isFollowing ? undefined : '#f97316'}
                 >
-                  {isFollowing ? 'Подписан' : 'Подписаться'}
-                </Button>
-                <Button
-                  mode="contained"
+                  {isFollowing ? (
+                    <>
+                      <Ionicons name="checkmark" size={20} color="#000" />
+                      <Text style={styles.followingButtonText}>Подписан</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="add" size={20} color="#fff" />
+                      <Text style={styles.primaryButtonText}>Подписаться</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.secondaryButton]} 
                   onPress={handleMessage}
-                  icon="message-text"
-                  style={styles.actionButton}
-                  buttonColor="#6b7280"
                 >
-                  Написать
-                </Button>
+                  <Ionicons name="chatbubble-outline" size={18} color="#000" />
+                </TouchableOpacity>
               </>
             )}
-          </View>
+          </FadeInView>
 
-          {/* Stats Row */}
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{formatCount(videos.length)}</Text>
-              <Text style={styles.statLabel}>Видео</Text>
-            </View>
-            <Divider style={styles.verticalDivider} />
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{formatCount(master.followersCount || 0)}</Text>
-              <Text style={styles.statLabel}>Подписчики</Text>
-            </View>
-            <Divider style={styles.verticalDivider} />
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>
-                {formatCount(videos.reduce((sum, v) => sum + v.viewsCount, 0))}
-              </Text>
-              <Text style={styles.statLabel}>Просмотры</Text>
-            </View>
-          </View>
-        </Card.Content>
-      </Card>
+          {/* Bio */}
+          {master.bio && (
+            <FadeInView delay={500} duration={500}>
+              <Text style={styles.bio}>{master.bio}</Text>
+            </FadeInView>
+          )}
 
-      {/* Videos Grid */}
-      <View style={styles.videosSection}>
-        <Text style={styles.sectionTitle}>Видео ({videos.length})</Text>
-        
-        {videos.length === 0 ? (
-          <View style={styles.emptyVideos}>
-            <Ionicons name="videocam-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyVideosText}>
-              {isOwner ? 'Загрузите первое видео' : 'У этого мастера пока нет видео'}
+          {/* Specialties as hashtags */}
+          {master.specialties && master.specialties.length > 0 && (
+            <FadeInView delay={600} duration={500} style={styles.hashtagsContainer}>
+              {master.specialties.slice(0, 3).map((specialty, index) => (
+                <Text key={index} style={styles.hashtag}>#{specialty}</Text>
+              ))}
+            </FadeInView>
+          )}
+
+          {/* Location & Rating */}
+          <FadeInView delay={700} duration={500} style={styles.infoRow}>
+            {master.location && (
+              <View style={styles.infoItem}>
+                <Ionicons name="location" size={14} color="#666" />
+                <Text style={styles.infoText}>{master.location.city}</Text>
+              </View>
+            )}
+            {master.rating && (
+              <View style={styles.infoItem}>
+                <Ionicons name="star" size={14} color="#FFC107" />
+                <Text style={styles.infoText}>{master.rating.toFixed(1)}</Text>
+              </View>
+            )}
+          </FadeInView>
+        </View>
+
+        {/* Content Tabs - TikTok Style */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'videos' && styles.activeTab]}
+            onPress={() => handleTabChange('videos')}
+          >
+            <MaterialCommunityIcons 
+              name="grid" 
+              size={24} 
+              color={activeTab === 'videos' ? '#000' : '#999'} 
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'likes' && styles.activeTab]}
+            onPress={() => handleTabChange('likes')}
+          >
+            <Ionicons 
+              name="heart" 
+              size={24} 
+              color={activeTab === 'likes' ? '#000' : '#999'} 
+            />
+          </TouchableOpacity>
+          
+          {isOwner && (
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'saved' && styles.activeTab]}
+              onPress={() => handleTabChange('saved')}
+            >
+              <Ionicons 
+                name="bookmark" 
+                size={24} 
+                color={activeTab === 'saved' ? '#000' : '#999'} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Videos Grid - 3 columns like TikTok */}
+        {getCurrentVideos().length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons 
+              name={activeTab === 'videos' ? 'videocam-outline' : activeTab === 'likes' ? 'heart-outline' : 'bookmark-outline'} 
+              size={64} 
+              color="#ccc" 
+            />
+            <Text style={styles.emptyText}>
+              {activeTab === 'videos' 
+                ? (isOwner ? 'Загрузите первое видео' : 'Нет видео') 
+                : activeTab === 'likes' 
+                ? 'Нет лайкнутых видео' 
+                : 'Нет сохраненных видео'}
             </Text>
           </View>
         ) : (
           <FlatList
-            data={videos}
+            data={getCurrentVideos()}
             renderItem={renderVideoItem}
             keyExtractor={(item) => item.id}
-            numColumns={2}
+            numColumns={3}
             scrollEnabled={false}
             contentContainerStyle={styles.videosGrid}
             columnWrapperStyle={styles.videoRow}
           />
         )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
+  
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e0e0e0',
   },
-  backBtn: {
-    padding: 8,
+  headerButton: {
+    padding: 4,
+    width: 40,
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#000',
   },
-  headerRight: {
-    width: 40,
-  },
-  masterCard: {
-    margin: 16,
+
+  // Profile Header - TikTok Style
+  profileHeader: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    elevation: 2,
   },
-  masterHeader: {
-    flexDirection: 'row',
+  
+  // Avatar with gradient border
+  avatarContainer: {
     marginBottom: 16,
   },
-  masterInfo: {
-    flex: 1,
-    marginLeft: 16,
+  avatarGradient: {
+    width: AVATAR_SIZE + 6,
+    height: AVATAR_SIZE + 6,
+    borderRadius: (AVATAR_SIZE + 6) / 2,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  masterName: {
+  avatarInner: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatar: {
+    width: AVATAR_SIZE - 4,
+    height: AVATAR_SIZE - 4,
+    borderRadius: (AVATAR_SIZE - 4) / 2,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+
+  // Username
+  username: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 20,
+  },
+
+  // Stats Row - TikTok Style
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    gap: 32,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statNumber: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 4,
   },
-  masterSpecialties: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  masterStats: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
+  statLabel: {
     fontSize: 13,
-    color: '#666',
+    color: '#8E8E93',
+    marginTop: 2,
   },
-  divider: {
-    marginVertical: 16,
-  },
+
+  // Action Buttons
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 16,
+    width: '100%',
   },
   actionButton: {
     flex: 1,
-  },
-  followButton: {
-    flex: 1,
-  },
-  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 16,
-  },
-  statBox: {
-    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 4,
+    gap: 6,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  primaryButton: {
+    backgroundColor: '#FE2C55',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  followingButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  followingButtonText: {
     color: '#000',
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '600',
   },
-  statLabel: {
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    maxWidth: 48,
+  },
+
+  // Bio & Info
+  bio: {
+    fontSize: 14,
+    color: '#000',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  hashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  hashtag: {
+    fontSize: 14,
+    color: '#0066FF',
+    fontWeight: '500',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    gap: 16,
+    justifyContent: 'center',
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  infoText: {
     fontSize: 13,
     color: '#666',
   },
-  verticalDivider: {
-    width: 1,
-    height: '100%',
+
+  // Tabs - TikTok Style
+  tabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
   },
-  videosSection: {
-    padding: 16,
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 16,
+  activeTab: {
+    borderBottomColor: '#000',
   },
+
+  // Videos Grid - 3 columns
   videosGrid: {
-    paddingBottom: 16,
+    paddingTop: 2,
   },
   videoRow: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
+    justifyContent: 'flex-start',
   },
   videoCard: {
     width: CARD_WIDTH,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    elevation: 2,
+    height: CARD_WIDTH * 1.4,
+    marginBottom: 2,
+    marginRight: 2,
+    backgroundColor: '#f0f0f0',
+    position: 'relative',
   },
   videoThumbnail: {
     width: '100%',
-    height: 240,
-    backgroundColor: '#eee',
+    height: '100%',
   },
   videoOverlay: {
     position: 'absolute',
-    top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 40,
-    justifyContent: 'flex-end',
     padding: 8,
-  },
-  videoStats: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'flex-end',
   },
   videoStat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
   videoStatText: {
     fontSize: 12,
     color: '#fff',
     fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  videoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    padding: 8,
-  },
-  emptyVideos: {
+
+  // Empty States
+  emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
+    justifyContent: 'center',
+    paddingVertical: 80,
   },
-  emptyVideosText: {
+  emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: '#8E8E93',
     marginTop: 16,
   },
+
+  // Loading
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+    fontSize: 15,
+    color: '#8E8E93',
   },
+
+  // Empty Container
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
     padding: 32,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#999',
-    marginTop: 16,
-    marginBottom: 24,
   },
   backButton: {
     minWidth: 120,
+    marginTop: 16,
   },
 });
 

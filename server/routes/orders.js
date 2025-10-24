@@ -1,17 +1,24 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
-const { upload } = require('../middleware/upload');
+const { imageUpload } = require('../middleware/upload');
 const notificationService = require('../services/notificationService');
+const { KZ_REGIONS } = require('../../shared/utils/regions');
 const router = express.Router();
 
 // POST /api/orders/create - Создание заявки
-router.post('/create', authenticateToken, upload.array('images', 5), async (req, res) => {
+router.post('/create', authenticateToken, imageUpload.array('images', 5), async (req, res) => {
   try {
+    console.log('=== CREATE ORDER REQUEST ===');
+    console.log('Body:', req.body);
+    console.log('Files:', req.files?.length || 0);
+    console.log('User:', req.user?.id, req.user?.username);
+    
     const { title, description, category, location, region, budget, deadline } = req.body;
     const clientId = req.user.id;
 
     if (!title || !description) {
+      console.log('Validation failed: missing title or description');
       return res.status(400).json({
         success: false,
         message: 'Title and description are required',
@@ -21,8 +28,13 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
 
     // Обработка загруженных изображений
     const images = req.files ? req.files.map(file => `/uploads/order-photos/${file.filename}`) : [];
+    console.log('Images:', images);
 
     // Создание заявки
+    console.log('Inserting order with params:', {
+      title, description, images, clientId, category, location, region, budget, deadline
+    });
+    
     const result = await pool.query(`
       INSERT INTO orders (title, description, images, client_id, category, location, region, price, deadline, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -41,17 +53,24 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
     ]);
 
     const order = result.rows[0];
+    console.log('Order created:', order.id);
 
     // Уведомление мастерам о новой заявке
     const mastersResult = await pool.query(
       'SELECT id FROM users WHERE role = $1 AND is_active = true',
       ['master']
     );
+    console.log('Notifying', mastersResult.rows.length, 'masters');
 
     for (const master of mastersResult.rows) {
-      await notificationService.notifyNewOrder(master.id, order.title, req.user.username);
+      try {
+        await notificationService.notifyNewOrder(master.id, order.title, req.user.username);
+      } catch (notifyError) {
+        console.error('Notification error for master', master.id, ':', notifyError.message);
+      }
     }
 
+    console.log('Order created successfully');
     res.status(201).json({
       success: true,
       data: order,
@@ -60,7 +79,8 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
     });
 
   } catch (error) {
-    console.error('Create order error:', error);
+    console.error('Create order error:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to create order',
@@ -72,7 +92,9 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
 // GET /api/orders/feed - Лента заявок
 router.get('/feed', authenticateToken, async (req, res) => {
   try {
-    const { page = 1, limit = 10, category, region, status = 'pending' } = req.query;
+    // Для админов по умолчанию показываем все заявки, для остальных - только pending
+    const defaultStatus = req.user.role === 'admin' ? null : 'pending';
+    const { page = 1, limit = 10, category, region, status = defaultStatus } = req.query;
     const offset = (page - 1) * limit;
 
     let query = `
@@ -82,15 +104,22 @@ router.get('/feed', authenticateToken, async (req, res) => {
         u.first_name as client_first_name,
         u.last_name as client_last_name,
         u.avatar as client_avatar,
-        COUNT(or.id) as response_count
+        u.phone as client_phone,
+        COUNT(DISTINCT ord_resp.id) as response_count,
+        CASE WHEN EXISTS(
+          SELECT 1 FROM order_responses my_resp 
+          WHERE my_resp.order_id = o.id 
+          AND my_resp.master_id = $1 
+          AND my_resp.is_active = true
+        ) THEN true ELSE false END as has_my_response
       FROM orders o
       LEFT JOIN users u ON o.client_id = u.id
-      LEFT JOIN order_responses or ON o.id = or.order_id AND or.is_active = true
+      LEFT JOIN order_responses ord_resp ON o.id = ord_resp.order_id AND ord_resp.is_active = true
       WHERE o.is_active = true
     `;
     
-    const params = [];
-    let paramCount = 0;
+    const params = [req.user.id];
+    let paramCount = 1;
 
     if (category) {
       query += ` AND o.category = $${++paramCount}`;
@@ -102,7 +131,8 @@ router.get('/feed', authenticateToken, async (req, res) => {
       params.push(region);
     }
 
-    if (status) {
+    // Добавляем фильтр по статусу только если он задан явно
+    if (status !== null && status !== undefined && status !== '') {
       query += ` AND o.status = $${++paramCount}`;
       params.push(status);
     }
@@ -114,7 +144,7 @@ router.get('/feed', authenticateToken, async (req, res) => {
     }
 
     query += `
-      GROUP BY o.id, u.username, u.first_name, u.last_name, u.avatar
+      GROUP BY o.id, u.username, u.first_name, u.last_name, u.avatar, u.phone
       ORDER BY o.created_at DESC
       LIMIT $${++paramCount} OFFSET $${++paramCount}
     `;
@@ -142,6 +172,54 @@ router.get('/feed', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve orders',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/orders/regions - Получить список регионов Казахстана (ПУБЛИЧНЫЙ)
+router.get('/regions', async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: KZ_REGIONS,
+      message: 'Regions retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get regions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve regions',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/orders/categories - Получить категории заявок (ПУБЛИЧНЫЙ)
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = [
+      { id: 'furniture', name: 'Мебель', description: 'Изготовление и ремонт мебели' },
+      { id: 'carpentry', name: 'Столярные работы', description: 'Работы по дереву' },
+      { id: 'upholstery', name: 'Обивка мебели', description: 'Перетяжка и реставрация' },
+      { id: 'restoration', name: 'Реставрация', description: 'Восстановление старинной мебели' },
+      { id: 'custom', name: 'На заказ', description: 'Индивидуальное изготовление' },
+      { id: 'repair', name: 'Ремонт', description: 'Ремонт и восстановление' },
+      { id: 'other', name: 'Другое', description: 'Прочие работы' }
+    ];
+
+    res.json({
+      success: true,
+      data: categories,
+      message: 'Categories retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve categories',
       timestamp: new Date().toISOString()
     });
   }
@@ -187,18 +265,23 @@ router.get('/:id', authenticateToken, async (req, res) => {
     // Получить отклики на заявку
     const responsesResult = await pool.query(`
       SELECT 
-        or.*,
+        ord_resp.*,
         u.username as master_username,
         u.first_name as master_first_name,
         u.last_name as master_last_name,
-        u.avatar as master_avatar
-      FROM order_responses or
-      LEFT JOIN users u ON or.master_id = u.id
-      WHERE or.order_id = $1 AND or.is_active = true
-      ORDER BY or.created_at DESC
+        u.avatar as master_avatar,
+        u.phone as master_phone
+      FROM order_responses ord_resp
+      LEFT JOIN users u ON ord_resp.master_id = u.id
+      WHERE ord_resp.order_id = $1 AND ord_resp.is_active = true
+      ORDER BY ord_resp.created_at DESC
     `, [orderId]);
 
     order.responses = responsesResult.rows;
+    
+    console.log(`[GET ORDER] Order ID: ${orderId}`);
+    console.log(`[GET ORDER] Responses found: ${responsesResult.rows.length}`);
+    console.log(`[GET ORDER] Responses:`, JSON.stringify(responsesResult.rows, null, 2));
 
     res.json({
       success: true,
@@ -300,97 +383,6 @@ router.post('/:id/response', authenticateToken, requireRole(['master', 'admin'])
     res.status(500).json({
       success: false,
       message: 'Failed to send response',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// POST /api/orders/:id/accept - Принять отклик
-router.post('/:id/accept', authenticateToken, async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    const { responseId } = req.body;
-    const clientId = req.user.id;
-
-    // Проверка заявки
-    const orderResult = await pool.query(
-      'SELECT id, client_id, status FROM orders WHERE id = $1 AND client_id = $2 AND is_active = true',
-      [orderId, clientId]
-    );
-
-    if (orderResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found or access denied',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const order = orderResult.rows[0];
-
-    if (order.status !== 'pending') {
-      return res.status(400).json({
-        success: false,
-        message: 'Order is no longer accepting responses',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Проверка отклика
-    const responseResult = await pool.query(
-      'SELECT id, master_id FROM order_responses WHERE id = $1 AND order_id = $2 AND is_active = true',
-      [responseId, orderId]
-    );
-
-    if (responseResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Response not found',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const response = responseResult.rows[0];
-
-    // Обновление заявки
-    await pool.query(
-      'UPDATE orders SET status = $1, master_id = $2, updated_at = NOW() WHERE id = $3',
-      ['accepted', response.master_id, orderId]
-    );
-
-    // Деактивация всех остальных откликов
-    await pool.query(
-      'UPDATE order_responses SET is_active = false WHERE order_id = $1 AND id != $2',
-      [orderId, responseId]
-    );
-
-    // Создание чата между клиентом и мастером
-    const chatResult = await pool.query(`
-      INSERT INTO chats (order_id, client_id, master_id, is_active)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *
-    `, [orderId, clientId, response.master_id, true]);
-
-    const chat = chatResult.rows[0];
-
-    // Уведомление мастеру о принятии отклика
-    await notificationService.notifyResponseAccepted(response.master_id, order.title, req.user.username);
-
-    res.json({
-      success: true,
-      data: {
-        order: { id: orderId, status: 'accepted', master_id: response.master_id },
-        chat: chat
-      },
-      message: 'Response accepted successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Accept response error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to accept response',
       timestamp: new Date().toISOString()
     });
   }
@@ -511,68 +503,19 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/orders/categories - Получить категории заявок
-router.get('/categories', async (req, res) => {
-  try {
-    const categories = [
-      { id: 'furniture', name: 'Мебель', description: 'Изготовление и ремонт мебели' },
-      { id: 'carpentry', name: 'Столярные работы', description: 'Работы по дереву' },
-      { id: 'upholstery', name: 'Обивка мебели', description: 'Перетяжка и реставрация' },
-      { id: 'restoration', name: 'Реставрация', description: 'Восстановление старинной мебели' },
-      { id: 'custom', name: 'На заказ', description: 'Индивидуальное изготовление' },
-      { id: 'repair', name: 'Ремонт', description: 'Ремонт и восстановление' },
-      { id: 'other', name: 'Другое', description: 'Прочие работы' }
-    ];
-
-    res.json({
-      success: true,
-      data: categories,
-      message: 'Categories retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get categories error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve categories',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// GET /api/orders/regions - Получить список регионов Казахстана
-router.get('/regions', async (req, res) => {
-  try {
-    const { KZ_REGIONS } = require('../../shared/utils/regions');
-
-    res.json({
-      success: true,
-      data: KZ_REGIONS,
-      message: 'Regions retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get regions error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve regions',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
 // GET /api/orders/:id/responses - Получить отклики на заявку
 router.get('/:id/responses', authenticateToken, async (req, res) => {
   try {
     const orderId = req.params.id;
     const userId = req.user.id;
 
-    // Проверяем, что пользователь имеет доступ к заявке
+    // Проверяем, что пользователь имеет доступ к заявке (админы имеют доступ ко всем)
+    const isAdmin = req.user.role === 'admin';
     const orderResult = await pool.query(
-      'SELECT * FROM orders WHERE id = $1 AND (client_id = $2 OR $2 IN (SELECT master_id FROM order_responses WHERE order_id = $1))',
-      [orderId, userId]
+      isAdmin 
+        ? 'SELECT * FROM orders WHERE id = $1'
+        : 'SELECT * FROM orders WHERE id = $1 AND (client_id = $2 OR $2 IN (SELECT master_id FROM order_responses WHERE order_id = $1))',
+      isAdmin ? [orderId] : [orderId, userId]
     );
 
     if (orderResult.rows.length === 0) {
@@ -586,23 +529,49 @@ router.get('/:id/responses', authenticateToken, async (req, res) => {
     // Получаем отклики
     const responsesResult = await pool.query(`
       SELECT 
-        or.*,
+        ord_resp.*,
         u.username,
         u.avatar,
         u.first_name,
         u.last_name,
         u.phone,
         u.email
-      FROM order_responses or
-      LEFT JOIN users u ON or.master_id = u.id
-      WHERE or.order_id = $1 AND or.is_active = true
-      ORDER BY or.created_at DESC
+      FROM order_responses ord_resp
+      LEFT JOIN users u ON ord_resp.master_id = u.id
+      WHERE ord_resp.order_id = $1 AND ord_resp.is_active = true
+      ORDER BY ord_resp.created_at DESC
     `, [orderId]);
+
+    // Трансформируем данные - создаем объект master для каждого отклика
+    const responses = responsesResult.rows.map(row => ({
+      id: row.id,
+      order_id: row.order_id,
+      master_id: row.master_id,
+      message: row.message,
+      price: row.price,
+      deadline: row.deadline,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      is_active: row.is_active,
+      master: {
+        id: row.master_id,
+        username: row.username,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        name: row.first_name && row.last_name 
+          ? `${row.first_name} ${row.last_name}` 
+          : row.username,
+        avatar: row.avatar,
+        phone: row.phone,
+        email: row.email,
+        role: 'master'
+      }
+    }));
 
     res.json({
       success: true,
-      data: responsesResult.rows,
-      total: responsesResult.rows.length,
+      data: responses,
+      total: responses.length,
       message: 'Responses retrieved successfully',
       timestamp: new Date().toISOString()
     });
@@ -698,11 +667,17 @@ router.post('/:id/responses', authenticateToken, requireRole('master'), async (r
 // POST /api/orders/:id/accept - Принять отклик
 router.post('/:id/accept', authenticateToken, async (req, res) => {
   try {
+    console.log('[ACCEPT RESPONSE] Starting...');
+    console.log('[ACCEPT RESPONSE] Order ID:', req.params.id);
+    console.log('[ACCEPT RESPONSE] Response ID:', req.body.responseId);
+    console.log('[ACCEPT RESPONSE] User ID:', req.user.id);
+    
     const orderId = req.params.id;
     const { responseId } = req.body;
     const userId = req.user.id;
 
     if (!responseId) {
+      console.log('[ACCEPT RESPONSE] ERROR: No response ID');
       return res.status(400).json({
         success: false,
         message: 'Response ID is required',
@@ -711,12 +686,15 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
     }
 
     // Проверяем, что пользователь - владелец заявки
+    console.log('[ACCEPT RESPONSE] Checking order ownership...');
     const orderResult = await pool.query(
       'SELECT * FROM orders WHERE id = $1 AND client_id = $2 AND is_active = true',
       [orderId, userId]
     );
+    console.log('[ACCEPT RESPONSE] Order found:', orderResult.rows.length > 0);
 
     if (orderResult.rows.length === 0) {
+      console.log('[ACCEPT RESPONSE] ERROR: Order not found or access denied');
       return res.status(404).json({
         success: false,
         message: 'Order not found or access denied',
@@ -725,12 +703,16 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
     }
 
     // Проверяем, что отклик существует
+    console.log('[ACCEPT RESPONSE] Checking response exists...');
     const responseResult = await pool.query(
       'SELECT * FROM order_responses WHERE id = $1 AND order_id = $2 AND is_active = true',
       [responseId, orderId]
     );
+    console.log('[ACCEPT RESPONSE] Response found:', responseResult.rows.length > 0);
+    console.log('[ACCEPT RESPONSE] Master ID:', responseResult.rows[0]?.master_id);
 
     if (responseResult.rows.length === 0) {
+      console.log('[ACCEPT RESPONSE] ERROR: Response not found');
       return res.status(404).json({
         success: false,
         message: 'Response not found',
@@ -739,45 +721,72 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
     }
 
     // Обновляем статус заявки и отклика
+    console.log('[ACCEPT RESPONSE] Starting transaction...');
     await pool.query('BEGIN');
+    console.log('[ACCEPT RESPONSE] Transaction started');
 
+    console.log('[ACCEPT RESPONSE] Updating order status...');
     await pool.query(
       'UPDATE orders SET status = $1, accepted_response_id = $2 WHERE id = $3',
       ['accepted', responseId, orderId]
     );
+    console.log('[ACCEPT RESPONSE] Order updated');
 
+    console.log('[ACCEPT RESPONSE] Updating response status...');
     await pool.query(
       'UPDATE order_responses SET status = $1 WHERE id = $2',
       ['accepted', responseId]
     );
+    console.log('[ACCEPT RESPONSE] Response updated');
 
     // Создаем чат между клиентом и мастером
+    console.log('[ACCEPT RESPONSE] Creating chat...');
     const chatResult = await pool.query(`
-      INSERT INTO chats (type, name, description)
-      VALUES ($1, $2, $3)
+      INSERT INTO chats (type, name, description, creator_id, order_id)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, ['order', `Заявка: ${orderResult.rows[0].title}`, `Чат по заявке "${orderResult.rows[0].title}"`]);
+    `, ['private', `Заявка: ${orderResult.rows[0].title}`, `Чат по заявке "${orderResult.rows[0].title}"`, userId, orderId]);
+    console.log('[ACCEPT RESPONSE] Chat created');
 
     const chatId = chatResult.rows[0].id;
+    console.log('[ACCEPT RESPONSE] Chat ID:', chatId);
 
     // Добавляем участников в чат
+    console.log('[ACCEPT RESPONSE] Adding chat participants...');
     await pool.query(
-      'INSERT INTO chat_participants (chat_id, user_id, role) VALUES ($1, $2, $3), ($1, $4, $5)',
-      [chatId, userId, 'client', responseResult.rows[0].master_id, 'master']
+      'INSERT INTO chat_participants (chat_id, user_id, role) VALUES ($1, $2, $3), ($1, $4, $3)',
+      [chatId, userId, 'member', responseResult.rows[0].master_id]
     );
+    console.log('[ACCEPT RESPONSE] Chat participants added');
 
+    console.log('[ACCEPT RESPONSE] Committing transaction...');
     await pool.query('COMMIT');
+    
+    console.log('[ACCEPT RESPONSE] Transaction committed');
+    console.log('[ACCEPT RESPONSE] Chat created with ID:', chatId);
 
     // Отправляем уведомление мастеру
-    await notificationService.sendNotification({
-      userId: responseResult.rows[0].master_id,
-      type: 'response_accepted',
-      title: 'Ваш отклик принят!',
-      message: `Клиент принял ваш отклик на заявку "${orderResult.rows[0].title}"`,
-      data: { orderId, chatId }
-    });
+    console.log('[ACCEPT RESPONSE] Sending notification to master...');
+    try {
+      const notifResult = await notificationService.sendNotification(
+        responseResult.rows[0].master_id,
+        'response_accepted',
+        'Ваш отклик принят!',
+        `Клиент принял ваш отклик на заявку "${orderResult.rows[0].title}"`,
+        {
+          push: true,
+          sms: true,
+          smsType: 'response_accepted',
+          data: { orderId, chatId }
+        }
+      );
+      console.log('[ACCEPT RESPONSE] Notification sent:', JSON.stringify(notifResult));
+    } catch (notifError) {
+      console.error('[ACCEPT RESPONSE] Notification error:', notifError.message);
+      console.error('[ACCEPT RESPONSE] Notification error stack:', notifError.stack);
+    }
 
-    res.json({
+    const responseData = {
       success: true,
       data: {
         order: { ...orderResult.rows[0], status: 'accepted' },
@@ -785,14 +794,24 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
       },
       message: 'Response accepted successfully',
       timestamp: new Date().toISOString()
-    });
+    };
+    
+    console.log('[ACCEPT RESPONSE] Sending response:', JSON.stringify(responseData, null, 2));
+    res.json(responseData);
 
   } catch (error) {
-    await pool.query('ROLLBACK');
-    console.error('Accept response error:', error);
+    try {
+      await pool.query('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('[ACCEPT RESPONSE] Rollback error:', rollbackError.message);
+    }
+    console.error('[ACCEPT RESPONSE] Accept response error:', error);
+    console.error('[ACCEPT RESPONSE] Error stack:', error.stack);
+    console.error('[ACCEPT RESPONSE] Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Failed to accept response',
+      error: error.message,
       timestamp: new Date().toISOString()
     });
   }

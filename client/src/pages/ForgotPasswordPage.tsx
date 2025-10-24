@@ -5,22 +5,52 @@ import { Phone, ArrowLeft, Lock } from 'lucide-react'
 import { authService } from '../services/authService'
 
 const ForgotPasswordPage: React.FC = () => {
+  const [step, setStep] = useState<'phone' | 'code'>('phone')
   const [phone, setPhone] = useState('')
+  const [code, setCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
       await authService.forgotPassword(phone)
-      setSuccess(true)
+      setStep('code')
     } catch (err: any) {
-      setError(err.message || 'Ошибка отправки кода')
+      setError(err.response?.data?.message || err.message || 'Ошибка отправки кода')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (newPassword !== confirmPassword) {
+      setError('Пароли не совпадают')
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setError('Пароль должен быть минимум 6 символов')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      await authService.resetPassword(phone, code, newPassword)
+      alert('Пароль успешно изменен!')
+      navigate('/login')
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Ошибка сброса пароля')
     } finally {
       setLoading(false)
     }
@@ -43,24 +73,8 @@ const ForgotPasswordPage: React.FC = () => {
             <p className="text-gray-400 text-sm">Введите номер телефона для получения SMS кода</p>
           </div>
 
-          {success ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center"
-            >
-              <div className="bg-green-500/10 border border-green-500 text-green-400 px-4 py-3 rounded-lg mb-6">
-                SMS код отправлен на ваш номер
-              </div>
-              <button
-                onClick={() => navigate('/login')}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-orange-500/25"
-              >
-                ← Вернуться к входу
-              </button>
-            </motion.div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+          {step === 'phone' ? (
+            <form onSubmit={handleSendCode} className="space-y-6">
               {/* Phone Number */}
               <div>
                 <label className="block text-white text-sm mb-2">Номер телефона</label>
@@ -106,6 +120,91 @@ const ForgotPasswordPage: React.FC = () => {
               >
                 <ArrowLeft className="inline mr-2" size={16} />
                 Вернуться к входу
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPassword} className="space-y-6">
+              {/* Success message */}
+              <div className="bg-green-500/10 border border-green-500 text-green-400 px-4 py-3 rounded-lg text-sm">
+                SMS код отправлен на номер: {phone}
+              </div>
+
+              {/* SMS Code */}
+              <div>
+                <label className="block text-white text-sm mb-2">SMS код</label>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Введите 4-значный код"
+                  maxLength={4}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors text-center text-2xl tracking-widest"
+                  required
+                />
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-white text-sm mb-2">Новый пароль</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Минимум 6 символов"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
+                    required
+                    minLength={6}
+                  />
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-white text-sm mb-2">Подтвердите пароль</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Повторите пароль"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
+                    required
+                    minLength={6}
+                  />
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-orange-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Сброс пароля...' : 'Сбросить пароль'}
+              </button>
+
+              {/* Back Button */}
+              <button
+                type="button"
+                onClick={() => setStep('phone')}
+                className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-all border border-gray-700"
+              >
+                <ArrowLeft className="inline mr-2" size={16} />
+                Назад
               </button>
             </form>
           )}

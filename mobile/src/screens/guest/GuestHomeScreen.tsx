@@ -46,10 +46,9 @@ const GuestHomeScreen = ({ navigation }: any) => {
   const loadVideos = async () => {
     try {
       setLoading(true);
+      // Синхронизировано с web: videoService.getVideos возвращает { videos, pagination }
       const response = await videoService.getVideos({ page: 1, limit: 20 });
-      if (response.success) {
-        setVideos(response.data.videos || []);
-      }
+      setVideos(response.videos || []);
     } catch (error) {
       console.error('Error loading videos:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить видео');

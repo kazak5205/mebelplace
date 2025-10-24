@@ -1,9 +1,17 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
-const { upload } = require('../middleware/upload');
+const { generalFileUpload } = require('../middleware/upload');
 const notificationService = require('../services/notificationService');
 const router = express.Router();
+
+// Глобальная переменная для хранения io instance
+let ioInstance = null;
+
+// Функция для установки io instance (вызывается из index.js)
+router.setIO = (io) => {
+  ioInstance = io;
+};
 
 // POST /api/chat/create - Создание чата
 router.post('/create', authenticateToken, async (req, res) => {
@@ -31,6 +39,47 @@ router.post('/create', authenticateToken, async (req, res) => {
         message: 'Some participants not found',
         timestamp: new Date().toISOString()
       });
+    }
+
+    // Для приватных чатов - проверяем существующий чат между этими участниками
+    // ИСПРАВЛЕНО: проверяем дубликаты даже с orderId
+    if (type === 'private' && participants.length === 1) {
+      const allParticipants = [...participants, creatorId].sort();
+      console.log('[CREATE CHAT] Checking for existing chat between:', allParticipants);
+      
+      // ИСПРАВЛЕНО: проверяем дубликаты БЕЗ учета orderId - ОДИН чат для пары участников
+      const existingChatResult = await pool.query(`
+        SELECT c.* 
+        FROM chats c
+        WHERE c.type = 'private' 
+          AND c.is_active = true
+          AND (
+            SELECT COUNT(DISTINCT cp.user_id)
+            FROM chat_participants cp
+            WHERE cp.chat_id = c.id
+          ) = 2
+          AND EXISTS (
+            SELECT 1 FROM chat_participants cp1
+            WHERE cp1.chat_id = c.id AND cp1.user_id = $1
+          )
+          AND EXISTS (
+            SELECT 1 FROM chat_participants cp2
+            WHERE cp2.chat_id = c.id AND cp2.user_id = $2
+          )
+        LIMIT 1
+      `, allParticipants);
+
+      console.log('[CREATE CHAT] Found existing chats:', existingChatResult.rows.length);
+      if (existingChatResult.rows.length > 0) {
+        console.log('[CREATE CHAT] Returning existing chat:', existingChatResult.rows[0].id);
+        return res.status(200).json({
+          success: true,
+          data: existingChatResult.rows[0],
+          message: 'Existing chat found',
+          timestamp: new Date().toISOString()
+        });
+      }
+      console.log('[CREATE CHAT] No existing chat found, creating new one');
     }
 
     // Создание чата
@@ -108,6 +157,26 @@ router.get('/list', authenticateToken, async (req, res) => {
       LIMIT $2 OFFSET $3
     `, [userId, limit, offset]);
 
+    // Добавляем participants к каждому чату
+    for (const chat of result.rows) {
+      const participantsResult = await pool.query(`
+        SELECT 
+          cp.*,
+          u.username,
+          u.first_name,
+          u.last_name,
+          u.avatar,
+          u.is_active,
+          COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.username) as name
+        FROM chat_participants cp
+        INNER JOIN users u ON cp.user_id = u.id
+        WHERE cp.chat_id = $1
+        ORDER BY cp.joined_at ASC
+      `, [chat.id]);
+      
+      chat.participants = participantsResult.rows;
+    }
+
     res.json({
       success: true,
       data: {
@@ -181,7 +250,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
         u.first_name,
         u.last_name,
         u.avatar,
-        u.is_active
+        u.is_active,
+        COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.username) as name
       FROM chat_participants cp
       INNER JOIN users u ON cp.user_id = u.id
       WHERE cp.chat_id = $1
@@ -275,11 +345,11 @@ router.get('/:id/messages', authenticateToken, async (req, res) => {
 });
 
 // POST /api/chat/:id/message - Отправить сообщение
-router.post('/:id/message', authenticateToken, upload.single('file'), async (req, res) => {
+router.post('/:id/message', authenticateToken, generalFileUpload.single('file'), async (req, res) => {
   try {
     const chatId = req.params.id;
     const userId = req.user.id;
-    const { content, type = 'text', replyTo } = req.body;
+    const { content, type = 'text', replyTo, metadata } = req.body;
 
     if (!content && !req.file) {
       return res.status(400).json({
@@ -321,12 +391,18 @@ router.post('/:id/message', authenticateToken, upload.single('file'), async (req
       }
     }
 
+    // Подготовка metadata
+    let metadataJson = null;
+    if (metadata) {
+      metadataJson = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+    }
+
     // Создание сообщения
     const messageResult = await pool.query(`
-      INSERT INTO messages (chat_id, sender_id, content, type, reply_to, file_path, file_name, file_size)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO messages (chat_id, sender_id, content, type, reply_to, file_path, file_name, file_size, metadata)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
-    `, [chatId, userId, messageContent, type, replyTo, filePath, fileName, fileSize]);
+    `, [chatId, userId, messageContent, type, replyTo, filePath, fileName, fileSize, metadataJson ? JSON.stringify(metadataJson) : null]);
 
     const message = messageResult.rows[0];
 
@@ -356,6 +432,33 @@ router.post('/:id/message', authenticateToken, upload.single('file'), async (req
         req.user.username,
         chatId
       );
+    }
+
+    // Отправляем WebSocket событие всем участникам чата
+    if (ioInstance) {
+      const eventData = {
+        chatId: chatId,
+        chat_id: chatId,
+        message: {
+          id: message.id,
+          chatId: chatId,
+          senderId: message.sender_id,
+          content: message.content,
+          type: message.type,
+          metadata: message.metadata || null,
+          file_path: message.file_path,
+          file_name: message.file_name,
+          createdAt: message.created_at,
+          created_at: message.created_at,
+          sender: message.sender
+        }
+      };
+      
+      // Отправляем каждому участнику в их личную комнату
+      for (const participant of participantsResult.rows) {
+        ioInstance.to(`user_${participant.user_id}`).emit('new_message', eventData);
+        console.log(`📨 WebSocket event sent to user ${participant.user_id}`);
+      }
     }
 
     res.status(201).json({
@@ -491,6 +594,65 @@ router.post('/:id/add-participant', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to add participant',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// DELETE /api/chat/:id - Удалить чат полностью (только для создателя или админа)
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const chatId = req.params.id;
+    const userId = req.user.id;
+
+    // Проверяем права: только создатель чата или админ может удалить
+    const chatResult = await pool.query(
+      'SELECT creator_id FROM chats WHERE id = $1',
+      [chatId]
+    );
+
+    if (chatResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Chat not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const chat = chatResult.rows[0];
+
+    // Проверяем, является ли пользователь создателем чата
+    const isCreator = chat.creator_id === userId;
+    
+    // Проверяем, является ли пользователь админом
+    const userResult = await pool.query(
+      'SELECT role FROM users WHERE id = $1',
+      [userId]
+    );
+    const isAdmin = userResult.rows[0]?.role === 'admin';
+
+    if (!isCreator && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only chat creator or admin can delete the chat',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Удаляем чат (каскадное удаление удалит участников и сообщения)
+    await pool.query('DELETE FROM chats WHERE id = $1', [chatId]);
+
+    res.json({
+      success: true,
+      message: 'Chat deleted successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Delete chat error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete chat',
       timestamp: new Date().toISOString()
     });
   }

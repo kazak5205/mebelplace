@@ -42,10 +42,9 @@ const MasterOrdersScreen = () => {
   const loadOrders = async () => {
     try {
       setLoading(true);
+      // Синхронизировано с web: orderService.getOrders возвращает { orders, pagination }
       const response = await orderService.getOrders({ page: 1, limit: 20 });
-      if (response.success) {
-        setOrders(response.data.orders || []);
-      }
+      setOrders(response.orders || []);
     } catch (error) {
       console.error('Error loading orders:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить заявки');

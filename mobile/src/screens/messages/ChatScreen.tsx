@@ -68,12 +68,10 @@ const ChatScreen = ({ route, navigation }: any) => {
 
   const loadChatData = async () => {
     try {
-      const response = await apiService.getChatById(chatId);
-      if (response.success) {
-        const chatData = response.data as Chat;
-        setChat(chatData);
-        navigation.setOptions({ title: getOtherParticipant(chatData)?.name || 'Чат' });
-      }
+      // Синхронизировано с web: getChatById возвращает chat
+      const chatData = await apiService.getChatById(chatId) as Chat;
+      setChat(chatData);
+      navigation.setOptions({ title: getOtherParticipant(chatData)?.name || 'Чат' });
     } catch (error) {
       console.error('Error loading chat data:', error);
     }
@@ -82,13 +80,10 @@ const ChatScreen = ({ route, navigation }: any) => {
   const loadMessages = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getMessages(chatId, 1, 50);
-      
-      if (response.success) {
-        const messagesData = response.data as Message[];
-        setMessages(messagesData.reverse()); // Показываем старые сообщения сверху
-        setTimeout(() => scrollToBottom(), 100);
-      }
+      // Синхронизировано с web: getMessages возвращает messages
+      const messagesData = await apiService.getMessages(chatId, 1, 50) as Message[];
+      setMessages(messagesData.reverse()); // Показываем старые сообщения сверху
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
@@ -117,21 +112,17 @@ const ChatScreen = ({ route, navigation }: any) => {
         type: 'text',
       };
 
-      const response = await apiService.sendMessage(chatId, messageData);
+      // Синхронизировано с web: sendMessage возвращает message
+      const message = await apiService.sendMessage(chatId, messageData);
+      setNewMessage('');
+      // Haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
-      if (response.success) {
-        setNewMessage('');
-        // Haptic feedback
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        
-        // Отправляем событие через WebSocket
-        emit('new_message', {
-          chatId,
-          message: response.data,
-        });
-      } else {
-        throw new Error('Failed to send message');
-      }
+      // Отправляем событие через WebSocket
+      emit('new_message', {
+        chatId,
+        message,
+      });
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -249,19 +240,15 @@ const ChatScreen = ({ route, navigation }: any) => {
       formData.append('type', 'voice');
       formData.append('duration', duration.toString());
 
-      const response = await apiService.sendMessage(chatId, formData);
+      // Синхронизировано с web: sendMessage возвращает message
+      const message = await apiService.sendMessage(chatId, formData);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
-      if (response.success) {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
-        // Send via WebSocket
-        emit('new_message', {
-          chatId,
-          message: response.data,
-        });
-      } else {
-        throw new Error('Failed to send voice message');
-      }
+      // Send via WebSocket
+      emit('new_message', {
+        chatId,
+        message,
+      });
     } catch (error) {
       console.error('Error sending voice message:', error);
       Alert.alert('Ошибка', 'Не удалось отправить голосовое сообщение');
@@ -454,7 +441,7 @@ const ChatScreen = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#000',
   },
   loadingContainer: {
     flex: 1,
@@ -464,6 +451,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
   },
   chatContainer: {
     flex: 1,
@@ -474,7 +462,7 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 12,
     alignItems: 'flex-end',
   },
   myMessageContainer: {
@@ -492,44 +480,45 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '80%',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
   },
   myMessageBubble: {
     backgroundColor: '#f97316',
     borderBottomRightRadius: 4,
   },
   otherMessageBubble: {
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderBottomLeftRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   senderName: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#666',
-    marginBottom: 2,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 4,
   },
   messageText: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 20,
   },
   myMessageText: {
-    color: 'white',
+    color: '#fff',
   },
   otherMessageText: {
-    color: '#333',
+    color: '#fff',
   },
   messageTime: {
     fontSize: 11,
     marginTop: 4,
   },
   myMessageTime: {
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.6)',
   },
   otherMessageTime: {
-    color: '#999',
+    color: 'rgba(255,255,255,0.5)',
   },
   emptyContainer: {
     flex: 1,
@@ -539,27 +528,29 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255,255,255,0.5)',
     marginTop: 16,
   },
   recordingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#FFF3E0',
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(239,68,68,0.3)',
   },
   recordingDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#F44336',
+    backgroundColor: '#ef4444',
     marginRight: 8,
   },
   recordingText: {
     flex: 1,
     fontSize: 14,
-    color: '#F44336',
+    color: '#ef4444',
     fontWeight: '600',
   },
   cancelText: {
@@ -568,11 +559,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputContainer: {
-    backgroundColor: 'white',
+    backgroundColor: '#111',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
   inputRow: {
     flexDirection: 'row',
@@ -582,27 +573,32 @@ const styles = StyleSheet.create({
     flex: 1,
     maxHeight: 100,
     marginRight: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    color: '#fff',
   },
   voiceButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E3F2FD',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(249,115,22,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
   },
   voiceButtonRecording: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F44336',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#ef4444',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
   },
   sendButton: {
     margin: 0,
+    backgroundColor: '#f97316',
   },
 });
 

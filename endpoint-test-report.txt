@@ -1,0 +1,115 @@
+=========================================
+Детальная проверка эндпоинтов
+Домен: https://mebelplace.com.kz
+Дата: Thu Oct 23 14:00:55 UTC 2025
+=========================================
+
+=== Критичные эндпоинты ===
+[GET] /api/health - Health check: [0;32m✓ 200[0m
+[GET] /api/videos/feed - Video feed: [0;32m✓ 200[0m
+[GET] /api/search?q=мебель - Search: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+[POST] /api/auth/register - Register: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+[GET] /api/orders/categories - Order categories: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+[GET] /api/orders/regions - Regions: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+
+=== Эндпоинты с ошибками 500 ===
+[POST] /api/auth/login - Login: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+[GET] /api/videos/1 - Get video by ID: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+[GET] /api/videos/1/comments - Get video comments: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+[POST] /api/videos/1/view - Record video view: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+[GET] /api/videos/trending - Get trending videos: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+
+=== Эндпоинты с ошибками 404 ===
+[POST] /api/auth/verify-email - Verify email: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+[POST] /api/auth/reset-password - Reset password: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+
+=== Push эндпоинты ===
+[GET] /api/push/vapid-key - Get VAPID key: [0;31m✗ 502[0m
+  Response: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.29.2</center>
+</body>
+</html>
+
+=========================================
+Отчет сохранен в: /opt/mebelplace/endpoint-test-report.txt
+=========================================

@@ -100,10 +100,6 @@ const SettingsScreen = ({ navigation }: any) => {
     );
   };
 
-  const handleChangePassword = () => {
-    navigation.navigate('ChangePassword');
-  };
-
   const handlePrivacyPolicy = () => {
     Alert.alert('Политика конфиденциальности', 'Откроется в браузере');
   };
@@ -257,21 +253,6 @@ const SettingsScreen = ({ navigation }: any) => {
                   onValueChange={() => handleSettingToggle('dataUsage')}
                 />
               )}
-            />
-          </Card.Content>
-        </Card>
-
-        {/* Security Settings */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Безопасность</Text>
-            
-            <List.Item
-              title="Сменить пароль"
-              description="Изменить пароль для входа"
-              left={(props) => <List.Icon {...props} icon="lock" />}
-              right={(props) => <List.Icon {...props} icon="chevron-right" />}
-              onPress={handleChangePassword}
             />
           </Card.Content>
         </Card>

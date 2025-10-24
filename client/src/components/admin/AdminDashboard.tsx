@@ -47,8 +47,8 @@ const AdminDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get(`/admin/dashboard?period=${selectedPeriod}`);
-      setData((response as any).data);
+      const response = await apiService.get<any>(`/admin/dashboard?period=${selectedPeriod}`);
+      setData(response);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -73,10 +73,10 @@ const AdminDashboard: React.FC = () => {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-gray-600 rounded w-1/4 mb-6"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-gray-200 h-24 rounded"></div>
+              <div key={i} className="bg-gray-600 h-24 rounded"></div>
             ))}
           </div>
         </div>
@@ -87,7 +87,7 @@ const AdminDashboard: React.FC = () => {
   if (!data) {
     return (
       <div className="p-6 text-center">
-        <p className="text-gray-500">Не удалось загрузить данные дашборда</p>
+        <p className="text-gray-400">Не удалось загрузить данные дашборда</p>
       </div>
     );
   }
@@ -96,11 +96,11 @@ const AdminDashboard: React.FC = () => {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Дашборд</h2>
+        <h2 className="text-2xl font-bold text-white">Дашборд</h2>
         <select
           value={selectedPeriod}
           onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+          className="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
         >
           <option value="1d">Последние 24 часа</option>
           <option value="7d">Последние 7 дней</option>
@@ -199,24 +199,24 @@ const AdminDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Top Videos */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Топ видео</h3>
+        <div className="bg-gray-800 rounded-lg shadow">
+          <div className="p-6 border-b border-gray-700">
+            <h3 className="text-lg font-semibold text-white">Топ видео</h3>
           </div>
           <div className="p-6">
             <div className="space-y-4">
               {data.topVideos.slice(0, 5).map((video, index) => (
                 <div key={video.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-gray-600">#{index + 1}</span>
+                    <div className="flex-shrink-0 w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium text-gray-300">#{index + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{video.title}</p>
-                      <p className="text-sm text-gray-500">@{video.username}</p>
+                      <p className="text-sm font-medium text-white truncate">{video.title}</p>
+                      <p className="text-sm text-gray-400">@{video.username}</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  <div className="flex items-center space-x-4 text-sm text-gray-400">
                     <span className="flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -238,19 +238,19 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Category Stats */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Статистика по категориям</h3>
+        <div className="bg-gray-800 rounded-lg shadow">
+          <div className="p-6 border-b border-gray-700">
+            <h3 className="text-lg font-semibold text-white">Статистика по категориям</h3>
           </div>
           <div className="p-6">
             <div className="space-y-4">
               {data.categoryStats.map((category, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{category.category}</p>
-                    <p className="text-sm text-gray-500">{category.count} видео</p>
+                    <p className="text-sm font-medium text-white">{category.category}</p>
+                    <p className="text-sm text-gray-400">{category.count} видео</p>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-400">
                     <p>Ср. просмотры: {Math.round(category.avg_views)}</p>
                     <p>Ср. лайки: {Math.round(category.avg_likes)}</p>
                   </div>

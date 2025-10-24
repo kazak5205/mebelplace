@@ -97,9 +97,8 @@ const MessagesScreen = ({ navigation }: any) => {
       setIsLoading(true);
       const response = await apiService.getChats();
       
-      if (response.success) {
-        setChats(response.data);
-      }
+      // Синхронизировано с web: chatService.getChats возвращает chats
+      setChats(response || []);
     } catch (error) {
       console.error('Error loading chats:', error);
     } finally {

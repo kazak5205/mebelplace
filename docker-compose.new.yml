@@ -86,7 +86,7 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./server/uploads:/var/www/uploads:ro
-      - ./client/dist:/var/www/html
+      - ./current-client:/var/www/html:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend

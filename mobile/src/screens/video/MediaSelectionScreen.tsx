@@ -98,16 +98,16 @@ const MediaSelectionScreen = ({ navigation, route }: any) => {
 
   const compressVideo = async (videoUri: string) => {
     try {
-      console.log('Сжимаем выбранное видео...');
+      console.log('Минимальная оптимизация видео...');
       const compressedVideo = await Video.compressAsync(videoUri, {
-        quality: 0.7, // 70% от оригинального качества
-        maxFileSize: 20 * 1024 * 1024, // Максимум 20MB
+        quality: 0.95, // 95% - минимальное сжатие для сохранения качества
+        maxFileSize: 100 * 1024 * 1024, // Максимум 100MB
         deleteCache: false,
       });
-      console.log('Видео сжато:', compressedVideo.uri);
+      console.log('Видео оптимизировано:', compressedVideo.uri);
       return compressedVideo.uri;
     } catch (error) {
-      console.error('Ошибка сжатия видео:', error);
+      console.error('Ошибка оптимизации видео:', error);
       return videoUri; // Возвращаем оригинал при ошибке
     }
   };

@@ -21,6 +21,32 @@ export const userService = {
     } as any)
     return baseUserService.uploadAvatar(id, formData)
   },
+  
+  // Подписки (используем реальные эндпоинты из backend)
+  subscribe: async (userId: string) => {
+    return await apiClient.post(`/users/${userId}/subscribe`, {})
+  },
+
+  unsubscribe: async (userId: string) => {
+    return await apiClient.delete(`/users/${userId}/unsubscribe`)
+  },
+
+  getSubscriptions: async (userId: string) => {
+    return await apiClient.get(`/users/${userId}/subscriptions`)
+  },
+
+  getSubscribers: async (userId: string) => {
+    return await apiClient.get(`/users/${userId}/subscribers`)
+  },
+
+  getSubscriptionStatus: async (userId: string) => {
+    return await apiClient.get(`/users/${userId}/subscription-status`)
+  },
+
+  // Избранные видео
+  getBookmarkedVideos: async () => {
+    return await apiClient.get('/videos/bookmarked')
+  }
 }
 
 // Export base service for direct use

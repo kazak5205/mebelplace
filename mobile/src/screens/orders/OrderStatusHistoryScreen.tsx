@@ -33,13 +33,9 @@ const OrderStatusHistoryScreen = ({ route, navigation }: any) => {
   const loadStatusHistory = async () => {
     try {
       setIsLoading(true);
-      const response = await orderStatusService.getHistory(orderId);
-      
-      if (response.success) {
-        setHistory(response.data);
-      } else {
-        Alert.alert('Ошибка', 'Не удалось загрузить историю статусов');
-      }
+      // Синхронизировано с web: getOrderHistory возвращает history
+      const history = await orderStatusService.getHistory(orderId);
+      setHistory(history || []);
     } catch (error) {
       console.error('Error loading status history:', error);
       Alert.alert('Ошибка', 'Произошла ошибка при загрузке истории');

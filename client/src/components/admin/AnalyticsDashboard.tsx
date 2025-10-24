@@ -28,7 +28,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
         period: selectedPeriod,
         groupBy: selectedGroupBy
       });
-      setAnalytics(response);
+      // Parse strings to numbers from PostgreSQL
+      const parsedData = (response || []).map((item: any) => ({
+        ...item,
+        count: Number(item.count) || 0,
+        avg_duration: Number(item.avg_duration) || 0,
+        avg_completion: Number(item.avg_completion) || 0
+      }));
+      setAnalytics(parsedData);
     } catch (error) {
       console.error('Failed to load analytics:', error);
     } finally {
@@ -82,9 +89,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       'share': 'bg-green-500',
       'comment': 'bg-yellow-500',
       'complete': 'bg-orange-500',
-      'skip': 'bg-gray-500'
+      'skip': 'bg-gray-7000'
     };
-    return colors[eventType] || 'bg-gray-500';
+    return colors[eventType] || 'bg-gray-7000';
   };
 
   // Group data by period for chart display
@@ -126,10 +133,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-gray-600 rounded w-1/4 mb-6"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-gray-200 h-24 rounded"></div>
+              <div key={i} className="bg-gray-600 h-24 rounded"></div>
             ))}
           </div>
         </div>
@@ -141,12 +148,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Аналитика видео</h2>
+        <h2 className="text-2xl font-bold text-white">Аналитика видео</h2>
         <div className="flex space-x-4">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
           >
             <option value="1d">Последние 24 часа</option>
             <option value="7d">Последние 7 дней</option>
@@ -156,7 +163,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
           <select
             value={selectedGroupBy}
             onChange={(e) => setSelectedGroupBy(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
           >
             <option value="hour">По часам</option>
             <option value="day">По дням</option>
@@ -168,18 +175,18 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {Object.entries(totals).map(([eventType, data]) => (
-          <div key={eventType} className="bg-white rounded-lg shadow p-6">
+          <div key={eventType} className="bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className={`w-4 h-4 rounded-full ${getEventTypeColor(eventType)} mr-3`}></div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">{getEventTypeLabel(eventType)}</p>
-                <p className="text-2xl font-bold text-gray-900">{data.count.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-300">{getEventTypeLabel(eventType)}</p>
+                <p className="text-2xl font-bold text-white">{data.count.toLocaleString()}</p>
               </div>
             </div>
             {eventType === 'view' && (
-              <div className="mt-4 text-sm text-gray-500">
-                <p>Ср. время просмотра: {formatDuration(data.avg_duration)}</p>
-                <p>Ср. завершение: {data.avg_completion.toFixed(1)}%</p>
+              <div className="mt-4 text-sm text-gray-400">
+                <p>Ср. время просмотра: {formatDuration(Number(data.avg_duration) || 0)}</p>
+                <p>Ср. завершение: {Number(data.avg_completion || 0).toFixed(1)}%</p>
               </div>
             )}
           </div>
@@ -187,13 +194,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       </div>
 
       {/* Chart */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Динамика событий</h3>
+      <div className="bg-gray-800 rounded-lg shadow mb-8">
+        <div className="p-6 border-b border-gray-700">
+          <h3 className="text-lg font-semibold text-white">Динамика событий</h3>
         </div>
         <div className="p-6">
           {periods.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-gray-400 py-8">
               Нет данных за выбранный период
             </div>
           ) : (
@@ -201,14 +208,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
               {periods.map((period) => (
                 <div key={period} className="border-b border-gray-100 pb-4 last:border-b-0">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900">{formatDate(period)}</h4>
+                    <h4 className="font-medium text-white">{formatDate(period)}</h4>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {Object.entries(groupedData[period]).map(([eventType, data]) => (
                       <div key={eventType} className="text-center">
                         <div className={`w-3 h-3 rounded-full ${getEventTypeColor(eventType)} mx-auto mb-1`}></div>
-                        <p className="text-xs text-gray-600">{getEventTypeLabel(eventType)}</p>
-                        <p className="text-sm font-semibold text-gray-900">{data.count}</p>
+                        <p className="text-xs text-gray-300">{getEventTypeLabel(eventType)}</p>
+                        <p className="text-sm font-semibold text-white">{data.count}</p>
                       </div>
                     ))}
                   </div>
@@ -220,51 +227,51 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = () => {
       </div>
 
       {/* Detailed Table */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Детальная статистика</h3>
+      <div className="bg-gray-800 rounded-lg shadow">
+        <div className="p-6 border-b border-gray-700">
+          <h3 className="text-lg font-semibold text-white">Детальная статистика</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Период
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Событие
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Количество
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Среднее время
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Среднее завершение
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
               {analytics.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <tr key={index} className="hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                     {formatDate(item.period)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className={`w-3 h-3 rounded-full ${getEventTypeColor(item.event_type)} mr-2`}></div>
-                      <span className="text-sm text-gray-900">{getEventTypeLabel(item.event_type)}</span>
+                      <span className="text-sm text-white">{getEventTypeLabel(item.event_type)}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                     {item.count.toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatDuration(item.avg_duration)}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                    {formatDuration(Number(item.avg_duration) || 0)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.avg_completion.toFixed(1)}%
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                    {Number(item.avg_completion || 0).toFixed(1)}%
                   </td>
                 </tr>
               ))}

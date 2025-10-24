@@ -2,7 +2,6 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import Header from './Header'
 import BottomNavigation from './BottomNavigation'
-import Footer from './Footer'
 import { useAuth } from '../contexts/AuthContext'
 
 interface LayoutProps {
@@ -10,11 +9,11 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, isLoading } = useAuth()
+  const { isLoading } = useAuth()
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -24,12 +23,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     )
   }
 
-  // Allow guest users to access the main app with limited functionality
-  // Guest users can: watch videos, like, comment, create orders, create video ads
-  // Guest users cannot: access messenger, profile, order management
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950">
+    <div className="min-h-screen flex flex-col bg-black">
       <Header />
       <main className="flex-1 pb-20 overflow-y-auto">
         <motion.div

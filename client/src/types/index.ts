@@ -35,20 +35,30 @@ export interface User {
 // Video Types
 export interface Video {
   id: string;
-  masterId: string;
+  masterId?: string;
+  authorId?: string;
+  author_id?: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
   title: string;
   description: string;
   videoUrl: string;
   thumbnailUrl: string;
   duration: number;
-  likesCount: number;
-  commentsCount: number;
-  viewsCount: number;
-  isLiked: boolean;
+  likes?: number;
+  likesCount?: number;
+  likeCount?: number | string;
+  commentsCount?: number;
+  commentCount?: number;
+  viewsCount?: number;
+  views?: number;
+  isLiked?: boolean;
   tags: string[];
   createdAt: string;
-  updatedAt: string;
-  master: User;
+  updatedAt?: string;
+  master?: User;
 }
 
 // Chat Types
@@ -68,6 +78,9 @@ export interface Message {
   content: string;
   type: 'text' | 'image' | 'file' | 'video';
   metadata?: any;
+  file_path?: string;
+  file_name?: string;
+  file_size?: number;
   isRead: boolean;
   createdAt: string;
   sender: User;
@@ -97,6 +110,10 @@ export interface Order {
   };
   images: string[];
   responses?: OrderResponse[];
+  responseCount?: number;
+  response_count?: number;
+  hasMyResponse?: boolean;
+  has_my_response?: boolean;
   createdAt: string;
   updatedAt?: string;
   client?: User;

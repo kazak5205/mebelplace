@@ -8,18 +8,17 @@ interface LoginResponse {
 }
 
 interface RegisterData {
-  email: string
+  phone: string
   username: string
   password: string
   firstName?: string
   lastName?: string
   role?: 'user' | 'master' | 'admin'
-  phone?: string
 }
 
 export const authService = {
-  async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await apiService.post<LoginResponse>('/auth/login', { email, password })
+  async login(phone: string, password: string): Promise<LoginResponse> {
+    const response = await apiService.post<LoginResponse>('/auth/login', { phone, password })
     // Сохраняем токены
     if (response.accessToken) {
       localStorage.setItem('accessToken', response.accessToken)
@@ -53,16 +52,24 @@ export const authService = {
     localStorage.removeItem('refreshToken')
   },
 
-  async verifyEmail(email: string, code: string): Promise<void> {
-    return apiService.post('/auth/verify-email', { email, code })
+  async sendSmsCode(phone: string): Promise<{ code?: string }> {
+    return apiService.post('/auth/send-sms-code', { phone })
   },
 
-  async forgotPassword(email: string): Promise<void> {
-    return apiService.post('/auth/forgot-password', { email })
+  async verifySmsCode(phone: string, code: string): Promise<void> {
+    return apiService.post('/auth/verify-sms', { phone, code })
   },
 
-  async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
-    return apiService.post('/auth/reset-password', { email, code, newPassword })
+  async verifyPhone(phone: string, code: string): Promise<void> {
+    return apiService.post('/auth/verify-phone', { phone, code })
+  },
+
+  async forgotPassword(phone: string): Promise<void> {
+    return apiService.post('/auth/forgot-password', { phone })
+  },
+
+  async resetPassword(phone: string, code: string, newPassword: string): Promise<void> {
+    return apiService.post('/auth/reset-password', { phone, code, newPassword })
   },
 
   async getCurrentUser(): Promise<User> {

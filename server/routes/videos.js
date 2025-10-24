@@ -1,14 +1,14 @@
 const express = require('express');
 const multer = require('multer');
 const { pool } = require('../config/database');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { authenticateToken, requireRole, optionalAuth } = require('../middleware/auth');
 const videoService = require('../services/videoService');
 const router = express.Router();
 
 // Configure multer for video uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/videos/');
+    cb(null, '../uploads/videos/');
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -84,7 +84,7 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
 });
 
 // GET /api/videos/feed - Get video feed with admin priorities (every 5th video is admin-selected)
-router.get('/feed', async (req, res) => {
+router.get('/feed', optionalAuth, async (req, res) => {
   try {
     const { page = 1, limit = 10, category, author_id } = req.query;
     const offset = (page - 1) * limit;
@@ -93,14 +93,15 @@ router.get('/feed', async (req, res) => {
     let query = `
       SELECT 
         v.*,
+        v.views as views_count,
         u.username,
         u.avatar,
         u.first_name,
         u.last_name,
         avp.priority_order,
         avp.is_featured,
-        COUNT(vl.id) as like_count,
-        COUNT(vc.id) as comment_count
+        COUNT(DISTINCT vl.id)::int as like_count,
+        COUNT(DISTINCT vc.id)::int as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN admin_video_priorities avp ON v.id = avp.video_id
@@ -123,7 +124,7 @@ router.get('/feed', async (req, res) => {
     }
 
     query += `
-      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, avp.priority_order, avp.is_featured
+      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, u.username, u.avatar, u.first_name, u.last_name, avp.priority_order, avp.is_featured
       ORDER BY v.created_at DESC
     `;
 
@@ -131,17 +132,18 @@ router.get('/feed', async (req, res) => {
     const allVideos = result.rows;
 
     // Get admin-selected videos for insertion
-    const adminVideosQuery = `
+    let adminVideosQuery = `
       SELECT 
         v.*,
+        v.views as views_count,
         u.username,
         u.avatar,
         u.first_name,
         u.last_name,
         avp.priority_order,
         avp.is_featured,
-        COUNT(vl.id) as like_count,
-        COUNT(vc.id) as comment_count
+        COUNT(DISTINCT vl.id)::int as like_count,
+        COUNT(DISTINCT vc.id)::int as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN admin_video_priorities avp ON v.id = avp.video_id
@@ -164,7 +166,7 @@ router.get('/feed', async (req, res) => {
     }
 
     adminVideosQuery += `
-      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, avp.priority_order, avp.is_featured
+      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, u.username, u.avatar, u.first_name, u.last_name, avp.priority_order, avp.is_featured
       ORDER BY avp.priority_order ASC, v.created_at DESC
     `;
 
@@ -248,6 +250,9 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
   try {
     const videoId = req.params.id;
     const userId = req.user.id;
+    
+    console.log('[LIKE] Video ID:', videoId);
+    console.log('[LIKE] User ID:', userId);
 
     // Check if video exists
     const videoResult = await pool.query(
@@ -256,6 +261,7 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     );
 
     if (videoResult.rows.length === 0) {
+      console.log('[LIKE] Video not found:', videoId);
       return res.status(404).json({
         success: false,
         message: 'Video not found',
@@ -268,10 +274,13 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
       'SELECT id FROM video_likes WHERE video_id = $1 AND user_id = $2',
       [videoId, userId]
     );
+    
+    console.log('[LIKE] Existing likes:', likeResult.rows.length);
 
     let isLiked;
     if (likeResult.rows.length > 0) {
       // Unlike
+      console.log('[LIKE] Removing like...');
       await pool.query(
         'DELETE FROM video_likes WHERE video_id = $1 AND user_id = $2',
         [videoId, userId]
@@ -283,16 +292,20 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
       isLiked = false;
     } else {
       // Like
-      await pool.query(
-        'INSERT INTO video_likes (video_id, user_id) VALUES ($1, $2)',
+      console.log('[LIKE] Adding like...');
+      const insertResult = await pool.query(
+        'INSERT INTO video_likes (video_id, user_id) VALUES ($1, $2) RETURNING *',
         [videoId, userId]
       );
+      console.log('[LIKE] Insert result:', insertResult.rows[0]);
       await pool.query(
         'UPDATE videos SET likes = likes + 1 WHERE id = $1',
         [videoId]
       );
       isLiked = true;
     }
+    
+    console.log('[LIKE] isLiked:', isLiked);
 
     // Get updated like count
     const updatedVideo = await pool.query(
@@ -498,8 +511,121 @@ router.post('/:id/view', async (req, res) => {
   }
 });
 
+// GET /api/videos/trending - Получить трендовые видео
+router.get('/trending', async (req, res) => {
+  try {
+    const { period = 'week', page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let dateFilter = '';
+    switch (period) {
+      case 'day':
+        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 day'";
+        break;
+      case 'week':
+        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 week'";
+        break;
+      case 'month':
+        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 month'";
+        break;
+      case 'all':
+        dateFilter = '';
+        break;
+    }
+
+    const result = await pool.query(`
+      SELECT 
+        v.*,
+        u.id as master_id,
+        u.username as master_name,
+        u.first_name as master_first_name,
+        u.last_name as master_last_name,
+        u.avatar as master_avatar,
+        COUNT(DISTINCT vl.id) as likes_count,
+        COUNT(DISTINCT vc.id) as comments_count,
+        COUNT(DISTINCT vv.id) as views_count,
+        COUNT(DISTINCT vb.id) as bookmarks_count,
+        (COUNT(DISTINCT vl.id) * 0.7 + COUNT(DISTINCT vv.id) * 0.3) as trending_score
+      FROM videos v
+      JOIN users u ON v.author_id = u.id
+      LEFT JOIN video_likes vl ON v.id = vl.video_id
+      LEFT JOIN video_comments vc ON v.id = vc.video_id
+      LEFT JOIN video_views vv ON v.id = vv.video_id
+      LEFT JOIN video_bookmarks vb ON v.id = vb.video_id
+      WHERE v.is_active = true ${dateFilter}
+      GROUP BY v.id, u.id, u.username, u.first_name, u.last_name, u.avatar
+      HAVING COUNT(DISTINCT vl.id) > 0 OR COUNT(DISTINCT vv.id) > 0
+      ORDER BY trending_score DESC, v.created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'Trending videos retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get trending videos error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get trending videos',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/videos/bookmarked - Получить избранные видео пользователя
+router.get('/bookmarked', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT 
+        v.*,
+        u.id as master_id,
+        u.username as master_name,
+        u.first_name as master_first_name,
+        u.last_name as master_last_name,
+        u.avatar as master_avatar,
+        COUNT(DISTINCT vl.id) as likes_count,
+        COUNT(DISTINCT vc.id) as comments_count,
+        COUNT(DISTINCT vv.id) as views_count,
+        vb.created_at as bookmarked_at
+      FROM video_bookmarks vb
+      JOIN videos v ON vb.video_id = v.id
+      JOIN users u ON v.author_id = u.id
+      LEFT JOIN video_likes vl ON v.id = vl.video_id
+      LEFT JOIN video_comments vc ON v.id = vc.video_id
+      LEFT JOIN video_views vv ON v.id = vv.video_id
+      WHERE vb.user_id = $1 AND v.is_active = true
+      GROUP BY v.id, u.id, u.username, u.first_name, u.last_name, u.avatar, vb.created_at
+      ORDER BY vb.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'Bookmarked videos retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get bookmarked videos error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get bookmarked videos',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // GET /api/videos/:id - Get single video
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const videoId = req.params.id;
 
@@ -510,8 +636,8 @@ router.get('/:id', async (req, res) => {
         u.avatar,
         u.first_name,
         u.last_name,
-        COUNT(vl.id) as like_count,
-        COUNT(vc.id) as comment_count
+        COUNT(DISTINCT vl.id)::int as like_count,
+        COUNT(DISTINCT vc.id)::int as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN video_likes vl ON v.id = vl.video_id
@@ -629,115 +755,6 @@ router.post('/comments/:id/like', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to like comment',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// GET /api/videos/trending - Получить трендовые видео
-router.get('/trending', async (req, res) => {
-  try {
-    const { period = 'week', page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
-
-    let dateFilter = '';
-    switch (period) {
-      case 'day':
-        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 day'";
-        break;
-      case 'week':
-        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 week'";
-        break;
-      case 'month':
-        dateFilter = "AND v.created_at >= NOW() - INTERVAL '1 month'";
-        break;
-      case 'all':
-        dateFilter = '';
-        break;
-    }
-
-    const result = await pool.query(`
-      SELECT 
-        v.*,
-        u.id as master_id,
-        u.name as master_name,
-        u.avatar as master_avatar,
-        u.is_company,
-        COUNT(DISTINCT vl.id) as likes_count,
-        COUNT(DISTINCT vc.id) as comments_count,
-        COUNT(DISTINCT vv.id) as views_count,
-        COUNT(DISTINCT vb.id) as bookmarks_count,
-        (COUNT(DISTINCT vl.id) * 0.7 + COUNT(DISTINCT vv.id) * 0.3) as trending_score
-      FROM videos v
-      JOIN users u ON v.master_id = u.id
-      LEFT JOIN video_likes vl ON v.id = vl.video_id
-      LEFT JOIN video_comments vc ON v.id = vc.video_id
-      LEFT JOIN video_views vv ON v.id = vv.video_id
-      LEFT JOIN video_bookmarks vb ON v.id = vb.video_id
-      WHERE v.is_active = true ${dateFilter}
-      GROUP BY v.id, u.id, u.name, u.avatar, u.is_company
-      HAVING COUNT(DISTINCT vl.id) > 0 OR COUNT(DISTINCT vv.id) > 0
-      ORDER BY trending_score DESC, v.created_at DESC
-      LIMIT $1 OFFSET $2
-    `, [limit, offset]);
-
-    res.json({
-      success: true,
-      data: result.rows,
-      message: 'Trending videos retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Get trending videos error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get trending videos',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// GET /api/videos/bookmarked - Получить избранные видео пользователя
-router.get('/bookmarked', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
-
-    const result = await pool.query(`
-      SELECT 
-        v.*,
-        u.id as master_id,
-        u.name as master_name,
-        u.avatar as master_avatar,
-        u.is_company,
-        COUNT(DISTINCT vl.id) as likes_count,
-        COUNT(DISTINCT vc.id) as comments_count,
-        COUNT(DISTINCT vv.id) as views_count,
-        vb.created_at as bookmarked_at
-      FROM video_bookmarks vb
-      JOIN videos v ON vb.video_id = v.id
-      JOIN users u ON v.master_id = u.id
-      LEFT JOIN video_likes vl ON v.id = vl.video_id
-      LEFT JOIN video_comments vc ON v.id = vc.video_id
-      LEFT JOIN video_views vv ON v.id = vv.video_id
-      WHERE vb.user_id = $1 AND v.is_active = true
-      GROUP BY v.id, u.id, u.name, u.avatar, u.is_company, vb.created_at
-      ORDER BY vb.created_at DESC
-      LIMIT $2 OFFSET $3
-    `, [userId, limit, offset]);
-
-    res.json({
-      success: true,
-      data: result.rows,
-      message: 'Bookmarked videos retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Get bookmarked videos error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get bookmarked videos',
       timestamp: new Date().toISOString()
     });
   }

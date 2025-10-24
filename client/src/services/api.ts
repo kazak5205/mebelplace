@@ -4,6 +4,30 @@ import { ApiResponse } from '../types'
 class ApiService {
   private api: AxiosInstance
 
+  // Transform snake_case to camelCase
+  private transformKeys(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.transformKeys(item))
+    }
+    if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+      return Object.keys(obj).reduce((result, key) => {
+        // Преобразуем ключ в camelCase
+        const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+        // Используем camelCase ключ, рекурсивно трансформируем значение
+        result[camelKey] = this.transformKeys(obj[key])
+        
+        // ВАЖНО: сохраняем ОРИГИНАЛЬНЫЙ ключ тоже для обратной совместимости
+        // (некоторые компоненты ожидают snake_case)
+        if (key !== camelKey) {
+          result[key] = this.transformKeys(obj[key])
+        }
+        
+        return result
+      }, {} as any)
+    }
+    return obj
+  }
+
   constructor() {
     this.api = axios.create({
       baseURL: 'https://mebelplace.com.kz/api',
@@ -30,6 +54,21 @@ class ApiService {
     // Response interceptor to handle errors and refresh token
     this.api.interceptors.response.use(
       (response: AxiosResponse<ApiResponse>) => {
+        // Debug logging
+        if (response.config.url?.includes('/orders/')) {
+          console.log('🔍 API Response URL:', response.config.url)
+          console.log('🔍 API Response RAW data:', response.data?.data)
+        }
+        
+        // Transform snake_case keys to camelCase
+        if (response.data?.data) {
+          response.data.data = this.transformKeys(response.data.data)
+          
+          // Debug after transform
+          if (response.config.url?.includes('/orders/')) {
+            console.log('🔍 API Response AFTER transform:', response.data.data)
+          }
+        }
         return response
       },
       async (error) => {

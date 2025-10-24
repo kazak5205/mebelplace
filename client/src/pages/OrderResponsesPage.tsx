@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, Star, Clock, DollarSign, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Check, Star, Clock, MessageCircle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
 import { chatService } from '../services/chatService'
@@ -41,7 +41,10 @@ const OrderResponsesPage: React.FC = () => {
   const handleAcceptResponse = async (responseId: string) => {
     try {
       setAcceptingResponse(responseId)
+      console.log('🔍 Accepting response:', responseId)
       const result = await orderService.acceptResponse(id!, responseId)
+      console.log('🔍 Accept response result:', result)
+      console.log('🔍 Chat ID:', result?.chat?.id)
       
       // Обновляем статус заказа
       setOrder((prev: any) => ({ ...prev, status: 'accepted' }))
@@ -50,9 +53,16 @@ const OrderResponsesPage: React.FC = () => {
       setResponses(prev => prev.filter(r => r.id !== responseId))
       
       // Переходим в созданный чат
-      navigate(`/chat/${result.chat.id}`)
+      if (result?.chat?.id) {
+        console.log('🔍 Navigating to chat:', result.chat.id)
+        navigate(`/chat/${result.chat.id}`)
+      } else {
+        console.error('❌ No chat ID returned!', result)
+        alert('Чат создан, но не удалось перейти. Проверьте мессенджер.')
+      }
     } catch (error) {
       console.error('Failed to accept response:', error)
+      alert('Ошибка при принятии отклика')
     } finally {
       setAcceptingResponse(null)
     }
@@ -127,11 +137,7 @@ const OrderResponsesPage: React.FC = () => {
             <h2 className="text-xl font-bold text-white mb-2">{order.title}</h2>
             <p className="text-white/70 mb-4">{order.description}</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center space-x-2 text-white/70">
-                <DollarSign className="w-5 h-5" />
-                <span className="font-medium">{order.budget?.toLocaleString()} ₸</span>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="flex items-center space-x-2 text-white/70">
                 <Clock className="w-5 h-5" />
                 <span>{order.deadline ? new Date(order.deadline).toLocaleDateString('ru-RU') : 'Не указано'}</span>
@@ -141,6 +147,25 @@ const OrderResponsesPage: React.FC = () => {
                 <span>{responses.length} откликов</span>
               </div>
             </div>
+
+            {/* Фотографии заявки */}
+            {order.images && order.images.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-white/70 mb-2">Фотографии заявки:</h4>
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                  {order.images.map((image: string, index: number) => (
+                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-white/5">
+                      <img
+                        src={`https://mebelplace.com.kz${image}`}
+                        alt={`Фото ${index + 1}`}
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-75 transition-opacity"
+                        onClick={() => window.open(`https://mebelplace.com.kz${image}`, '_blank')}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </GlassCard>
       </motion.div>
@@ -204,8 +229,7 @@ const OrderResponsesPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     {response.price && (
                       <div className="flex items-center space-x-2 text-white/70">
-                        <DollarSign className="w-5 h-5" />
-                        <span className="font-medium">{response.price.toLocaleString()} ₸</span>
+                        <span className="font-medium">Цена: {response.price.toLocaleString()} ₸</span>
                       </div>
                     )}
                     {response.deadline && (
@@ -222,10 +246,20 @@ const OrderResponsesPage: React.FC = () => {
                       whileTap={{ scale: 0.95 }}
                       onClick={async () => {
                         try {
-                          const chat = await chatService.createChatWithUser(response.master?.id)
+                          console.log('🔍 Creating chat with master:', response.master?.id)
+                          console.log('🔍 Master object:', response.master)
+                          if (!response.master?.id && !response.masterId) {
+                            console.error('❌ No master ID found!')
+                            alert('Ошибка: ID мастера не найден')
+                            return
+                          }
+                          const masterId = response.master?.id || response.masterId
+                          const chat = await chatService.createChatWithUser(masterId)
+                          console.log('🔍 Chat created:', chat)
                           navigate(`/chat/${chat.id}`)
                         } catch (e) {
                           console.error('Failed to start chat:', e)
+                          alert('Ошибка при создании чата')
                         }
                       }}
                       className="glass-button px-4 py-2 text-sm"
@@ -235,7 +269,16 @@ const OrderResponsesPage: React.FC = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate(`/master/${response.master?.id}`)}
+                      onClick={() => {
+                        const masterId = response.master?.id || response.masterId
+                        console.log('🔍 Navigating to master profile:', masterId)
+                        if (!masterId) {
+                          console.error('❌ No master ID!')
+                          alert('Ошибка: ID мастера не найден')
+                          return
+                        }
+                        navigate(`/master/${masterId}`)
+                      }}
                       className="glass-button px-4 py-2 text-sm"
                     >
                       Профиль мастера

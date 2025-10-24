@@ -32,12 +32,14 @@ export const Card: React.FC<CardProps> = ({
   const variants = {
     default: `
       bg-white dark:bg-gray-800
+      text-gray-900 dark:text-white
       border border-gray-200 dark:border-gray-700
       shadow-sm
       ${hover && onClick ? 'hover:shadow-md hover:border-orange-300 dark:hover:border-orange-700' : ''}
     `,
     glass: `
       bg-white/80 dark:bg-gray-800/80
+      text-gray-900 dark:text-white
       backdrop-blur-xl
       border border-gray-200/50 dark:border-gray-700/50
       shadow-lg shadow-orange-500/10
@@ -45,6 +47,7 @@ export const Card: React.FC<CardProps> = ({
     `,
     elevated: `
       bg-white dark:bg-gray-800
+      text-gray-900 dark:text-white
       shadow-xl
       border-none
       ${hover && onClick ? 'hover:shadow-2xl' : ''}

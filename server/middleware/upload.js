@@ -5,11 +5,11 @@ const fs = require('fs');
 // Ensure upload directories exist
 const ensureUploadDirs = () => {
   const dirs = [
-    'uploads/videos',
-    'uploads/thumbnails',
-    'uploads/avatars',
-    'uploads/order-photos',
-    'uploads/chat-files'
+    '/app/uploads/videos',
+    '/app/uploads/thumbnails',
+    '/app/uploads/avatars',
+    '/app/uploads/order-photos',
+    '/app/uploads/chat-files'
   ];
 
   dirs.forEach(dir => {
@@ -25,7 +25,7 @@ ensureUploadDirs();
 // Video upload configuration
 const videoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/videos/');
+    cb(null, '/app/uploads/videos/');
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -37,25 +37,35 @@ const videoStorage = multer.diskStorage({
 // Image upload configuration
 const imageStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let uploadPath = 'uploads/';
+    let uploadPath = '/app/uploads/';
     
-    // Determine upload path based on route
-    if (req.route?.path?.includes('avatar')) {
+    // Determine upload path based on route or URL path
+    const routePath = req.route?.path || '';
+    const urlPath = req.url || '';
+    const fullPath = req.originalUrl || '';
+    const fieldName = file.fieldname || '';
+    
+    console.log('🔍 Upload destination check:', { routePath, urlPath, fullPath, fieldName });
+    
+    if (fieldName === 'avatar' || routePath.includes('avatar') || urlPath.includes('avatar') || fullPath.includes('avatar') || fullPath.includes('/profile')) {
       uploadPath += 'avatars/';
-    } else if (req.route?.path?.includes('order')) {
+    } else if (routePath.includes('order') || urlPath.includes('order') || fullPath.includes('order')) {
       uploadPath += 'order-photos/';
-    } else if (req.route?.path?.includes('chat')) {
+    } else if (routePath.includes('chat') || urlPath.includes('chat') || fullPath.includes('chat')) {
       uploadPath += 'chat-files/';
     } else {
       uploadPath += 'images/';
     }
     
+    console.log('✅ Upload path:', uploadPath);
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, 'img-' + uniqueSuffix + ext);
+    const filename = 'img-' + uniqueSuffix + ext;
+    console.log('✅ Filename:', filename);
+    cb(null, filename);
   }
 });
 
@@ -110,7 +120,7 @@ const videoUpload = multer({
 const imageUpload = multer({
   storage: imageStorage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB for images
+    fileSize: 20 * 1024 * 1024 // 20MB for high-quality images
   },
   fileFilter: imageFilter
 });
@@ -188,9 +198,9 @@ const getFileUrl = (filePath) => {
   // Convert backslashes to forward slashes for URLs
   const normalizedPath = filePath.replace(/\\/g, '/');
   
-  // Remove 'uploads/' prefix and add leading slash
-  if (normalizedPath.startsWith('uploads/')) {
-    return '/' + normalizedPath;
+  // Remove '/app/uploads/' prefix and add leading slash
+  if (normalizedPath.startsWith('/app/uploads/')) {
+    return normalizedPath.replace('/app/uploads/', '/uploads/');
   }
   
   return normalizedPath;

@@ -157,7 +157,7 @@ const PrivacyPolicyPage = () => {
               <p className="mb-2">По вопросам, связанным с обработкой персональных данных, обращайтесь:</p>
               <ul className="list-none space-y-1 ml-4">
                 <li>Email: <a href="mailto:privacy@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">privacy@mebelplace.com.kz</a></li>
-                <li>Email: <a href="mailto:support@mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">support@mebelplace.com.kz</a></li>
+                <li>Email: <a href="mailto:bekaron.company@gmail.com" className="text-orange-400 hover:text-purple-300">bekaron.company@gmail.com</a></li>
                 <li>Сайт: <a href="https://mebelplace.com.kz" className="text-orange-400 hover:text-purple-300">https://mebelplace.com.kz</a></li>
               </ul>
             </section>

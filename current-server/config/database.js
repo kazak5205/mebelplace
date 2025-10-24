@@ -25,14 +25,13 @@ const initDatabase = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        email VARCHAR(255) UNIQUE NOT NULL,
         username VARCHAR(100) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'client', 'master', 'admin')),
         first_name VARCHAR(100),
         last_name VARCHAR(100),
         avatar VARCHAR(500),
-        phone VARCHAR(20),
+        phone VARCHAR(20) UNIQUE NOT NULL,
         is_active BOOLEAN DEFAULT true,
         is_verified BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -385,8 +384,8 @@ const initDatabase = async () => {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_video_calls_chat_id ON video_calls(chat_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_video_calls_initiator_id ON video_calls(initiator_id)');
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_video_call_participants_room_id ON video_call_participants(room_id)');
-    await pool.query('CREATE INDEX IF NOT EXISTS idx_video_call_participants_user_id ON video_call_participants(user_id)');
+    // await pool.query('CREATE INDEX IF NOT EXISTS idx_video_call_participants_room_id ON video_call_participants(room_id)');
+    // await pool.query('CREATE INDEX IF NOT EXISTS idx_video_call_participants_user_id ON video_call_participants(user_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)');

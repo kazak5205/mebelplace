@@ -116,10 +116,9 @@ const VideoPlayerScreen = ({ route, navigation }: any) => {
   const loadVideo = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getVideoById(videoId);
-      if (response.success) {
-        setVideo(response.data as VideoData);
-      }
+      // Синхронизировано с web: getVideoById возвращает video
+      const video = await apiService.getVideoById(videoId);
+      setVideo(video as VideoData);
     } catch (error) {
       console.error('Error loading video:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить видео');
@@ -135,24 +134,17 @@ const VideoPlayerScreen = ({ route, navigation }: any) => {
       // Haptic feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
-      const response = video.isLiked 
-        ? await apiService.unlikeVideo(video.id)
-        : await apiService.likeVideo(video.id);
-        
-      if (response.success) {
-        setVideo(prev => prev ? {
-          ...prev,
-          isLiked: !prev.isLiked,
-          likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1,
-        } : null);
-        
-        // Отправляем событие через WebSocket
-        emit('video_liked', {
-          videoId: video.id,
-          userId: user?.id,
-          isLiked: !video.isLiked,
-        });
-      }
+      // Синхронизировано с web: используем toggleLike (один метод)
+      const response: any = await videoService.toggleLike(video.id);
+      
+      setVideo(prev => prev ? {
+        ...prev,
+        isLiked: response.is_liked,
+        likes: response.likes,
+      } : null);
+      
+      // НЕ отправляем через socket - это создаст двойной toggle!
+      // emit('video_liked', {...});
     } catch (error) {
       console.error('Error liking video:', error);
     }
@@ -257,19 +249,18 @@ const VideoPlayerScreen = ({ route, navigation }: any) => {
     
     try {
       setIsSubmittingComment(true);
-      const response = await apiService.addComment(video.id, commentText.trim());
+      // Синхронизировано с web: addComment возвращает comment
+      const comment = await apiService.addComment(video.id, commentText.trim());
       
-      if (response.success) {
-        setCommentText('');
-        // Обновляем список комментариев
-        loadVideo();
-        
-        // Отправляем событие через WebSocket
-        emit('new_comment', {
-          videoId: video.id,
-          comment: response.data,
-        });
-      }
+      setCommentText('');
+      // Обновляем список комментариев
+      loadVideo();
+      
+      // Отправляем событие через WebSocket
+      emit('new_comment', {
+        videoId: video.id,
+        comment,
+      });
     } catch (error) {
       console.error('Error adding comment:', error);
       Alert.alert('Ошибка', 'Не удалось добавить комментарий');
