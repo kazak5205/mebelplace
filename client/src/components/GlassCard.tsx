@@ -2,7 +2,6 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { GlassCardProps } from '../types'
 import { clsx } from 'clsx'
-import { animations } from '../utils/animations'
 
 const GlassCard: React.FC<GlassCardProps> = ({ 
   children, 
@@ -27,12 +26,11 @@ const GlassCard: React.FC<GlassCardProps> = ({
     <motion.div
       className={cardClasses}
       onClick={onClick}
-      {...animations.card}
-      {...(onClick ? animations.button : {})}
-      transition={{ 
-        ...animations.card.transition,
-        ...(variant === 'hover' && onClick ? animations.hover : {})
-      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      whileHover={onClick && variant === 'hover' ? { scale: 1.01 } : undefined}
+      whileTap={onClick ? { scale: 0.99 } : undefined}
+      transition={{ duration: 0.2 }}
     >
       {children}
     </motion.div>

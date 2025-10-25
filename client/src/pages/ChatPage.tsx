@@ -76,9 +76,28 @@ const ChatPage: React.FC = () => {
       }
     }
 
+    const handleUserStatusChange = (data: any) => {
+      console.log('[ChatPage] User status changed:', data)
+      // Обновляем статус участника чата
+      setChat((prevChat) => {
+        if (!prevChat) return prevChat
+        return {
+          ...prevChat,
+          participants: prevChat.participants.map((p: any) => {
+            const participantId = p.user_id || p.userId || p.id
+            if (participantId === data.userId) {
+              return { ...p, is_active: data.isActive }
+            }
+            return p
+          })
+        }
+      })
+    }
+
     // Подписываемся на события
     on('new_message', handleNewMessage)
-    console.log('[ChatPage] Subscribed to new_message event')
+    on('user_status_changed' as any, handleUserStatusChange)
+    console.log('[ChatPage] Subscribed to new_message and user_status_changed events')
 
     // Тест подписки - логируем все события
     if (socket.onAny) {
@@ -89,8 +108,9 @@ const ChatPage: React.FC = () => {
 
     // Отписываемся при размонтировании
     return () => {
-      console.log('[ChatPage] Unsubscribing from new_message event')
+      console.log('[ChatPage] Unsubscribing from events')
       off('new_message', handleNewMessage)
+      off('user_status_changed' as any, handleUserStatusChange)
     }
   }, [socket, id, on, off])
 
@@ -242,7 +262,7 @@ const ChatPage: React.FC = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
+    <div className="h-[calc(100vh-8rem)] flex flex-col pb-20">
       {/* Chat Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -280,7 +300,7 @@ const ChatPage: React.FC = () => {
               {(getOtherParticipant() as any)?.name || (getOtherParticipant() as any)?.username}
             </h3>
             <p className="text-sm text-white/60">
-              {(getOtherParticipant() as any)?.is_active ? 'В сети' : 'Был(а) в сети недавно'}
+              {(getOtherParticipant() as any)?.is_active ? 'В сети' : 'Не в сети'}
             </p>
           </div>
 

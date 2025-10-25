@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Filter, MapPin, Clock, Video, X, CheckCircle } from 'lucide-react'
+import { Plus, Search, MapPin, Clock, Video, X, CheckCircle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { Order } from '../types'
 import { orderService } from '../services/orderService'
@@ -14,7 +14,6 @@ const OrdersPage: React.FC = () => {
   const [regions, setRegions] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [regionFilter, setRegionFilter] = useState('')
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
   const navigate = useNavigate()
@@ -97,29 +96,9 @@ const OrdersPage: React.FC = () => {
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          order.description.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'text-yellow-400'
-      case 'in_progress': return 'text-blue-400'
-      case 'completed': return 'text-green-400'
-      case 'cancelled': return 'text-red-400'
-      default: return 'text-white/60'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Ожидает'
-      case 'in_progress': return 'В работе'
-      case 'completed': return 'Завершено'
-      case 'cancelled': return 'Отменено'
-      default: return status
-    }
-  }
 
   if (loading) {
     return (
@@ -232,7 +211,7 @@ const OrdersPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex items-center justify-center relative"
       >
         <h1 className="text-3xl font-bold gradient-text">Заявки</h1>
         {user?.role === 'user' && (
@@ -240,7 +219,7 @@ const OrdersPage: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/orders/create')}
-            className="glass-button flex items-center space-x-2"
+            className="glass-button flex items-center space-x-2 absolute right-0"
           >
             <Plus className="w-5 h-5" />
             <span>Создать заявку</span>
@@ -268,21 +247,6 @@ const OrdersPage: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-white/60" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="glass-input"
-            >
-              <option value="all">Все статусы</option>
-              <option value="pending">Ожидает</option>
-              <option value="in_progress">В работе</option>
-              <option value="completed">Завершено</option>
-              <option value="cancelled">Отменено</option>
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2">
             <MapPin className="w-5 h-5 text-white/60" />
             <select
               value={regionFilter}
@@ -307,11 +271,11 @@ const OrdersPage: React.FC = () => {
             className="text-center py-12"
           >
             <h3 className="text-xl font-medium text-white/70 mb-2">
-              {searchQuery || statusFilter !== 'all' ? 'Заявки не найдены' : 'Нет заявок'}
+              {searchQuery ? 'Заявки не найдены' : 'Нет заявок'}
             </h3>
             <p className="text-white/50">
-              {searchQuery || statusFilter !== 'all'
-                ? 'Попробуйте изменить фильтры'
+              {searchQuery
+                ? 'Попробуйте изменить поисковый запрос'
                 : user?.role === 'user' 
                   ? 'Создайте свою первую заявку'
                   : 'Пока нет доступных заявок'
@@ -319,12 +283,12 @@ const OrdersPage: React.FC = () => {
             </p>
           </motion.div>
         ) : (
-          filteredOrders.map((order, index) => (
+          filteredOrders.map((order) => (
             <motion.div
               key={order.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ duration: 0.3 }}
             >
               <GlassCard variant="hover" className="cursor-pointer">
                 <div className="p-6">
@@ -337,9 +301,6 @@ const OrdersPage: React.FC = () => {
                         {order.description}
                       </p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                      {getStatusText(order.status)}
-                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

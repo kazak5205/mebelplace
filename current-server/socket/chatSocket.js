@@ -1,10 +1,12 @@
 const jwt = require('jsonwebtoken');
 const chatService = require('../services/chatService');
+const pool = require('../config/db');
 
 class ChatSocket {
   constructor(io) {
     this.io = io;
     this.typingUsers = new Map();
+    this.onlineUsers = new Map(); // Отслеживание онлайн пользователей
     this.setupMiddleware();
     this.setupEventHandlers();
   }
@@ -30,8 +32,18 @@ class ChatSocket {
 
   // Обработчики событий
   setupEventHandlers() {
-    this.io.on('connection', (socket) => {
+    this.io.on('connection', async (socket) => {
       console.log(`User ${socket.userName} connected to chat`);
+      
+      // Устанавливаем пользователя как онлайн
+      await this.setUserOnline(socket.userId, true);
+      this.onlineUsers.set(socket.userId, socket.id);
+      
+      // Транслируем всем, что пользователь онлайн
+      this.io.emit('user_status_changed', {
+        userId: socket.userId,
+        isActive: true
+      });
 
       // Подключение к чату
       socket.on('join_chat', async (data) => {
@@ -188,8 +200,18 @@ class ChatSocket {
       });
 
       // Отключение от чата
-      socket.on('disconnect', () => {
+      socket.on('disconnect', async () => {
         console.log(`User ${socket.userName} disconnected from chat`);
+        
+        // Устанавливаем пользователя как оффлайн
+        await this.setUserOnline(socket.userId, false);
+        this.onlineUsers.delete(socket.userId);
+        
+        // Транслируем всем, что пользователь оффлайн
+        this.io.emit('user_status_changed', {
+          userId: socket.userId,
+          isActive: false
+        });
         
         // Удаляем из списка печатающих
         if (this.typingUsers.has(socket.userId)) {
@@ -203,6 +225,18 @@ class ChatSocket {
         }
       });
     });
+  }
+  
+  // Обновление статуса пользователя в БД
+  async setUserOnline(userId, isActive) {
+    try {
+      await pool.query(
+        'UPDATE users SET is_active = $1, last_seen = NOW() WHERE id = $2',
+        [isActive, userId]
+      );
+    } catch (error) {
+      console.error('Error updating user online status:', error);
+    }
   }
 }
 

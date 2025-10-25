@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion'
+import { motion, AnimatePresence, PanInfo } from 'framer-motion'
 import { 
   Heart,
   MessageCircle,
@@ -9,7 +9,10 @@ import {
   ThumbsUp,
   Reply,
   UserPlus,
-  Bookmark
+  Bookmark,
+  ChevronUp,
+  ChevronDown,
+  Search
 } from 'lucide-react'
 import { Video } from '../types'
 import { useNavigate } from 'react-router-dom'
@@ -45,12 +48,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [replyText, setReplyText] = useState('')
   const [videoStates, setVideoStates] = useState<Record<string, { isLiked: boolean, likeCount: number }>>(  {})
   const [bookmarkStates, setBookmarkStates] = useState<Record<string, boolean>>({})
+  const [videoProgress, setVideoProgress] = useState(0)
+  const [videoDuration, setVideoDuration] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showVideoInfo, setShowVideoInfo] = useState(false)
   
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
-  
-  const y = useMotionValue(0)
-  const backgroundOpacity = useTransform(y, [-200, 0, 200], [0.3, 1, 0.3])
   
   const { emit, on } = useSocket()
 
@@ -114,13 +118,35 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }
 
+      // Обработчик прогресса воспроизведения
+      const handleTimeUpdate = () => {
+        setVideoProgress(currentVideoEl.currentTime)
+      }
+
+      // Обработчик загрузки метаданных (для получения длительности)
+      const handleLoadedMetadata = () => {
+        setVideoDuration(currentVideoEl.duration)
+      }
+
       currentVideoEl.addEventListener('ended', handleEnded)
-      return () => currentVideoEl.removeEventListener('ended', handleEnded)
+      currentVideoEl.addEventListener('timeupdate', handleTimeUpdate)
+      currentVideoEl.addEventListener('loadedmetadata', handleLoadedMetadata)
+      
+      // Устанавливаем длительность если уже загружена
+      if (currentVideoEl.duration) {
+        setVideoDuration(currentVideoEl.duration)
+      }
+      
+      return () => {
+        currentVideoEl.removeEventListener('ended', handleEnded)
+        currentVideoEl.removeEventListener('timeupdate', handleTimeUpdate)
+        currentVideoEl.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      }
     }
   }, [currentIndex, videos.length])
 
   useEffect(() => {
-    // Паузим все видео кроме текущего
+    // Паузим все видео кроме текущего и сбрасываем прогресс
     videoRefs.current.forEach((video, index) => {
       if (video) {
         if (index === currentIndex) {
@@ -131,6 +157,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }
     })
+    // Сбрасываем прогресс при смене видео
+    setVideoProgress(0)
   }, [currentIndex])
 
   useEffect(() => {
@@ -206,14 +234,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     // Быстрый свайп или достаточное смещение
     if (velocity < -500 || info.offset.y < -threshold) {
       // Свайп вверх - следующее видео
-      if (currentIndex < videos.length - 1) {
-        setCurrentIndex(prev => prev + 1)
-      }
+      handleNextVideo()
     } else if (velocity > 500 || info.offset.y > threshold) {
       // Свайп вниз - предыдущее видео
-      if (currentIndex > 0) {
-        setCurrentIndex(prev => prev - 1)
-      }
+      handlePrevVideo()
+    }
+  }
+
+  const handleNextVideo = () => {
+    if (currentIndex < videos.length - 1) {
+      setCurrentIndex(prev => prev + 1)
+    }
+  }
+
+  const handlePrevVideo = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1)
     }
   }
 
@@ -461,35 +497,82 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <>
       <Header />
-      <div ref={containerRef} className="fixed inset-0 bg-black z-40 overflow-hidden pt-16 pb-20">
+      <div ref={containerRef} className="fixed inset-0 bg-black z-40 overflow-hidden pt-16 pb-16">
         {/* Close Button - только если задан onClose */}
         {onClose && (
           <motion.button
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={onClose}
-            className="absolute top-4 left-4 z-50 p-2 rounded-full bg-black/30 backdrop-blur-sm text-white"
+            className="absolute top-20 left-4 z-50 p-2 rounded-full bg-black/30 backdrop-blur-sm text-white"
           >
             <X className="w-6 h-6" />
           </motion.button>
         )}
 
+        {/* Search Bar - TikTok style centered */}
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute top-20 left-0 right-0 z-50 flex justify-center px-4"
+        >
+          <div className="relative w-full max-w-[400px]">
+            <motion.input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск"
+              whileFocus={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+              className="w-full bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder-white/50 px-5 py-3 pl-12 pr-5 rounded-xl text-sm font-medium focus:outline-none focus:bg-white/15 focus:border-white/30 transition-all shadow-lg"
+            />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+          </div>
+        </motion.div>
+
       {/* Вертикальная лента видео (TikTok style) */}
-      <motion.div
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={0.3}
-        onDragEnd={handleDragEnd}
-        style={{ y, opacity: backgroundOpacity }}
-        className="h-full w-full"
-      >
+      <AnimatePresence initial={false} mode="wait">
+        <motion.div
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.1}
+          dragMomentum={false}
+          onDragEnd={handleDragEnd}
+          className="h-full w-full"
+          key={currentIndex}
+          initial={{ 
+            opacity: 0,
+            scale: 0.95,
+            y: 50
+          }}
+          animate={{ 
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: {
+              duration: 0.4,
+              ease: [0.25, 0.46, 0.45, 0.94] // TikTok easing
+            }
+          }}
+          exit={{ 
+            opacity: 0,
+            scale: 0.95,
+            y: -50,
+            transition: {
+              duration: 0.3,
+              ease: [0.55, 0.085, 0.68, 0.53]
+            }
+          }}
+        >
         {/* Видео на весь экран */}
         <div className="relative h-full w-full flex items-center justify-center bg-black">
-          <div className="tiktok-video-container">
+          <div className="relative w-full h-full max-w-[500px] mx-auto flex items-center justify-center">
             <video
               ref={(el) => (videoRefs.current[currentIndex] = el)}
               src={currentVideo.videoUrl}
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-contain"
+              style={{ maxHeight: '100vh' }}
               loop={false}
               playsInline
               autoPlay
@@ -498,20 +581,77 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             />
           </div>
 
+          {/* Navigation Arrows - TikTok style */}
+          <div className="absolute right-20 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-[110]">
+            {/* Previous Video Arrow */}
+            <motion.button
+              whileHover={currentIndex !== 0 ? { scale: 1.15, y: -2 } : {}}
+              whileTap={currentIndex !== 0 ? { scale: 0.9 } : {}}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              onClick={handlePrevVideo}
+              disabled={currentIndex === 0}
+              className={`p-3 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 ${
+                currentIndex === 0 
+                  ? 'bg-white/5 text-white/20 cursor-not-allowed' 
+                  : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
+              }`}
+            >
+              <ChevronUp className="w-6 h-6" />
+            </motion.button>
+
+            {/* Next Video Arrow */}
+            <motion.button
+              whileHover={currentIndex !== videos.length - 1 ? { scale: 1.15, y: 2 } : {}}
+              whileTap={currentIndex !== videos.length - 1 ? { scale: 0.9 } : {}}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              onClick={handleNextVideo}
+              disabled={currentIndex === videos.length - 1}
+              className={`p-3 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 ${
+                currentIndex === videos.length - 1
+                  ? 'bg-white/5 text-white/20 cursor-not-allowed' 
+                  : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
+              }`}
+            >
+              <ChevronDown className="w-6 h-6" />
+            </motion.button>
+          </div>
+
           {/* Правая панель действий (TikTok style) */}
           <div className="absolute right-4 bottom-24 flex flex-col items-center space-y-6 z-[100]">
             {/* Аватар автора */}
-            <div className="relative">
-              <button
+            <div className="relative group">
+              <motion.button
                 onClick={() => (currentVideo.masterId || currentVideo.authorId) && navigate(`/master/${currentVideo.masterId || currentVideo.authorId}`)}
-                className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold border-2 border-white"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"
                 aria-label="Канал мастера"
               >
-                {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
-              </button>
+                {currentVideo.avatar || currentVideo.master?.avatar ? (
+                  <img 
+                    src={currentVideo.avatar || currentVideo.master?.avatar} 
+                    alt={currentVideo.username || currentVideo.master?.name || 'Avatar'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback к буквенному аватару если изображение не загрузилось
+                      e.currentTarget.style.display = 'none'
+                      if (e.currentTarget.nextSibling) {
+                        (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
+                      }
+                    }}
+                  />
+                ) : null}
+                <span 
+                  className="text-white font-bold text-sm"
+                  style={{ display: currentVideo.avatar || currentVideo.master?.avatar ? 'none' : 'flex' }}
+                >
+                  {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
+                </span>
+              </motion.button>
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center"
+                whileHover={{ scale: 1.1 }}
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg"
               >
                 <UserPlus className="w-4 h-4 text-white" />
               </motion.button>
@@ -519,48 +659,64 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
             {/* Лайк */}
             <motion.button
-              whileTap={{ scale: 0.8 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={handleLike}
               className="flex flex-col items-center space-y-1"
             >
-              <div className={`p-2 rounded-full ${videoState.isLiked ? 'bg-red-500' : 'bg-black/30 backdrop-blur-sm'}`}>
+              <motion.div 
+                className={`p-2 rounded-full ${videoState.isLiked ? 'bg-red-500' : 'bg-black/30 backdrop-blur-sm'}`}
+                animate={videoState.isLiked ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 <Heart 
                   className={`w-7 h-7 ${videoState.isLiked ? 'text-white fill-white' : 'text-white'}`}
                 />
-              </div>
-              <span className="text-white text-xs font-semibold">
+              </motion.div>
+              <span className="text-white text-xs font-semibold text-shadow">
                 {formatCount(videoState.likeCount)}
               </span>
             </motion.button>
 
             {/* Комментарии */}
             <motion.button
-              whileTap={{ scale: 0.8 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={() => setShowComments(true)}
               className="flex flex-col items-center space-y-1"
             >
               <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
                 <MessageCircle className="w-7 h-7 text-white" />
               </div>
-              <span className="text-white text-xs font-semibold">
+              <span className="text-white text-xs font-semibold text-shadow">
                 {formatCount(currentVideo.commentCount)}
               </span>
             </motion.button>
 
             {/* Закладка/Сохранить */}
             <motion.button
-              whileTap={{ scale: 0.8 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={handleBookmark}
               className="flex flex-col items-center space-y-1"
             >
-              <div className={`p-2 rounded-full ${bookmarkStates[currentVideo.id] ? 'bg-yellow-500' : 'bg-black/30 backdrop-blur-sm'}`}>
+              <motion.div 
+                className={`p-2 rounded-full ${bookmarkStates[currentVideo.id] ? 'bg-yellow-500' : 'bg-black/30 backdrop-blur-sm'}`}
+                animate={bookmarkStates[currentVideo.id] ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 <Bookmark className={`w-7 h-7 ${bookmarkStates[currentVideo.id] ? 'text-white fill-white' : 'text-white'}`} />
-              </div>
+              </motion.div>
             </motion.button>
 
             {/* Поделиться */}
             <motion.button
-              whileTap={{ scale: 0.8 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={handleShare}
               className="flex flex-col items-center space-y-1"
             >
@@ -571,70 +727,124 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           </div>
 
-          {/* Кнопка заказа */}
-          {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
-            <div className="absolute left-4 right-4 bottom-32 sm:bottom-36 flex justify-center z-[60]">
-              <OrderButton video={currentVideo} className="w-full max-w-md" />
-            </div>
-          )}
+          {/* Интерактивная информация о видео и кнопка заказа */}
+          <motion.div 
+            className="absolute left-4 right-4 bottom-20 z-[60] flex justify-center"
+            initial={false}
+          >
+            <div className="w-full max-w-md flex flex-col items-center gap-3">
+              {/* Кнопка заказа */}
+              {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
+                <OrderButton video={currentVideo} className="w-full" />
+              )}
 
-          {/* Нижняя информация о видео */}
-          <div className="absolute left-0 right-0 bottom-0 p-4 pb-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-[10]">
-            <div className="max-w-md">
-              <div className="flex items-center space-x-2 mb-3">
-                <button
-                  onClick={() => (currentVideo.masterId || currentVideo.authorId) && navigate(`/master/${currentVideo.masterId || currentVideo.authorId}`)}
-                  className="text-white font-bold hover:underline"
+              {/* Раскрывающийся блок с информацией */}
+              <AnimatePresence>
+                {showVideoInfo && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ 
+                      opacity: 1, 
+                      y: 0,
+                      scale: 1,
+                      transition: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30
+                      }
+                    }}
+                    exit={{ 
+                      opacity: 0,
+                      y: 20,
+                      scale: 0.95,
+                      transition: {
+                        duration: 0.2
+                      }
+                    }}
+                    className="w-full mb-3"
+                  >
+                    <div className="bg-black/90 backdrop-blur-2xl rounded-2xl p-4 border border-white/10 shadow-2xl">
+                      <h3 className="text-white font-semibold text-base mb-2">
+                        {currentVideo.title}
+                      </h3>
+
+                      {currentVideo.description && (
+                        <p className="text-white/80 text-xs mb-3 leading-relaxed">
+                          {currentVideo.description}
+                        </p>
+                      )}
+
+                      {/* Теги */}
+                      {currentVideo.tags && currentVideo.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {currentVideo.tags.slice(0, 3).map((tag, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-white/10 rounded-full text-white/90 font-medium text-xs"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Video Progress Bar - TikTok style */}
+                      <div className="pt-2 border-t border-white/10">
+                        <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden mb-2">
+                          <motion.div
+                            className="absolute left-0 top-0 h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full"
+                            style={{ 
+                              width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
+                            }}
+                            initial={{ width: 0 }}
+                            animate={{ 
+                              width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
+                            }}
+                            transition={{ duration: 0.1 }}
+                          />
+                        </div>
+                        {/* Time indicator */}
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/70 text-xs font-medium">
+                            {Math.floor(videoProgress / 60)}:{String(Math.floor(videoProgress % 60)).padStart(2, '0')}
+                          </span>
+                          <span className="text-white/70 text-xs font-medium">
+                            {Math.floor(videoDuration / 60)}:{String(Math.floor(videoDuration % 60)).padStart(2, '0')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Кнопка-триггер */}
+              <motion.button
+                onClick={() => setShowVideoInfo(!showVideoInfo)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="px-5 py-2.5 bg-white/15 backdrop-blur-xl rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/25 transition-all shadow-lg"
+              >
+                <motion.div
+                  animate={{ rotate: showVideoInfo ? 180 : 0 }}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 20
+                  }}
                 >
-                  @{currentVideo.username || currentVideo.master?.name || 'Master'}
-                </button>
-                <span className="text-white/70 text-sm">•</span>
-                <span className="text-white/70 text-sm">{formatTimeAgo(currentVideo.createdAt)}</span>
-              </div>
-
-              <h3 className="text-white font-semibold text-lg mb-2 line-clamp-2">
-                {currentVideo.title}
-              </h3>
-
-              {currentVideo.description && (
-                <p className="text-white/90 text-sm mb-3 line-clamp-2">
-                  {currentVideo.description}
-                </p>
-              )}
-
-              {/* Теги */}
-              {currentVideo.tags && currentVideo.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {currentVideo.tags.slice(0, 3).map((tag, index) => (
-                    <span
-                      key={index}
-                      className="text-white font-semibold text-sm"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Прогресс индикатор */}
-              <div className="flex items-center space-x-1 mt-3">
-                {videos.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-0.5 flex-1 rounded-full ${
-                      index === currentIndex 
-                        ? 'bg-white' 
-                        : index < currentIndex 
-                        ? 'bg-white/50' 
-                        : 'bg-white/20'
-                    }`}
-                  />
-                ))}
-              </div>
+                  <ChevronDown className="w-4 h-4 text-white" />
+                </motion.div>
+                <span className="text-white text-sm font-medium">
+                  {showVideoInfo ? 'Скрыть' : 'Описание'}
+                </span>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </motion.div>
+        </motion.div>
+      </AnimatePresence>
 
       {/* Панель комментариев */}
       <AnimatePresence>

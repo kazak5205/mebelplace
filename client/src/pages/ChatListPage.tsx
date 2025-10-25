@@ -74,10 +74,27 @@ const ChatListPage: React.FC = () => {
       })
     }
 
+    const handleUserStatusChange = (data: any) => {
+      console.log('ChatList user status changed:', data)
+      // Обновляем статус участников во всех чатах
+      setChats(prev => prev.map(chat => ({
+        ...chat,
+        participants: chat.participants?.map((p: any) => {
+          const participantId = p.user_id || p.userId || p.id
+          if (participantId === data.userId) {
+            return { ...p, is_active: data.isActive }
+          }
+          return p
+        })
+      })))
+    }
+
     on('new_message', handleNewMessage)
+    on('user_status_changed' as any, handleUserStatusChange)
 
     return () => {
       off('new_message', handleNewMessage)
+      off('user_status_changed' as any, handleUserStatusChange)
     }
   }, [socket, on, off])
 
