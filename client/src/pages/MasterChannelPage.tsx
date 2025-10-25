@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Play, Heart, MessageCircle, Grid, Bookmark, Upload, X } from 'lucide-react'
+import { ArrowLeft, Play, Heart, MessageCircle, Grid, Bookmark, Upload, X, Eye, Share, MoreHorizontal, Plus, Check, UserPlus, UserMinus } from 'lucide-react'
 import { Video, User } from '../types'
 import { videoService } from '../services/videoService'
 import { userService } from '../services/userService'
@@ -193,247 +193,389 @@ const MasterChannelPage: React.FC = () => {
     : master.name || master.username || master.email) || 'Master'
 
   return (
-    <div className="max-w-5xl mx-auto">
-      {/* TikTok-Style Header */}
+    <div className="min-h-screen bg-black">
+      {/* TikTok-Style Full Screen Channel */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-4 mb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="relative"
       >
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => navigate('/')}
-            className="glass-button p-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-lg font-semibold text-white">{displayName}</h1>
-          <button className="glass-button p-2">
-            <MessageCircle className="w-5 h-5" />
-          </button>
-        </div>
+        {/* Header with gradient background */}
+        <motion.div
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="sticky top-0 z-10 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-md"
+        >
+          <div className="flex items-center justify-between p-4">
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => navigate('/')} 
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </motion.button>
+            
+            <motion.h1 
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              className="text-lg font-bold text-white"
+            >
+              @{master.username || displayName.toLowerCase().replace(/\s/g, '_')}
+            </motion.h1>
+            
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+            >
+              <MessageCircle className="w-5 h-5 text-white" />
+            </motion.button>
+          </div>
+        </motion.div>
 
-        {/* TikTok-Style Profile */}
-        <div className="flex flex-col items-center py-6">
-          {/* Avatar with gradient border */}
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="relative mb-4"
-          >
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-pink-500 via-yellow-400 to-cyan-400 p-1">
-              <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden">
-                {master.avatar ? (
-                  <img src={master.avatar} alt={displayName} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-3xl font-bold text-white">
-                    {displayName.charAt(0).toUpperCase()}
-                  </span>
-                )}
+        {/* TikTok-Style Profile Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="px-4 py-6"
+        >
+          {/* Profile Info */}
+          <div className="flex items-start gap-4 mb-6">
+            {/* Avatar with TikTok-style gradient ring */}
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+              className="relative"
+            >
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-cyan-400 p-0.5">
+                <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                  {master.avatar ? (
+                    <img src={master.avatar} alt={displayName} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl font-bold text-white">
+                      {displayName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
+            </motion.div>
+
+            {/* Profile Stats */}
+            <div className="flex-1">
+              <motion.h2
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7 }}
+                className="text-xl font-bold text-white mb-2"
+              >
+                {displayName}
+              </motion.h2>
+              
+              <motion.p
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+                className="text-white/70 text-sm mb-3"
+              >
+                @{master.username || displayName.toLowerCase().replace(/\s/g, '_')}
+              </motion.p>
+
+              {/* Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+                className="flex gap-6 mb-4"
+              >
+                <div className="text-center">
+                  <div className="text-lg font-bold text-white">
+                    {formatCount((master as any).followingCount || (master as any).following_count || 0)}
+                  </div>
+                  <div className="text-xs text-white/60">Подписки</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-white">
+                    {formatCount((master as any).subscribersCount || (master as any).subscribers_count || (master as any).followersCount || (master as any).followers_count || 0)}
+                  </div>
+                  <div className="text-xs text-white/60">Подписчики</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-white">
+                    {formatCount(videos.reduce((sum, v) => sum + Number(v.likeCount || v.likesCount || (v as any).likes || (v as any).like_count || 0), 0))}
+                  </div>
+                  <div className="text-xs text-white/60">Лайки</div>
+                </div>
+              </motion.div>
+
+              {/* Bio */}
+              {(master as any).bio && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
+                  className="text-sm text-white/80 mb-4"
+                >
+                  {(master as any).bio}
+                </motion.p>
+              )}
+
+              {/* Specialties as hashtags */}
+              {master.specialties && master.specialties.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.1 }}
+                  className="flex flex-wrap gap-2 mb-4"
+                >
+                  {master.specialties.slice(0, 3).map((specialty, index) => (
+                    <span key={index} className="text-sm text-pink-400 font-medium bg-pink-500/10 px-2 py-1 rounded-full">
+                      #{specialty}
+                    </span>
+                  ))}
+                </motion.div>
+              )}
+
+              {/* Location & Rating */}
+              {(master.location || master.rating) && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.2 }}
+                  className="flex items-center gap-4 text-sm text-white/60 mb-4"
+                >
+                  {master.location && (
+                    <span>📍 {master.location.city}</span>
+                  )}
+                  {master.rating && (
+                    <span>⭐ {master.rating.toFixed(1)}</span>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Action Buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.3 }}
+                className="flex gap-2"
+              >
+                {isOwner ? (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowUploadModal(true)}
+                    className="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2.5 px-4 rounded-full flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Загрузить видео</span>
+                  </motion.button>
+                ) : (
+                  <>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleSubscribe}
+                      className={`flex-1 ${isSubscribed ? 'bg-white/10 border border-white/20' : 'bg-pink-500 hover:bg-pink-600'} text-white font-semibold py-2.5 px-4 rounded-full flex items-center justify-center gap-2 transition-colors`}
+                    >
+                      {isSubscribed ? (
+                        <>
+                          <UserMinus className="w-4 h-4" />
+                          <span>Отписаться</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4" />
+                          <span>Подписаться</span>
+                        </>
+                      )}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"
+                    >
+                      <MessageCircle className="w-5 h-5 text-white" />
+                    </motion.button>
+                  </>
+                )}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"
+                >
+                  <MoreHorizontal className="w-5 h-5 text-white" />
+                </motion.button>
+              </motion.div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Username */}
-          <motion.h2
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-base font-semibold text-white mb-5"
-          >
-            @{master.username || displayName.toLowerCase().replace(/\s/g, '_')}
-          </motion.h2>
-
-          {/* Stats Row - TikTok Style */}
+          {/* Content Tabs - TikTok Style */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex items-center justify-center gap-8 mb-5"
+            transition={{ delay: 1.4 }}
+            className="flex border-b border-white/10 mb-4"
           >
-            <button className="flex flex-col items-center">
-              <span className="text-lg font-bold text-white">
-                {formatCount((master as any).followingCount || (master as any).following_count || 0)}
-              </span>
-              <span className="text-xs text-white/60">Подписки</span>
-            </button>
-            
-            <button className="flex flex-col items-center">
-              <span className="text-lg font-bold text-white">
-                {formatCount((master as any).subscribersCount || (master as any).subscribers_count || (master as any).followersCount || (master as any).followers_count || 0)}
-              </span>
-              <span className="text-xs text-white/60">Подписчики</span>
-            </button>
-            
-            <button className="flex flex-col items-center">
-              <span className="text-lg font-bold text-white">
-                {formatCount(videos.reduce((sum, v) => sum + Number(v.likeCount || v.likesCount || (v as any).likes || (v as any).like_count || 0), 0))}
-              </span>
-              <span className="text-xs text-white/60">Лайки</span>
-            </button>
-          </motion.div>
-
-          {/* Action Buttons */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="flex gap-2 w-full max-w-md mb-4"
-          >
-            {isOwner ? (
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2.5 px-4 rounded flex items-center justify-center gap-2 transition-colors"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Загрузить видео</span>
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={handleSubscribe}
-                  className={`flex-1 ${isSubscribed ? 'bg-white/10 border border-white/20' : 'bg-pink-500 hover:bg-pink-600'} text-white font-semibold py-2.5 px-4 rounded transition-colors`}
-                >
-                  {isSubscribed ? 'Подписан' : 'Подписаться'}
-                </button>
-                <button className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2.5 px-4 rounded transition-colors">
-                  <MessageCircle className="w-4 h-4" />
-                </button>
-              </>
-            )}
-          </motion.div>
-
-          {/* Bio */}
-          {(master as any).bio && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="text-sm text-white text-center mb-3 max-w-md"
-            >
-              {(master as any).bio}
-            </motion.p>
-          )}
-
-          {/* Specialties as hashtags */}
-          {master.specialties && master.specialties.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="flex flex-wrap gap-2 justify-center mb-3"
-            >
-              {master.specialties.slice(0, 3).map((specialty, index) => (
-                <span key={index} className="text-sm text-blue-400 font-medium">
-                  #{specialty}
-                </span>
-              ))}
-            </motion.div>
-          )}
-
-          {/* Location & Rating */}
-          {(master.location || master.rating) && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-              className="flex items-center gap-4 text-sm text-white/60"
-            >
-              {master.location && (
-                <span>{master.location.city}</span>
-              )}
-              {master.rating && (
-                <span>⭐ {master.rating.toFixed(1)}</span>
-              )}
-            </motion.div>
-          )}
-        </div>
-
-        {/* Content Tabs - TikTok Style */}
-        <div className="flex border-t border-white/10">
-          <button
-            onClick={() => setActiveTab('videos')}
-            className={`flex-1 py-3 flex items-center justify-center gap-2 transition-colors ${
-              activeTab === 'videos' 
-                ? 'border-b-2 border-white text-white' 
-                : 'text-white/40'
-            }`}
-          >
-            <Grid className="w-5 h-5" />
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('likes')}
-            className={`flex-1 py-3 flex items-center justify-center gap-2 transition-colors ${
-              activeTab === 'likes' 
-                ? 'border-b-2 border-white text-white' 
-                : 'text-white/40'
-            }`}
-          >
-            <Heart className="w-5 h-5" />
-          </button>
-          
-          {isOwner && (
             <button
-              onClick={() => setActiveTab('saved')}
-              className={`flex-1 py-3 flex items-center justify-center gap-2 transition-colors ${
-                activeTab === 'saved' 
-                  ? 'border-b-2 border-white text-white' 
-                  : 'text-white/40'
+              onClick={() => setActiveTab('videos')}
+              className={`flex-1 py-3 flex items-center justify-center gap-2 transition-all duration-300 ${
+                activeTab === 'videos' 
+                  ? 'border-b-2 border-white text-white font-semibold' 
+                  : 'text-white/40 hover:text-white/70'
               }`}
             >
-              <Bookmark className="w-5 h-5" />
+              <Grid className="w-5 h-5" />
+              <span className="text-sm">Видео</span>
             </button>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Videos Grid - 3 columns like TikTok */}
-      <div className="grid grid-cols-3 gap-0.5 mb-6">
-        {videos.length === 0 ? (
-          <div className="col-span-3 text-center py-20">
-            <Play className="w-16 h-16 text-white/20 mx-auto mb-4" />
-            <p className="text-white/40">
-              {activeTab === 'videos' 
-                ? (isOwner ? 'Загрузите первое видео' : 'Нет видео') 
-                : activeTab === 'likes' 
-                ? 'Нет лайкнутых видео' 
-                : 'Нет сохраненных видео'}
-            </p>
-          </div>
-        ) : (
-          videos.map((video, index) => (
-            <motion.div
-              key={video.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => handleVideoClick(video)}
-              className="relative aspect-[9/16] bg-gray-800 cursor-pointer group overflow-hidden"
+            
+            <button
+              onClick={() => setActiveTab('likes')}
+              className={`flex-1 py-3 flex items-center justify-center gap-2 transition-all duration-300 ${
+                activeTab === 'likes' 
+                  ? 'border-b-2 border-white text-white font-semibold' 
+                  : 'text-white/40 hover:text-white/70'
+              }`}
             >
-              {video.thumbnailUrl ? (
-                <img 
-                  src={video.thumbnailUrl} 
-                  alt={video.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-orange-600/20">
-                  <Play className="w-12 h-12 text-white/50" />
-                </div>
-              )}
-              
-              {/* Overlay with view count */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
-              <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs font-semibold drop-shadow-lg">
-                <Play className="w-4 h-4 fill-current" />
-                <span>{formatCount(video.views || (video as any).views_count || video.viewsCount || 0)}</span>
+              <Heart className="w-5 h-5" />
+              <span className="text-sm">Лайки</span>
+            </button>
+            
+            {isOwner && (
+              <button
+                onClick={() => setActiveTab('saved')}
+                className={`flex-1 py-3 flex items-center justify-center gap-2 transition-all duration-300 ${
+                  activeTab === 'saved' 
+                    ? 'border-b-2 border-white text-white font-semibold' 
+                    : 'text-white/40 hover:text-white/70'
+                }`}
+              >
+                <Bookmark className="w-5 h-5" />
+                <span className="text-sm">Сохранено</span>
+              </button>
+            )}
+          </motion.div>
+        </motion.div>
+
+        {/* TikTok-Style Video Grid */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="px-4"
+          >
+            {/* Videos Grid */}
+            {activeTab === 'videos' && (
+              <div className="grid grid-cols-3 gap-0.5">
+                {videos.length === 0 ? (
+                  <div className="col-span-3 text-center py-20">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4"
+                    >
+                      <Play className="w-8 h-8 text-white/40" />
+                    </motion.div>
+                    <p className="text-white/40 mb-4">
+                      {isOwner ? 'Загрузите первое видео' : 'Нет видео'}
+                    </p>
+                    {isOwner && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowUploadModal(true)}
+                        className="bg-pink-500 text-white px-6 py-2 rounded-full text-sm font-semibold"
+                      >
+                        Создать первое видео
+                      </motion.button>
+                    )}
+                  </div>
+                ) : (
+                  videos.map((video, index) => (
+                    <motion.div
+                      key={video.id}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1, duration: 0.5 }}
+                      whileHover={{ scale: 1.02 }}
+                      onClick={() => handleVideoClick(video)}
+                      className="relative aspect-[9/16] bg-gray-900 cursor-pointer group overflow-hidden rounded-sm"
+                    >
+                      {video.thumbnailUrl ? (
+                        <img 
+                          src={video.thumbnailUrl} 
+                          alt={video.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                          <Play className="w-8 h-8 text-white/40" />
+                        </div>
+                      )}
+                      
+                      {/* Overlay with stats */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300">
+                        <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-between text-white text-xs">
+                            <div className="flex items-center gap-1">
+                              <Eye className="w-3 h-3" />
+                              <span>{formatCount(video.views || (video as any).views_count || video.viewsCount || 0)}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Heart className="w-3 h-3" />
+                              <span>{formatCount(video.likesCount || 0)}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <MessageCircle className="w-3 h-3" />
+                              <span>{formatCount(video.commentsCount || 0)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
               </div>
-            </motion.div>
-          ))
-        )}
-      </div>
+            )}
+
+            {/* Liked Videos */}
+            {activeTab === 'likes' && (
+              <div className="col-span-3 text-center py-20">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                  <Heart className="w-8 h-8 text-white/40" />
+                </motion.div>
+                <p className="text-white/40">Нет лайкнутых видео</p>
+              </div>
+            )}
+
+            {/* Saved Videos */}
+            {activeTab === 'saved' && (
+              <div className="col-span-3 text-center py-20">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                  <Bookmark className="w-8 h-8 text-white/40" />
+                </motion.div>
+                <p className="text-white/40">Нет сохраненных видео</p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
       {/* Upload Modal */}
       {showUploadModal && (

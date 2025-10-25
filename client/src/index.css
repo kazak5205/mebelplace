@@ -192,6 +192,47 @@
   max-height: 100vh !important;
 }
 
+/* TikTok Layout - Main container */
+.tiktok-layout {
+  display: flex !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  background: #000 !important;
+}
+
+/* Video section - centered and adaptive */
+.tiktok-video-section {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #000 !important;
+  position: relative !important;
+}
+
+/* Side panel - fixed width */
+.tiktok-side-panel {
+  width: 320px !important;
+  background: rgba(0, 0, 0, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+}
+
+/* Navigation arrows */
+.tiktok-nav-arrows {
+  position: absolute !important;
+  right: 24px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  z-index: 110 !important;
+}
+
 /* Smooth transitions for video changes - TikTok style */
 @keyframes videoSlideIn {
   from {
@@ -231,8 +272,25 @@
   }
 }
 
-/* Mobile responsive */
+/* Mobile responsive - Full screen video, hidden side panel */
 @media (max-width: 768px) {
+  .tiktok-layout {
+    flex-direction: column !important;
+  }
+  
+  .tiktok-video-section {
+    width: 100vw !important;
+    height: 100vh !important;
+  }
+  
+  .tiktok-side-panel {
+    display: none !important;
+  }
+  
+  .tiktok-nav-arrows {
+    right: 16px !important;
+  }
+  
   .tiktok-video-container {
     max-width: 100% !important;
     width: 100vw !important;
@@ -245,16 +303,31 @@
   }
 }
 
-/* Tablet responsive */
+/* Tablet responsive - Smaller side panel */
 @media (min-width: 769px) and (max-width: 1024px) {
+  .tiktok-side-panel {
+    width: 280px !important;
+  }
+  
   .tiktok-video-container {
     max-width: 600px !important;
   }
 }
 
-/* Desktop - keep vertical format centered */
+/* Desktop - Full layout with side panel */
 @media (min-width: 1025px) {
+  .tiktok-side-panel {
+    width: 320px !important;
+  }
+  
   .tiktok-video-container {
     max-width: 500px !important;
+  }
+}
+
+/* Large desktop - Wider side panel */
+@media (min-width: 1440px) {
+  .tiktok-side-panel {
+    width: 400px !important;
   }
 }

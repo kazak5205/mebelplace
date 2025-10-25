@@ -98,5 +98,14 @@ export const chatService = {
 
   async deleteChat(chatId: string): Promise<void> {
     return apiService.delete(`/chat/${chatId}`)
+  },
+
+  // Support chat methods
+  async createSupportChat(): Promise<Chat> {
+    return apiService.post<Chat>('/chat/support')
+  },
+
+  async getSupportChat(): Promise<Chat> {
+    return apiService.get<Chat>('/chat/support')
   }
 }

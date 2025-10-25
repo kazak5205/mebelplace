@@ -209,30 +209,55 @@ class VideoService {
     }
   }
 
-  // Optimize video for fast start playback
+  // Optimize video for fast start playback (improved to prevent over-compression)
   async optimizeVideoForFastStart(videoPath) {
     try {
+      // First, check if video is already optimized
+      const metadata = await ffprobe(videoPath);
+      if (metadata.format && metadata.format.tags && metadata.format.tags.faststart) {
+        console.log(`✅ Video already optimized: ${videoPath}`);
+        return;
+      }
+
       const tempPath = videoPath + '.faststart';
       
       return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
           .addOption('-movflags', '+faststart')
-          .addOption('-c', 'copy') // Copy without re-encoding
+          .addOption('-c', 'copy') // Copy without re-encoding to prevent quality loss
+          .addOption('-avoid_negative_ts', 'make_zero') // Fix timestamp issues
+          .addOption('-fflags', '+genpts') // Generate presentation timestamps
           .output(tempPath)
+          .on('start', (commandLine) => {
+            console.log(`[OPTIMIZE] Starting optimization: ${commandLine}`);
+          })
+          .on('progress', (progress) => {
+            if (progress.percent) {
+              console.log(`[OPTIMIZE] Progress: ${Math.round(progress.percent)}%`);
+            }
+          })
           .on('end', () => {
-            // Replace original with optimized version
-            fs.rename(tempPath, videoPath, (err) => {
-              if (err) {
-                console.error('Error replacing video:', err);
-                reject(err);
-              } else {
+            // Verify the optimized file was created successfully
+            fs.access(tempPath)
+              .then(() => {
+                // Replace original with optimized version
+                return fs.rename(tempPath, videoPath);
+              })
+              .then(() => {
                 console.log(`✅ Video optimized for fast start: ${videoPath}`);
                 resolve();
-              }
-            });
+              })
+              .catch((err) => {
+                console.error('Error replacing video:', err);
+                // Clean up temp file if it exists
+                fs.unlink(tempPath).catch(() => {});
+                reject(err);
+              });
           })
           .on('error', (err) => {
             console.error('Error optimizing video:', err);
+            // Clean up temp file if it exists
+            fs.unlink(tempPath).catch(() => {});
             reject(err);
           })
           .run();

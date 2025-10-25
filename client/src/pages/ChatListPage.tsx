@@ -181,6 +181,29 @@ const ChatListPage: React.FC = () => {
       >
         <h1 className="text-3xl font-bold gradient-text text-center">Чаты</h1>
       </motion.div>
+
+      {/* Disclaimer */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="glass-card p-4 border-l-4 border-yellow-500/50"
+      >
+        <div className="flex items-start space-x-3">
+          <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-yellow-400 text-sm font-bold">!</span>
+          </div>
+          <div>
+            <h3 className="text-yellow-400 font-semibold text-sm mb-1">Дисклеймер</h3>
+            <p className="text-white/70 text-xs leading-relaxed">
+              MebelPlace является платформой для связи между клиентами и мастерами. 
+              Мы не несем ответственности за качество выполненных работ, сроки выполнения 
+              или любые споры между участниками. Все договоренности заключаются напрямую 
+              между клиентом и мастером. Используйте платформу на свой страх и риск.
+            </p>
+          </div>
+        </div>
+      </motion.div>
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}

@@ -8,14 +8,12 @@ import {
   Send,
   ThumbsUp,
   Reply,
-  UserPlus,
   Bookmark,
   ChevronUp,
   ChevronDown,
   Search
 } from 'lucide-react'
 import { Video } from '../types'
-import { useNavigate } from 'react-router-dom'
 import { videoService } from '../services/videoService'
 import { useSocket } from '../contexts/SocketContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -36,7 +34,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onClose,
   onVideoChange 
 }) => {
-  const navigate = useNavigate()
   const { user, isClient } = useAuth()
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   // const [isMuted, setIsMuted] = useState(false) // Звук включён по умолчанию - не используется в текущей версии
@@ -51,7 +48,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [videoProgress, setVideoProgress] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showVideoInfo, setShowVideoInfo] = useState(false)
   
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
@@ -531,109 +527,71 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         </motion.div>
 
-      {/* Вертикальная лента видео (TikTok style) */}
-      <AnimatePresence initial={false} mode="wait">
-        <motion.div
-          drag="y"
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={0.1}
-          dragMomentum={false}
-          onDragEnd={handleDragEnd}
-          className="h-full w-full"
-          key={currentIndex}
-          initial={{ 
-            opacity: 0,
-            scale: 0.95,
-            y: 50
-          }}
-          animate={{ 
-            opacity: 1,
-            scale: 1,
-            y: 0,
-            transition: {
-              duration: 0.4,
-              ease: [0.25, 0.46, 0.45, 0.94] // TikTok easing
-            }
-          }}
-          exit={{ 
-            opacity: 0,
-            scale: 0.95,
-            y: -50,
-            transition: {
-              duration: 0.3,
-              ease: [0.55, 0.085, 0.68, 0.53]
-            }
-          }}
-        >
-        {/* Видео на весь экран */}
-        <div className="relative h-full w-full flex items-center justify-center bg-black">
-          <div className="relative w-full h-full max-w-[500px] mx-auto flex items-center justify-center">
-            <video
-              ref={(el) => (videoRefs.current[currentIndex] = el)}
-              src={currentVideo.videoUrl}
-              className="w-full h-full object-contain"
-              style={{ maxHeight: '100vh' }}
-              loop={false}
-              playsInline
-              autoPlay
-              onClick={handleVideoClick}
-              onDoubleClick={handleDoubleTap}
-            />
-          </div>
-
-          {/* Navigation Arrows - TikTok style */}
-          <div className="absolute right-20 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-[110]">
-            {/* Previous Video Arrow */}
-            <motion.button
-              whileHover={currentIndex !== 0 ? { scale: 1.15, y: -2 } : {}}
-              whileTap={currentIndex !== 0 ? { scale: 0.9 } : {}}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={handlePrevVideo}
-              disabled={currentIndex === 0}
-              className={`p-3 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 ${
-                currentIndex === 0 
-                  ? 'bg-white/5 text-white/20 cursor-not-allowed' 
-                  : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
-              }`}
+      {/* TikTok Style Layout */}
+      <div className="tiktok-layout">
+        {/* Main Video Container - Vertical, Centered, Adaptive */}
+        <div className="tiktok-video-section">
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.1}
+              dragMomentum={false}
+              onDragEnd={handleDragEnd}
+              className="tiktok-video-container"
+              key={currentIndex}
+              initial={{ 
+                opacity: 0,
+                scale: 0.95,
+                y: 50
+              }}
+              animate={{ 
+                opacity: 1,
+                scale: 1,
+                y: 0,
+                transition: {
+                  duration: 0.4,
+                  ease: [0.25, 0.46, 0.45, 0.94] // TikTok easing
+                }
+              }}
+              exit={{ 
+                opacity: 0,
+                scale: 0.95,
+                y: -50,
+                transition: {
+                  duration: 0.3,
+                  ease: [0.55, 0.085, 0.68, 0.53]
+                }
+              }}
             >
-              <ChevronUp className="w-6 h-6" />
-            </motion.button>
+              {/* Video Player */}
+              <video
+                ref={(el) => (videoRefs.current[currentIndex] = el)}
+                src={currentVideo.videoUrl}
+                className="w-full h-full object-contain rounded-lg"
+                loop={false}
+                playsInline
+                autoPlay
+                onClick={handleVideoClick}
+                onDoubleClick={handleDoubleTap}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-            {/* Next Video Arrow */}
-            <motion.button
-              whileHover={currentIndex !== videos.length - 1 ? { scale: 1.15, y: 2 } : {}}
-              whileTap={currentIndex !== videos.length - 1 ? { scale: 0.9 } : {}}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={handleNextVideo}
-              disabled={currentIndex === videos.length - 1}
-              className={`p-3 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 ${
-                currentIndex === videos.length - 1
-                  ? 'bg-white/5 text-white/20 cursor-not-allowed' 
-                  : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
-              }`}
-            >
-              <ChevronDown className="w-6 h-6" />
-            </motion.button>
-          </div>
-
-          {/* Правая панель действий (TikTok style) */}
-          <div className="absolute right-4 bottom-24 flex flex-col items-center space-y-6 z-[100]">
-            {/* Аватар автора */}
-            <div className="relative group">
-              <motion.button
-                onClick={() => (currentVideo.masterId || currentVideo.authorId) && navigate(`/master/${currentVideo.masterId || currentVideo.authorId}`)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"
-                aria-label="Канал мастера"
-              >
+        {/* Side Panel - All content outside video container */}
+        <div className="tiktok-side-panel">
+          {/* Video Info Section */}
+          <div className="flex-1 p-6 space-y-6">
+            {/* Author Info */}
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
                 {currentVideo.avatar || currentVideo.master?.avatar ? (
                   <img 
                     src={currentVideo.avatar || currentVideo.master?.avatar} 
                     alt={currentVideo.username || currentVideo.master?.name || 'Avatar'}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      // Fallback к буквенному аватару если изображение не загрузилось
                       e.currentTarget.style.display = 'none'
                       if (e.currentTarget.nextSibling) {
                         (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
@@ -647,204 +605,189 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 >
                   {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
                 </span>
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                whileHover={{ scale: 1.1 }}
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg"
-              >
-                <UserPlus className="w-4 h-4 text-white" />
-              </motion.button>
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-lg">
+                  {currentVideo.username || currentVideo.master?.name || 'Автор'}
+                </h3>
+                <p className="text-white/60 text-sm">
+                  {formatTimeAgo(currentVideo.createdAt)}
+                </p>
+              </div>
             </div>
 
-            {/* Лайк */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.85 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={handleLike}
-              className="flex flex-col items-center space-y-1"
-            >
-              <motion.div 
-                className={`p-2 rounded-full ${videoState.isLiked ? 'bg-red-500' : 'bg-black/30 backdrop-blur-sm'}`}
-                animate={videoState.isLiked ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Heart 
-                  className={`w-7 h-7 ${videoState.isLiked ? 'text-white fill-white' : 'text-white'}`}
-                />
-              </motion.div>
-              <span className="text-white text-xs font-semibold text-shadow">
-                {formatCount(videoState.likeCount)}
-              </span>
-            </motion.button>
-
-            {/* Комментарии */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.85 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={() => setShowComments(true)}
-              className="flex flex-col items-center space-y-1"
-            >
-              <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                <MessageCircle className="w-7 h-7 text-white" />
-              </div>
-              <span className="text-white text-xs font-semibold text-shadow">
-                {formatCount(currentVideo.commentCount)}
-              </span>
-            </motion.button>
-
-            {/* Закладка/Сохранить */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.85 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={handleBookmark}
-              className="flex flex-col items-center space-y-1"
-            >
-              <motion.div 
-                className={`p-2 rounded-full ${bookmarkStates[currentVideo.id] ? 'bg-yellow-500' : 'bg-black/30 backdrop-blur-sm'}`}
-                animate={bookmarkStates[currentVideo.id] ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Bookmark className={`w-7 h-7 ${bookmarkStates[currentVideo.id] ? 'text-white fill-white' : 'text-white'}`} />
-              </motion.div>
-            </motion.button>
-
-            {/* Поделиться */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.85 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={handleShare}
-              className="flex flex-col items-center space-y-1"
-            >
-              <div className="p-2 rounded-full bg-black/30 backdrop-blur-sm">
-                <Share2 className="w-7 h-7 text-white" />
-              </div>
-            </motion.button>
-
-          </div>
-
-          {/* Интерактивная информация о видео и кнопка заказа */}
-          <motion.div 
-            className="absolute left-4 right-4 bottom-20 z-[60] flex justify-center"
-            initial={false}
-          >
-            <div className="w-full max-w-md flex flex-col items-center gap-3">
-              {/* Кнопка заказа */}
-              {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
-                <OrderButton video={currentVideo} className="w-full" />
+            {/* Video Title & Description */}
+            <div className="space-y-3">
+              <h2 className="text-white font-bold text-xl leading-tight">
+                {currentVideo.title}
+              </h2>
+              
+              {currentVideo.description && (
+                <p className="text-white/80 text-sm leading-relaxed">
+                  {currentVideo.description}
+                </p>
               )}
 
-              {/* Раскрывающийся блок с информацией */}
-              <AnimatePresence>
-                {showVideoInfo && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ 
-                      opacity: 1, 
-                      y: 0,
-                      scale: 1,
-                      transition: {
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30
-                      }
-                    }}
-                    exit={{ 
-                      opacity: 0,
-                      y: 20,
-                      scale: 0.95,
-                      transition: {
-                        duration: 0.2
-                      }
-                    }}
-                    className="w-full mb-3"
-                  >
-                    <div className="bg-black/90 backdrop-blur-2xl rounded-2xl p-4 border border-white/10 shadow-2xl">
-                      <h3 className="text-white font-semibold text-base mb-2">
-                        {currentVideo.title}
-                      </h3>
+              {/* Tags */}
+              {currentVideo.tags && currentVideo.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {currentVideo.tags.slice(0, 5).map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-white/10 rounded-full text-white/90 font-medium text-xs"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                      {currentVideo.description && (
-                        <p className="text-white/80 text-xs mb-3 leading-relaxed">
-                          {currentVideo.description}
-                        </p>
-                      )}
+            {/* Order Button */}
+            {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
+              <div className="pt-4">
+                <OrderButton video={currentVideo} className="w-full" />
+              </div>
+            )}
 
-                      {/* Теги */}
-                      {currentVideo.tags && currentVideo.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {currentVideo.tags.slice(0, 3).map((tag, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-white/10 rounded-full text-white/90 font-medium text-xs"
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+            {/* Video Progress */}
+            <div className="space-y-2">
+              <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                <motion.div
+                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full"
+                  style={{ 
+                    width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
+                  }}
+                  initial={{ width: 0 }}
+                  animate={{ 
+                    width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
+                  }}
+                  transition={{ duration: 0.1 }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-xs text-white/70">
+                <span>
+                  {Math.floor(videoProgress / 60)}:{String(Math.floor(videoProgress % 60)).padStart(2, '0')}
+                </span>
+                <span>
+                  {Math.floor(videoDuration / 60)}:{String(Math.floor(videoDuration % 60)).padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+          </div>
 
-                      {/* Video Progress Bar - TikTok style */}
-                      <div className="pt-2 border-t border-white/10">
-                        <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden mb-2">
-                          <motion.div
-                            className="absolute left-0 top-0 h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full"
-                            style={{ 
-                              width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
-                            }}
-                            initial={{ width: 0 }}
-                            animate={{ 
-                              width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
-                            }}
-                            transition={{ duration: 0.1 }}
-                          />
-                        </div>
-                        {/* Time indicator */}
-                        <div className="flex justify-between items-center">
-                          <span className="text-white/70 text-xs font-medium">
-                            {Math.floor(videoProgress / 60)}:{String(Math.floor(videoProgress % 60)).padStart(2, '0')}
-                          </span>
-                          <span className="text-white/70 text-xs font-medium">
-                            {Math.floor(videoDuration / 60)}:{String(Math.floor(videoDuration % 60)).padStart(2, '0')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Кнопка-триггер */}
+          {/* Action Buttons */}
+          <div className="p-6 border-t border-white/10">
+            <div className="flex flex-col space-y-4">
+              {/* Like */}
               <motion.button
-                onClick={() => setShowVideoInfo(!showVideoInfo)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="px-5 py-2.5 bg-white/15 backdrop-blur-xl rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/25 transition-all shadow-lg"
+                onClick={handleLike}
+                className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
               >
-                <motion.div
-                  animate={{ rotate: showVideoInfo ? 180 : 0 }}
-                  transition={{ 
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 20
-                  }}
+                <motion.div 
+                  className={`p-2 rounded-full ${videoState.isLiked ? 'bg-red-500' : 'bg-white/20'}`}
+                  animate={videoState.isLiked ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <ChevronDown className="w-4 h-4 text-white" />
+                  <Heart 
+                    className={`w-5 h-5 ${videoState.isLiked ? 'text-white fill-white' : 'text-white'}`}
+                  />
                 </motion.div>
-                <span className="text-white text-sm font-medium">
-                  {showVideoInfo ? 'Скрыть' : 'Описание'}
+                <span className="text-white font-semibold">
+                  {formatCount(videoState.likeCount)}
+                </span>
+              </motion.button>
+
+              {/* Comments */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowComments(true)}
+                className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
+              >
+                <div className="p-2 rounded-full bg-white/20">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-white font-semibold">
+                  {formatCount(currentVideo.commentCount)}
+                </span>
+              </motion.button>
+
+              {/* Bookmark */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleBookmark}
+                className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
+              >
+                <motion.div 
+                  className={`p-2 rounded-full ${bookmarkStates[currentVideo.id] ? 'bg-yellow-500' : 'bg-white/20'}`}
+                  animate={bookmarkStates[currentVideo.id] ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Bookmark className={`w-5 h-5 ${bookmarkStates[currentVideo.id] ? 'text-white fill-white' : 'text-white'}`} />
+                </motion.div>
+                <span className="text-white font-semibold">
+                  Сохранить
+                </span>
+              </motion.button>
+
+              {/* Share */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleShare}
+                className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
+              >
+                <div className="p-2 rounded-full bg-white/20">
+                  <Share2 className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-white font-semibold">
+                  Поделиться
                 </span>
               </motion.button>
             </div>
-          </motion.div>
+          </div>
         </div>
-        </motion.div>
-      </AnimatePresence>
+      </div>
+
+      {/* Navigation Arrows - Right side, up/down */}
+      <div className="tiktok-nav-arrows">
+        {/* Previous Video Arrow */}
+        <motion.button
+          whileHover={currentIndex !== 0 ? { scale: 1.15, y: -2 } : {}}
+          whileTap={currentIndex !== 0 ? { scale: 0.9 } : {}}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          onClick={handlePrevVideo}
+          disabled={currentIndex === 0}
+          className={`p-3 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 ${
+            currentIndex === 0 
+              ? 'bg-white/5 text-white/20 cursor-not-allowed' 
+              : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
+          }`}
+        >
+          <ChevronUp className="w-6 h-6" />
+        </motion.button>
+
+        {/* Next Video Arrow */}
+        <motion.button
+          whileHover={currentIndex !== videos.length - 1 ? { scale: 1.15, y: 2 } : {}}
+          whileTap={currentIndex !== videos.length - 1 ? { scale: 0.9 } : {}}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          onClick={handleNextVideo}
+          disabled={currentIndex === videos.length - 1}
+          className={`p-3 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 ${
+            currentIndex === videos.length - 1
+              ? 'bg-white/5 text-white/20 cursor-not-allowed' 
+              : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
+          }`}
+        >
+          <ChevronDown className="w-6 h-6" />
+        </motion.button>
+      </div>
+
 
       {/* Панель комментариев */}
       <AnimatePresence>
