@@ -240,7 +240,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _sendMessage,
-              icon: Icon(Icons.send, size: 18.sp),
+              icon: const Icon(Icons.send, size: 18.sp),
               label: Text('Отправить сообщение'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -305,7 +305,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.primary),
+              borderSide: const BorderSide(color: AppColors.primary),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
           ),
@@ -342,7 +342,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.primary),
+              borderSide: const BorderSide(color: AppColors.primary),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
           ),
@@ -600,7 +600,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
+          const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             strokeWidth: 3,
           ),
@@ -637,7 +637,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
     
     try {
       // TODO: Отправить сообщение через API
-      await Future.delayed(Duration(seconds: 2)); // Имитация отправки
+      await Future.delayed(const Duration(seconds: 2)); // Имитация отправки
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
