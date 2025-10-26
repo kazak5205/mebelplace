@@ -306,7 +306,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
     try {
       final responses = await _orderRepository.getOrderResponses(orderId);
       state = state.copyWith(
-        orderResponses: (responses as List<OrderResponse>) ?? [],
+        orderResponses: responses,
         isLoading: false,
         error: null,
       );
@@ -394,7 +394,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     try {
       final messages = await _chatRepository.getMessages(chatId);
       state = state.copyWith(
-        messages: (messages as List<MessageModel>) ?? [],
+        messages: messages,
         isLoading: false,
         error: null,
       );

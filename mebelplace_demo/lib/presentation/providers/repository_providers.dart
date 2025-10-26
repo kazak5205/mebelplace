@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/api_service.dart';
 import '../../data/datasources/local_storage.dart';
@@ -15,7 +16,7 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(LogInterceptor(
     requestBody: true,
     responseBody: true,
-    logPrint: (obj) => print(obj),
+    logPrint: (obj) => debugPrint(obj),
   ));
   
   return dio;
