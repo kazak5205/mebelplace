@@ -55,10 +55,8 @@ workflows:
       vars:
         FLUTTER_VERSION: stable
         BUNDLE_ID: "com.mebelplace.mebelplaceDemo"
-        APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
-        APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
-        CERTIFICATE_PRIVATE_KEY: $CERTIFICATE_PRIVATE_KEY
+        APP_STORE_CONNECT_ISSUER_ID: "94ce68e4-bd5a-4bf4-b266-46f0b9bd0596"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: "7R2G5C786A"
       xcode: latest
       cocoapods: default
       
@@ -109,16 +107,18 @@ workflows:
           
       - name: Set up code signing
         script: |
+          # Initialize keychain
           keychain initialize
-          # Fetch signing files from Codemagic code signing identities
-          app-store-connect fetch-signing-files \
-            "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-          # Add certificates to keychain
-          keychain add-certificates
-          # Configure Xcode project to use profiles
-          xcode-project use-profiles --project mebelplace_demo/ios/Runner.xcodeproj
+          
+          # Set up App Store Connect API key
+          mkdir -p ~/private_keys
+          cat > ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8 << 'EOF'
+          $(cat $CM_BUILD_DIR/mebelplace_demo/ios/AuthKey_7R2G5C786A.p8)
+          EOF
+          
+          # Install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $CM_BUILD_DIR/mebelplace_demo/ios/commebelplacemebelplaceDemo.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           
       - name: Build ipa for distribution
         script: |
