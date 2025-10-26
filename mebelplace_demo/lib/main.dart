@@ -92,7 +92,7 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(height: 60.h),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Row(
@@ -199,7 +199,7 @@ class _MainNavigationState extends State<MainNavigation> {
           color: AppColors.dark,
           border: Border(
             top: BorderSide(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -243,7 +243,7 @@ class _MainNavigationState extends State<MainNavigation> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: AppColors.dark,
           selectedItemColor: AppColors.primary,
-          unselectedItemColor: Colors.white.withOpacity(0.6),
+          unselectedItemColor: Colors.white.withValues(alpha: 0.6),
           items: [
             BottomNavigationBarItem(
               icon: Icon(_currentIndex == 0 ? Icons.home : Icons.home_outlined),
@@ -268,7 +268,7 @@ class _MainNavigationState extends State<MainNavigation> {
                   borderRadius: BorderRadius.circular(28.r),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),

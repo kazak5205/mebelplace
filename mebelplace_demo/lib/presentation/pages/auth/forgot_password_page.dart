@@ -104,15 +104,15 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.2),
-            AppColors.secondary.withOpacity(0.2),
+            AppColors.primary.withValues(alpha: 0.2),
+            AppColors.secondary.withValues(alpha: 0.2),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         shape: BoxShape.circle,
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -144,7 +144,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     return Text(
       'Не волнуйтесь! Введите ваш email адрес и мы отправим вам инструкции для восстановления пароля.',
       style: TextStyle(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         fontSize: 14.sp,
         height: 1.4,
       ),
@@ -159,10 +159,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   Widget _buildEmailField() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -173,7 +173,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
         decoration: InputDecoration(
           hintText: 'Введите ваш email',
           hintStyle: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: 14.sp,
           ),
           prefixIcon: Icon(
@@ -233,10 +233,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: Colors.blue.withOpacity(0.3),
+          color: Colors.blue.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -289,7 +289,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
           Text(
             'Пожалуйста, подождите',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
           ),
@@ -310,10 +310,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
             width: 100.w,
             height: 100.w,
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
+              color: Colors.green.withValues(alpha: 0.2),
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.green.withOpacity(0.5),
+                color: Colors.green.withValues(alpha: 0.5),
                 width: 2,
               ),
             ),
@@ -343,7 +343,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
           Text(
             'Мы отправили инструкции для восстановления пароля на адрес',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14.sp,
               height: 1.4,
             ),
@@ -397,7 +397,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                     padding: EdgeInsets.symmetric(vertical: 16.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
