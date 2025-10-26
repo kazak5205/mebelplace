@@ -85,11 +85,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         children: [
           // Список сообщений
           Expanded(
-            child: chatState.when(
-              data: (messages) => _buildMessagesList(messages),
-              loading: () => const Center(child: LoadingWidget()),
-              error: (error, stack) => _buildErrorWidget(error.toString()),
-            ),
+            child: chatState.isLoading
+                ? const Center(child: LoadingWidget())
+                : chatState.error != null
+                    ? _buildErrorWidget(chatState.error!)
+                    : _buildMessagesList(chatState.messages),
           ),
           
           // Поле ввода сообщения
@@ -195,7 +195,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   ],
                   
                   Text(
-                    message.message,
+                    message.message ?? '',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14.sp,

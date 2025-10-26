@@ -10,6 +10,9 @@ OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
       id: json['id'] as String,
       clientId: json['clientId'] as String,
       masterId: json['masterId'] as String?,
+      customerId: json['customerId'] as String?,
+      customerName: json['customerName'] as String?,
+      customerPhone: json['customerPhone'] as String?,
       title: json['title'] as String,
       description: json['description'] as String,
       category: json['category'] as String,
@@ -31,6 +34,9 @@ OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
           : UserModel.fromJson(json['client'] as Map<String, dynamic>),
       responseCount: (json['responseCount'] as num).toInt(),
       hasMyResponse: json['hasMyResponse'] as bool,
+      responses: (json['responses'] as List<dynamic>?)
+          ?.map((e) => e as Map<String, dynamic>)
+          .toList(),
     );
 
 Map<String, dynamic> _$OrderModelToJson(OrderModel instance) =>
@@ -38,6 +44,9 @@ Map<String, dynamic> _$OrderModelToJson(OrderModel instance) =>
       'id': instance.id,
       'clientId': instance.clientId,
       'masterId': instance.masterId,
+      'customerId': instance.customerId,
+      'customerName': instance.customerName,
+      'customerPhone': instance.customerPhone,
       'title': instance.title,
       'description': instance.description,
       'category': instance.category,
@@ -49,7 +58,8 @@ Map<String, dynamic> _$OrderModelToJson(OrderModel instance) =>
       'images': instance.images,
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
-      'client': instance.client?.toJson(),
+      'client': instance.client,
       'responseCount': instance.responseCount,
       'hasMyResponse': instance.hasMyResponse,
+      'responses': instance.responses,
     };

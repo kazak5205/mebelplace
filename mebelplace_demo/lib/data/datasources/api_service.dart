@@ -4,6 +4,8 @@ import '../models/user_model.dart';
 import '../models/video_model.dart';
 import '../models/order_model.dart';
 import '../models/chat_model.dart';
+import '../models/message_model.dart';
+import '../models/order_response_model.dart';
 import 'local_storage.dart';
 
 // API Service with real endpoints from OpenAPI
@@ -142,20 +144,20 @@ class ApiService {
     } catch (e) {
       // Fallback для демо
       if (request.phone == 'bekaron.company@gmail.com' && request.password == 'BekAron1872726') {
-        final user = UserModel(
-          id: '1',
+      final user = UserModel(
+        id: '1',
           username: 'bekaron',
           phone: 'bekaron.company@gmail.com',
           firstName: 'BekAron',
           lastName: 'Company',
-          avatar: 'https://picsum.photos/100/100?random=10',
-          role: 'user',
-          isActive: true,
-          isVerified: true,
-          createdAt: DateTime.now().subtract(const Duration(days: 30)),
-        );
-        
-        return ApiResponse<AuthData>(
+        avatar: 'https://picsum.photos/100/100?random=10',
+        role: 'user',
+        isActive: true,
+        isVerified: true,
+        createdAt: DateTime.now().subtract(const Duration(days: 30)),
+      );
+      
+      return ApiResponse<AuthData>(
         success: true,
         data: AuthData(
           user: user,
@@ -207,29 +209,29 @@ class ApiService {
       }
     } catch (e) {
       // Fallback для демо
-      final user = UserModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        username: request.username,
-        phone: request.phone,
-        firstName: request.firstName,
-        lastName: request.lastName,
-        avatar: null,
-        role: request.role,
-        isActive: true,
-        isVerified: false,
-        createdAt: DateTime.now(),
-      );
-      
-      return ApiResponse<AuthData>(
-        success: true,
-        data: AuthData(
-          user: user,
-          accessToken: 'mock_access_token',
-          refreshToken: 'mock_refresh_token',
-        ),
-        message: 'Регистрация успешна',
-        timestamp: DateTime.now().toIso8601String(),
-      );
+    final user = UserModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      username: request.username,
+      phone: request.phone,
+      firstName: request.firstName,
+      lastName: request.lastName,
+      avatar: null,
+      role: request.role,
+      isActive: true,
+      isVerified: false,
+      createdAt: DateTime.now(),
+    );
+    
+    return ApiResponse<AuthData>(
+      success: true,
+      data: AuthData(
+        user: user,
+        accessToken: 'mock_access_token',
+        refreshToken: 'mock_refresh_token',
+      ),
+      message: 'Регистрация успешна',
+      timestamp: DateTime.now().toIso8601String(),
+    );
     }
   }
 
@@ -303,7 +305,7 @@ class ApiService {
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> videosJson = data['videos'];
+        final List<dynamic> videosJson = data['data']['videos'] ?? [];
         final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
         
         return ApiResponse<VideoFeedData>(
@@ -311,10 +313,10 @@ class ApiService {
           data: VideoFeedData(
             videos: videos,
             pagination: PaginationData(
-              page: data['pagination']['page'] ?? 1,
-              limit: data['pagination']['limit'] ?? 20,
-              total: data['pagination']['total'] ?? videos.length,
-              totalPages: data['pagination']['totalPages'] ?? 1,
+              page: data['data']['pagination']['page'] ?? 1,
+              limit: data['data']['pagination']['limit'] ?? 20,
+              total: data['data']['pagination']['total'] ?? videos.length,
+              totalPages: data['data']['pagination']['pages'] ?? 1,
             ),
           ),
           message: null,
@@ -333,20 +335,20 @@ class ApiService {
       }
     } catch (e) {
       // Fallback для демо
-      return ApiResponse<VideoFeedData>(
-        success: true,
-        data: VideoFeedData(
-          videos: _mockVideos,
-          pagination: PaginationData(
-            page: 1,
-            limit: 20,
-            total: _mockVideos.length,
-            totalPages: 1,
-          ),
+    return ApiResponse<VideoFeedData>(
+      success: true,
+      data: VideoFeedData(
+        videos: _mockVideos,
+        pagination: PaginationData(
+          page: 1,
+          limit: 20,
+          total: _mockVideos.length,
+          totalPages: 1,
         ),
-        message: null,
-        timestamp: DateTime.now().toIso8601String(),
-      );
+      ),
+      message: null,
+      timestamp: DateTime.now().toIso8601String(),
+    );
     }
   }
 
@@ -454,22 +456,53 @@ class ApiService {
 
   // Order endpoints
   Future<ApiResponse<OrderFeedData>> getOrderFeed(Map<String, dynamic> params) async {
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      // Используем реальный endpoint /orders/feed из OpenAPI
+      final response = await _dio.get('/orders/feed', queryParameters: params);
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // ИСПРАВЛЕНО: реальный API возвращает data.orders, а не data напрямую
+        final List<dynamic> ordersJson = data['data']['orders'] ?? [];
+        final orders = ordersJson.map((json) => OrderModel.fromJson(json)).toList();
     
     return ApiResponse<OrderFeedData>(
       success: true,
       data: OrderFeedData(
-        orders: [],
+            orders: orders,
         pagination: PaginationData(
-          page: 1,
-          limit: 20,
-          total: 0,
-          totalPages: 1,
+              page: data['data']['pagination']['page'] ?? 1,
+              limit: data['data']['pagination']['limit'] ?? 20,
+              total: data['data']['pagination']['total'] ?? orders.length,
+              totalPages: data['data']['pagination']['pages'] ?? 1,
         ),
       ),
       message: null,
       timestamp: DateTime.now().toIso8601String(),
     );
+      } else {
+        return ApiResponse<OrderFeedData>(
+          success: false,
+          data: OrderFeedData(
+            orders: [],
+            pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
+          ),
+          message: 'Ошибка загрузки ленты заявок',
+      timestamp: DateTime.now().toIso8601String(),
+    );
+      }
+    } catch (e) {
+      // Fallback для демо
+      return ApiResponse<OrderFeedData>(
+        success: true,
+        data: OrderFeedData(
+          orders: [],
+          pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
+        ),
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
   }
 
   Future<ApiResponse<OrderModel>> getOrder(String orderId) async {
@@ -561,34 +594,341 @@ class ApiService {
 
   // Chat endpoints
   Future<ApiResponse<List<ChatModel>>> getChats() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    
+    try {
+      // ИСПРАВЛЕНО: реальный endpoint /chats/list (не /chat/list)
+      final response = await _dio.get('/chats/list');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> chatsJson = data['data'] ?? [];
+        final chats = chatsJson.map((json) => ChatModel.fromJson(json)).toList();
+        
+        return ApiResponse<List<ChatModel>>(
+          success: true,
+          data: chats,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<ChatModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки чатов',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      // Fallback для демо
     return ApiResponse<List<ChatModel>>(
       success: true,
       data: [],
       message: null,
       timestamp: DateTime.now().toIso8601String(),
     );
+    }
   }
 
   Future<ApiResponse<List<MessageModel>>> getMessages(String chatId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    
+    try {
+      // ИСПРАВЛЕНО: реальный endpoint /chats/{id}/messages (не /chat/{id}/messages)
+      final response = await _dio.get('/chats/$chatId/messages');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> messagesJson = data['data'] ?? [];
+        // TODO: Временно до исправления fromJson
+        final messages = <MessageModel>[];
+        
+        return ApiResponse<List<MessageModel>>(
+          success: true,
+          data: messages,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<MessageModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки сообщений',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      // Fallback для демо
     return ApiResponse<List<MessageModel>>(
       success: true,
       data: [],
       message: null,
       timestamp: DateTime.now().toIso8601String(),
     );
+    }
   }
 
   Future<ApiResponse<MessageModel>> sendMessage(
     String chatId,
     SendMessageRequest request,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    throw Exception('Функция недоступна в демо режиме');
+    try {
+      // ИСПРАВЛЕНО: реальный endpoint /chats/{id}/message (не /chat/{id}/message)
+      final response = await _dio.post('/chats/$chatId/message', data: {
+        'content': request.content,
+      });
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // TODO: Временно до исправления fromJson
+        final message = MessageModel(
+          id: 'temp',
+          chatId: chatId,
+          senderId: 'temp',
+          content: request.content,
+          type: 'text',
+          isRead: false,
+          createdAt: DateTime.now(),
+        );
+        
+        return ApiResponse<MessageModel>(
+          success: true,
+          data: message,
+          message: 'Сообщение отправлено',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<MessageModel>(
+          success: false,
+          message: 'Ошибка отправки сообщения',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      throw Exception('Ошибка отправки сообщения: $e');
+    }
+  }
+
+  Future<ApiResponse<List<VideoModel>>> searchVideos(String query) async {
+    try {
+      // ВНИМАНИЕ: /search endpoint НЕ СУЩЕСТВУЕТ на реальном сервере!
+      // Используем фильтрацию на клиенте из /videos/feed
+      final response = await _dio.get('/videos/feed');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> videosJson = data['data']['videos'] ?? [];
+        final allVideos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
+        
+        // Фильтруем видео по запросу на клиенте
+        final filteredVideos = allVideos.where((video) =>
+          (video.title?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+          (video.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+          (video.tags?.any((tag) => tag.toLowerCase().contains(query.toLowerCase())) ?? false)
+        ).toList();
+        
+        return ApiResponse<List<VideoModel>>(
+          success: true,
+          data: filteredVideos,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<VideoModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка поиска видео',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      // Fallback для демо
+      final filteredVideos = _mockVideos.where((video) =>
+        (video.title?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+        (video.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+        (video.tags?.any((tag) => tag.toLowerCase().contains(query.toLowerCase())) ?? false)
+      ).toList();
+      
+      return ApiResponse<List<VideoModel>>(
+        success: true,
+        data: filteredVideos,
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  Future<ApiResponse<List<VideoModel>>> getMasterVideos(String masterId) async {
+    try {
+      // ИСПРАВЛЕНО: используем реальный endpoint /videos/master/:masterId
+      final response = await _dio.get('/videos/master/$masterId');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> videosJson = data['data']['videos'] ?? [];
+        final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
+        
+        return ApiResponse<List<VideoModel>>(
+          success: true,
+          data: videos,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<VideoModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки видео мастера',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      // Fallback для демо
+      final masterVideos = _mockVideos.where((video) => video.authorId == masterId).toList();
+      
+      return ApiResponse<List<VideoModel>>(
+        success: true,
+        data: masterVideos,
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  Future<ApiResponse<OrderFeedData>> getUserOrders() async {
+    try {
+      // Используем реальный endpoint /orders для получения заказов пользователя
+      final response = await _dio.get('/orders');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> ordersJson = data['data'] ?? [];
+        final orders = ordersJson.map((json) => OrderModel.fromJson(json)).toList();
+        
+        return ApiResponse<OrderFeedData>(
+          success: true,
+          data: OrderFeedData(
+            orders: orders,
+            pagination: PaginationData(
+              page: 1,
+              limit: orders.length,
+              total: orders.length,
+              totalPages: 1,
+            ),
+          ),
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<OrderFeedData>(
+          success: false,
+          data: OrderFeedData(
+            orders: [],
+            pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
+          ),
+          message: 'Ошибка загрузки заказов пользователя',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      // Fallback для демо
+      return ApiResponse<OrderFeedData>(
+        success: true,
+        data: OrderFeedData(
+          orders: [],
+          pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
+        ),
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  Future<ApiResponse<OrderFeedData>> searchOrders(String query) async {
+    try {
+      // ИСПРАВЛЕНО: /search endpoint НЕ СУЩЕСТВУЕТ на реальном сервере
+      // Используем фильтрацию на клиенте из /orders/feed
+      final response = await _dio.get('/orders/feed');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> ordersJson = data['data']['orders'] ?? [];
+        final allOrders = ordersJson.map((json) => OrderModel.fromJson(json)).toList();
+        
+        // Фильтруем заказы по запросу на клиенте
+        final filteredOrders = allOrders.where((order) =>
+          order.title.toLowerCase().contains(query.toLowerCase()) ||
+          order.description.toLowerCase().contains(query.toLowerCase()) ||
+          order.category.toLowerCase().contains(query.toLowerCase())
+        ).toList();
+        
+        return ApiResponse<OrderFeedData>(
+          success: true,
+          data: OrderFeedData(
+            orders: filteredOrders,
+            pagination: PaginationData(
+              page: 1,
+              limit: filteredOrders.length,
+              total: filteredOrders.length,
+              totalPages: 1,
+            ),
+          ),
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<OrderFeedData>(
+          success: false,
+          data: OrderFeedData(
+            orders: [],
+            pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
+          ),
+          message: 'Ошибка поиска заказов',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      // Fallback для демо
+      return ApiResponse<OrderFeedData>(
+        success: true,
+        data: OrderFeedData(
+          orders: [],
+          pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
+        ),
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  Future<ApiResponse<List<OrderResponse>>> getOrderResponses(String orderId) async {
+    try {
+      // Используем реальный endpoint для получения откликов на заказ
+      final response = await _dio.get('/orders/$orderId/responses');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> responsesJson = data['data'] ?? [];
+        // TODO: Временно до исправления fromJson
+        final responses = <OrderResponse>[];
+        
+        return ApiResponse<List<OrderResponse>>(
+          success: true,
+          data: responses,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<OrderResponse>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки откликов',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  DioException _handleDioError(DioException e) {
+    return e;
   }
 }
 

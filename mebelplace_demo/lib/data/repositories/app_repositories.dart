@@ -131,6 +131,32 @@ class VideoRepository {
         return Exception('Неизвестная ошибка');
     }
   }
+
+  Future<List<VideoModel>> searchVideos(String query) async {
+    try {
+      final response = await _apiService.searchVideos(query);
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to search videos');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<List<VideoModel>> getMasterVideos(String masterId) async {
+    try {
+      final response = await _apiService.getMasterVideos(masterId);
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to load master videos');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
 }
 
 // Auth Repository
@@ -397,6 +423,45 @@ class OrderRepository {
         return Exception('Ошибка сервера: $statusCode');
       default:
         return Exception('Неизвестная ошибка');
+    }
+  }
+
+  Future<List<OrderModel>> getUserOrders() async {
+    try {
+      final response = await _apiService.getUserOrders();
+      
+      if (response.success && response.data != null) {
+        return response.data!.orders;
+      }
+      throw Exception(response.message ?? 'Failed to load user orders');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<List<OrderModel>> searchOrders(String query) async {
+    try {
+      final response = await _apiService.searchOrders(query);
+      
+      if (response.success && response.data != null) {
+        return response.data!.orders;
+      }
+      throw Exception(response.message ?? 'Failed to search orders');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<List<OrderResponse>> getOrderResponses(String orderId) async {
+    try {
+      final response = await _apiService.getOrderResponses(orderId);
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to load order responses');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     }
   }
 }

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:dio/dio.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
-import 'data/datasources/api_service.dart';
-import 'data/datasources/local_storage.dart';
 import 'data/repositories/app_repositories.dart';
 import 'data/models/user_model.dart';
 import 'presentation/pages/home_screen.dart';

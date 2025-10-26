@@ -3,6 +3,8 @@ import '../../data/models/video_model.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/chat_model.dart';
+import '../../data/models/message_model.dart';
+import '../../data/models/order_response_model.dart';
 import '../../data/repositories/app_repositories.dart';
 import 'repository_providers.dart';
 
@@ -59,6 +61,40 @@ class VideoNotifier extends StateNotifier<VideoState> {
       await _videoRepository.recordView(videoId);
     } catch (e) {
       // Handle error silently
+    }
+  }
+
+  Future<void> searchVideos(String query) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final videos = await _videoRepository.searchVideos(query);
+      state = state.copyWith(
+        videos: videos,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadMasterVideos(String masterId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final videos = await _videoRepository.getMasterVideos(masterId);
+      state = state.copyWith(
+        videos: videos,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
     }
   }
 }
@@ -213,15 +249,87 @@ class OrderNotifier extends StateNotifier<OrderState> {
       );
     }
   }
+
+  Future<void> loadUserOrders() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final orders = await _orderRepository.getUserOrders();
+      state = state.copyWith(
+        orders: orders,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> searchOrders(String query) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final orders = await _orderRepository.searchOrders(query);
+      state = state.copyWith(
+        orders: orders,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadOrderDetail(String orderId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final order = await _orderRepository.getOrder(orderId);
+      state = state.copyWith(
+        currentOrder: order,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadOrderResponses(String orderId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final responses = await _orderRepository.getOrderResponses(orderId);
+      state = state.copyWith(
+        orderResponses: (responses as List<OrderResponse>) ?? [],
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
 }
 
 class OrderState {
   final List<OrderModel> orders;
+  final OrderModel? currentOrder;
+  final List<OrderResponse> orderResponses;
   final bool isLoading;
   final String? error;
 
   OrderState({
     required this.orders,
+    this.currentOrder,
+    required this.orderResponses,
     required this.isLoading,
     this.error,
   });
@@ -229,6 +337,8 @@ class OrderState {
   factory OrderState.initial() {
     return OrderState(
       orders: [],
+      currentOrder: null,
+      orderResponses: [],
       isLoading: false,
       error: null,
     );
@@ -236,11 +346,15 @@ class OrderState {
 
   OrderState copyWith({
     List<OrderModel>? orders,
+    OrderModel? currentOrder,
+    List<OrderResponse>? orderResponses,
     bool? isLoading,
     String? error,
   }) {
     return OrderState(
       orders: orders ?? this.orders,
+      currentOrder: currentOrder ?? this.currentOrder,
+      orderResponses: orderResponses ?? this.orderResponses,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
     );
@@ -274,15 +388,44 @@ class ChatNotifier extends StateNotifier<ChatState> {
       );
     }
   }
+
+  Future<void> loadMessages(String chatId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final messages = await _chatRepository.getMessages(chatId);
+      state = state.copyWith(
+        messages: (messages as List<MessageModel>) ?? [],
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> sendMessage(String chatId, String content) async {
+    try {
+      await _chatRepository.sendMessage(chatId, content);
+      // Reload messages after sending
+      await loadMessages(chatId);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+    }
+  }
 }
 
 class ChatState {
   final List<ChatModel> chats;
+  final List<MessageModel> messages;
   final bool isLoading;
   final String? error;
 
   ChatState({
     required this.chats,
+    required this.messages,
     required this.isLoading,
     this.error,
   });
@@ -290,6 +433,7 @@ class ChatState {
   factory ChatState.initial() {
     return ChatState(
       chats: [],
+      messages: [],
       isLoading: false,
       error: null,
     );
@@ -297,11 +441,13 @@ class ChatState {
 
   ChatState copyWith({
     List<ChatModel>? chats,
+    List<MessageModel>? messages,
     bool? isLoading,
     String? error,
   }) {
     return ChatState(
       chats: chats ?? this.chats,
+      messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
     );

@@ -9,13 +9,21 @@ class ChatModel {
   final String? name;
   final String? description;
   final DateTime createdAt;
-  final DateTime? updatedAt;
+  final String? senderId; // ID отправителя последнего сообщения
+  final String? senderName; // Имя отправителя
+  final String? senderAvatar; // Аватар отправителя
+  final String? message; // Последнее сообщение
+  final DateTime? updatedAt; // Дата обновления
 
   const ChatModel({
     required this.id,
     required this.type,
     this.name,
     this.description,
+    this.senderId,
+    this.senderName,
+    this.senderAvatar,
+    this.message,
     required this.createdAt,
     this.updatedAt,
   });

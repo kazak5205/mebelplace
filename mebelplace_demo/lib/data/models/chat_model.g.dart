@@ -11,6 +11,10 @@ ChatModel _$ChatModelFromJson(Map<String, dynamic> json) => ChatModel(
       type: json['type'] as String,
       name: json['name'] as String?,
       description: json['description'] as String?,
+      senderId: json['senderId'] as String?,
+      senderName: json['senderName'] as String?,
+      senderAvatar: json['senderAvatar'] as String?,
+      message: json['message'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: json['updatedAt'] == null
           ? null
@@ -23,5 +27,9 @@ Map<String, dynamic> _$ChatModelToJson(ChatModel instance) => <String, dynamic>{
       'name': instance.name,
       'description': instance.description,
       'createdAt': instance.createdAt.toIso8601String(),
+      'senderId': instance.senderId,
+      'senderName': instance.senderName,
+      'senderAvatar': instance.senderAvatar,
+      'message': instance.message,
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

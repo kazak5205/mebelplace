@@ -8,6 +8,9 @@ class OrderModel {
   final String id;
   final String clientId;
   final String? masterId;
+  final String? customerId; // Дополнительное поле для совместимости
+  final String? customerName; // Имя клиента
+  final String? customerPhone; // Телефон клиента
   final String title;
   final String description;
   final String category;
@@ -22,11 +25,15 @@ class OrderModel {
   final UserModel? client;
   final int responseCount;
   final bool hasMyResponse;
+  final List<Map<String, dynamic>>? responses; // Отклики мастеров
 
   const OrderModel({
     required this.id,
     required this.clientId,
     this.masterId,
+    this.customerId,
+    this.customerName,
+    this.customerPhone,
     required this.title,
     required this.description,
     required this.category,
@@ -41,6 +48,7 @@ class OrderModel {
     this.client,
     required this.responseCount,
     required this.hasMyResponse,
+    this.responses,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);

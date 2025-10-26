@@ -4,14 +4,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/app_providers.dart';
 
-class LoginForm extends ConsumerStatefulWidget {
-  const LoginForm({Key? key}) : super(key: key);
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<LoginForm> createState() => _LoginFormState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginFormState extends ConsumerState<LoginForm> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();

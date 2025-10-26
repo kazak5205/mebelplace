@@ -60,29 +60,23 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           ),
         ],
       ),
-      body: orderState.when(
-        data: (orders) {
-          final order = orders.firstWhere(
-            (o) => o.id == widget.orderId,
-            orElse: () => OrderModel(
-              id: widget.orderId,
-              title: 'Заявка не найдена',
-              description: '',
-              price: 0,
-              status: 'unknown',
-              createdAt: DateTime.now(),
-              customerId: '',
-              customerName: '',
-              customerPhone: '',
-              images: [],
-            ),
-          );
-          
-          return _buildOrderDetail(order);
-        },
-        loading: () => const Center(child: LoadingWidget()),
-        error: (error, stack) => _buildErrorWidget(error.toString()),
-      ),
+      body: orderState.isLoading
+          ? const Center(child: LoadingWidget())
+          : orderState.error != null
+              ? _buildErrorWidget(orderState.error!)
+              : _buildOrderDetail(orderState.currentOrder ?? OrderModel(
+                  id: widget.orderId,
+                  title: 'Заявка не найдена',
+                  description: '',
+                  category: 'unknown',
+                  clientId: 'unknown',
+                  price: 0,
+                  status: 'unknown',
+                  createdAt: DateTime.now(),
+                  images: [],
+                  responseCount: 0,
+                  hasMyResponse: false,
+                )),
     );
   }
 
@@ -294,7 +288,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           ),
           Spacer(),
           Text(
-            '${order.price.toStringAsFixed(0)} ₸',
+            '${(order.price ?? 0).toStringAsFixed(0)} ₸',
             style: TextStyle(
               color: AppColors.primary,
               fontSize: 20.sp,
@@ -399,10 +393,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           ),
           SizedBox(height: 16.h),
           
-          _buildInfoRow(Icons.person, 'Имя', order.customerName),
+          _buildInfoRow(Icons.person, 'Имя', order.customerName ?? 'Не указано'),
           SizedBox(height: 12.h),
           
-          _buildInfoRow(Icons.phone, 'Телефон', order.customerPhone),
+          _buildInfoRow(Icons.phone, 'Телефон', order.customerPhone ?? 'Не указан'),
         ],
       ),
     ).animate().fadeIn(duration: 300.ms, delay: 400.ms).slideY(
