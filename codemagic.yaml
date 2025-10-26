@@ -66,22 +66,16 @@ workflows:
       app_store_connect: mebelplace-integration
       
     scripts:
-      - name: Set up keychain
-        script: |
-          keychain initialize
-          
-      - name: Fetch signing files
-        script: |
-          app-store-connect fetch-signing-files "com.mebelplace.my" \
-            --type IOS_APP_STORE
-            
-      - name: Add certificates to keychain
-        script: |
-          keychain add-certificates
-          
       - name: Set up code signing
         script: |
-          xcode-project use-profiles
+          # Используем автоматическую подпись через Xcode
+          cd mebelplace_demo/ios
+          
+          # Включаем автоматическую подпись в Xcode проекте
+          sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' Runner.xcodeproj/project.pbxproj || true
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = MZ64UQ254W;/g' Runner.xcodeproj/project.pbxproj || true
+          
+          echo "✅ Automatic code signing enabled"
           
       - name: Set up Flutter
         script: |
