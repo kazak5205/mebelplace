@@ -12,6 +12,9 @@ workflows:
       xcode: latest
       cocoapods: default
       
+    integrations:
+      app_store_connect: Grand
+      
     scripts:
       - name: Set up keychain to be used for codesigning
         script: |
