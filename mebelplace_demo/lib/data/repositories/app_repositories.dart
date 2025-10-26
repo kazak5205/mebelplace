@@ -77,7 +77,7 @@ class VideoRepository {
         durationWatched: 0,
         completionRate: 0,
       ));
-    } on DioException catch (e) {
+    } on DioException {
       // Silent fail for view recording
     }
   }

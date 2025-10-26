@@ -899,7 +899,6 @@ class ApiService {
       final response = await _dio.get('/orders/$orderId/responses');
       
       if (response.statusCode == 200) {
-        final data = response.data;
         // TODO: Временно до исправления fromJson
         final responses = <OrderResponse>[];
         

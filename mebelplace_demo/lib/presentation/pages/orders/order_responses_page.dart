@@ -481,41 +481,4 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
     );
   }
 
-  List<Map<String, dynamic>> _getMockResponses() {
-    return [
-      {
-        'id': '1',
-        'masterId': 'master1',
-        'masterName': 'Алексей Мебельщик',
-        'avatar': 'https://picsum.photos/100/100?random=1',
-        'rating': 4.8,
-        'proposal': 'Готов выполнить вашу заявку качественно и в срок. Имею большой опыт работы с мебелью.',
-        'price': 15000,
-        'timeline': 7,
-        'status': 'pending',
-      },
-      {
-        'id': '2',
-        'masterId': 'master2',
-        'masterName': 'Мария Дизайнер',
-        'avatar': 'https://picsum.photos/100/100?random=2',
-        'rating': 4.9,
-        'proposal': 'Создам уникальный дизайн мебели под ваши требования. Работаю с современными материалами.',
-        'price': 25000,
-        'timeline': 10,
-        'status': 'accepted',
-      },
-      {
-        'id': '3',
-        'masterId': 'master3',
-        'masterName': 'Дмитрий Мастер',
-        'avatar': 'https://picsum.photos/100/100?random=3',
-        'rating': 4.7,
-        'proposal': 'Быстро и качественно выполню заказ. Предоставляю гарантию на работу.',
-        'price': 12000,
-        'timeline': 5,
-        'status': 'pending',
-      },
-    ];
-  }
 }
