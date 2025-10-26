@@ -40,7 +40,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -54,7 +54,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.share, color: Colors.white),
+            icon: const Icon(Icons.share, color: Colors.white),
             onPressed: () {
               // TODO: Поделиться каналом
             },
@@ -317,7 +317,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
               onPressed: () {
                 Navigator.pushNamed(context, '/chat', arguments: widget.masterId);
               },
-              icon: Icon(Icons.message, size: 18.sp),
+              icon: const Icon(Icons.message, size: 18.sp),
               label: Text('Написать'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -337,11 +337,11 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
               onPressed: () {
                 // TODO: Подписаться/отписаться
               },
-              icon: Icon(Icons.person_add, size: 18.sp),
+              icon: const Icon(Icons.person_add, size: 18.sp),
               label: Text('Подписаться'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
-                side: BorderSide(color: AppColors.primary),
+                side: const BorderSide(color: AppColors.primary),
                 padding: EdgeInsets.symmetric(vertical: 16.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.r),

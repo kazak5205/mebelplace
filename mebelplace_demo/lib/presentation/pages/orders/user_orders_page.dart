@@ -413,7 +413,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
               Navigator.pushNamed(context, '/create-order');
             },
             icon: const Icon(Icons.add, size: 18.sp),
-            label: Text('Создать заявку'),
+            label: const Text('Создать заявку'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -467,7 +467,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-            child: Text(
+            child: const Text(
               'Повторить',
               style: TextStyle(color: Colors.white),
             ),
