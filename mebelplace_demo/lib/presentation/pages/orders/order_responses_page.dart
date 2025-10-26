@@ -79,10 +79,10 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
       margin: EdgeInsets.only(bottom: 16.h),
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -147,7 +147,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               Text(
                 'Мастер • ${response.masterRating?.toStringAsFixed(1) ?? '5.0'} ⭐',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 12.sp,
                 ),
               ),
@@ -159,13 +159,13 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
           decoration: BoxDecoration(
             color: response.status == 'accepted' 
-              ? Colors.green.withOpacity(0.2)
-              : Colors.orange.withOpacity(0.2),
+              ? Colors.green.withValues(alpha: 0.2)
+              : Colors.orange.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8.r),
             border: Border.all(
               color: response.status == 'accepted' 
-                ? Colors.green.withOpacity(0.5)
-                : Colors.orange.withOpacity(0.5),
+                ? Colors.green.withValues(alpha: 0.5)
+                : Colors.orange.withValues(alpha: 0.5),
             ),
           ),
           child: Text(
@@ -187,10 +187,10 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -209,7 +209,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           Text(
             response.message,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14.sp,
               height: 1.4,
             ),
@@ -249,10 +249,10 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: color.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -271,7 +271,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 10.sp,
                   ),
                 ),
@@ -338,7 +338,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           onPressed: () {
             Navigator.pushNamed(context, '/master-profile', arguments: response.masterId);
           },
-          icon: Icon(Icons.person, color: Colors.white.withOpacity(0.7)),
+          icon: Icon(Icons.person, color: Colors.white.withValues(alpha: 0.7)),
         ),
       ],
     );
@@ -352,7 +352,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           Icon(
             Icons.inbox_outlined,
             size: 80.sp,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           SizedBox(height: 24.h),
           Text(
@@ -367,7 +367,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           Text(
             'Мастера еще не оставили предложения\nпо вашей заявке',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,
@@ -401,7 +401,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           Icon(
             Icons.error_outline,
             size: 64.sp,
-            color: Colors.red.withOpacity(0.7),
+            color: Colors.red.withValues(alpha: 0.7),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -416,7 +416,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           Text(
             error,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,
@@ -453,12 +453,12 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
         ),
         content: Text(
           'Вы уверены, что хотите принять предложение от ${response.masterName ?? 'мастера'}?',
-          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Отмена', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+            child: Text('Отмена', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
           ),
           ElevatedButton(
             onPressed: () {

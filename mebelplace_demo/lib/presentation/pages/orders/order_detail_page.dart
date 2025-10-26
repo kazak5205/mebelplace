@@ -128,10 +128,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -159,7 +159,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           Text(
             'Создано: ${_formatDate(order.createdAt)}',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12.sp,
             ),
           ),
@@ -197,9 +197,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.2),
+        color: statusColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: statusColor.withOpacity(0.5)),
+        border: Border.all(color: statusColor.withValues(alpha: 0.5)),
       ),
       child: Text(
         statusText,
@@ -216,10 +216,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -238,7 +238,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           Text(
             order.description,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14.sp,
               height: 1.5,
             ),
@@ -258,15 +258,15 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.2),
-            AppColors.secondary.withOpacity(0.2),
+            AppColors.primary.withValues(alpha: 0.2),
+            AppColors.secondary.withValues(alpha: 0.2),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -308,10 +308,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -346,10 +346,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                         return Container(
                           width: 120.w,
                           height: 120.h,
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           child: Icon(
                             Icons.image,
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: 0.5),
                             size: 32.sp,
                           ),
                         );
@@ -373,10 +373,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -418,7 +418,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         Text(
           '$label: ',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
             fontSize: 14.sp,
           ),
         ),
@@ -490,10 +490,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -555,7 +555,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           Icon(
             Icons.error_outline,
             size: 64.sp,
-            color: Colors.red.withOpacity(0.7),
+            color: Colors.red.withValues(alpha: 0.7),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -570,7 +570,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           Text(
             error,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,
