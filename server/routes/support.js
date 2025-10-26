@@ -3,6 +3,42 @@ const { pool } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
+// POST /api/support/contact - Отправить сообщение в поддержку (алиас для tickets)
+router.post('/contact', authenticateToken, async (req, res) => {
+  try {
+    const { subject, message, priority = 'medium' } = req.body;
+    const userId = req.user.id;
+
+    if (!subject || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Subject and message are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO support_tickets (user_id, subject, message, priority) VALUES ($1, $2, $3, $4) RETURNING *',
+      [userId, subject, message, priority]
+    );
+
+    res.status(201).json({
+      success: true,
+      data: result.rows[0],
+      message: 'Support message sent successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Send support message error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send support message',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // POST /api/support/tickets - Создать тикет поддержки
 router.post('/tickets', authenticateToken, async (req, res) => {
   try {

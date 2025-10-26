@@ -101,7 +101,7 @@ router.post('/:id/subscribe', authenticateToken, async (req, res) => {
 
     // Проверяем, не подписан ли уже
     const existingSubscription = await pool.query(
-      'SELECT id FROM subscriptions WHERE subscriber_id = $1 AND channel_id = $2',
+      'SELECT id FROM subscriptions WHERE user_id = $1 AND master_id = $2 AND is_active = true',
       [subscriberId, channelId]
     );
 
@@ -115,7 +115,7 @@ router.post('/:id/subscribe', authenticateToken, async (req, res) => {
 
     // Создаём подписку
     const result = await pool.query(
-      'INSERT INTO subscriptions (subscriber_id, channel_id) VALUES ($1, $2) RETURNING *',
+      'INSERT INTO subscriptions (user_id, master_id) VALUES ($1, $2) RETURNING *',
       [subscriberId, channelId]
     );
 
@@ -143,7 +143,7 @@ router.delete('/:id/unsubscribe', authenticateToken, async (req, res) => {
     const subscriberId = req.user.id;
 
     const result = await pool.query(
-      'DELETE FROM subscriptions WHERE subscriber_id = $1 AND channel_id = $2 RETURNING *',
+      'DELETE FROM subscriptions WHERE user_id = $1 AND master_id = $2 RETURNING *',
       [subscriberId, channelId]
     );
 
@@ -187,15 +187,15 @@ router.get('/:id/subscribers', async (req, res) => {
         u.avatar,
         s.created_at as subscribed_at
       FROM subscriptions s
-      JOIN users u ON s.subscriber_id = u.id
-      WHERE s.channel_id = $1 AND u.is_active = true
+      JOIN users u ON s.user_id = u.id
+      WHERE s.master_id = $1 AND u.is_active = true AND s.is_active = true
       ORDER BY s.created_at DESC
       LIMIT $2 OFFSET $3
     `, [channelId, limit, offset]);
 
     // Получаем общее количество
     const countResult = await pool.query(
-      'SELECT COUNT(*) FROM subscriptions WHERE channel_id = $1',
+      'SELECT COUNT(*) FROM subscriptions WHERE master_id = $1 AND is_active = true',
       [channelId]
     );
 
@@ -244,15 +244,15 @@ router.get('/:id/subscriptions', async (req, res) => {
         u.bio,
         s.created_at as subscribed_at
       FROM subscriptions s
-      JOIN users u ON s.channel_id = u.id
-      WHERE s.subscriber_id = $1 AND u.is_active = true
+      JOIN users u ON s.master_id = u.id
+      WHERE s.user_id = $1 AND u.is_active = true AND s.is_active = true
       ORDER BY s.created_at DESC
       LIMIT $2 OFFSET $3
     `, [subscriberId, limit, offset]);
 
     // Получаем общее количество
     const countResult = await pool.query(
-      'SELECT COUNT(*) FROM subscriptions WHERE subscriber_id = $1',
+      'SELECT COUNT(*) FROM subscriptions WHERE user_id = $1 AND is_active = true',
       [subscriberId]
     );
 
@@ -290,7 +290,7 @@ router.get('/:id/subscription-status', authenticateToken, async (req, res) => {
     const subscriberId = req.user.id;
 
     const result = await pool.query(
-      'SELECT id, created_at FROM subscriptions WHERE subscriber_id = $1 AND channel_id = $2',
+      'SELECT id, created_at FROM subscriptions WHERE user_id = $1 AND master_id = $2 AND is_active = true',
       [subscriberId, channelId]
     );
 
@@ -494,7 +494,7 @@ router.get('/:id', async (req, res) => {
     if (user.role === 'master') {
       // Количество подписчиков
       const subscribersResult = await pool.query(
-        'SELECT COUNT(*) FROM subscriptions WHERE channel_id = $1',
+        'SELECT COUNT(*) FROM subscriptions WHERE master_id = $1',
         [userId]
       );
       user.subscribers_count = parseInt(subscribersResult.rows[0].count);

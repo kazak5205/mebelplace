@@ -117,6 +117,9 @@ const GuestHomeScreen = ({ navigation }: any) => {
                 : 'https://via.placeholder.com/50'
             }}
             style={styles.masterAvatar}
+            onError={(error) => {
+              console.log('Avatar image failed to load:', `https://mebelplace.com.kz${item.avatar}`);
+            }}
           />
           <Text style={styles.masterName} numberOfLines={1}>
             {item.firstName} {item.lastName}

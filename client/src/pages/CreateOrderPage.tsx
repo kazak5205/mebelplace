@@ -49,7 +49,8 @@ const CreateOrderPage: React.FC = () => {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.MouseEvent | React.FormEvent) => {
+    console.log('handleSubmit called!', e)
     e.preventDefault()
     if (!user) return
 
@@ -66,7 +67,7 @@ const CreateOrderPage: React.FC = () => {
       const submitData = new FormData()
       submitData.append('title', formData.title)
       submitData.append('description', formData.description)
-      submitData.append('location', formData.location)
+      submitData.append('city', formData.location)
       submitData.append('region', formData.region)
       
       // Добавляем изображения
@@ -276,7 +277,8 @@ const CreateOrderPage: React.FC = () => {
             Отмена
           </button>
           <motion.button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             disabled={loading}

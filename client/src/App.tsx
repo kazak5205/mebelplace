@@ -10,6 +10,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import HomePage from './pages/HomePage'
 import ChatListPage from './pages/ChatListPage'
 import ChatPage from './pages/ChatPage'
+import SupportPage from './pages/SupportPage'
 import OrdersPage from './pages/OrdersPage'
 import UserOrdersPage from './pages/UserOrdersPage'
 import CreateOrderPage from './pages/CreateOrderPage'
@@ -52,6 +53,7 @@ function App() {
                   {/* Messenger */}
                   <Route path="/user/messenger" element={<ChatListPage />} />
                   <Route path="/user/messenger/:id" element={<ChatPage />} />
+                  <Route path="/user/support" element={<SupportPage />} />
                   {/* Legacy routes - redirect */}
                   <Route path="/chat" element={<ChatListPage />} />
                   <Route path="/chat/:id" element={<ChatPage />} />
@@ -71,6 +73,7 @@ function App() {
               
               {/* Profile */}
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/:id" element={<MasterChannelPage />} />
               <Route path="/master/:id" element={<MasterChannelPage />} />
               <Route path="/master/profile" element={<ProfilePage />} />
               

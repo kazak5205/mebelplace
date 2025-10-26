@@ -527,266 +527,267 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         </motion.div>
 
-      {/* TikTok Style Layout */}
-      <div className="tiktok-layout">
-        {/* Main Video Container - Vertical, Centered, Adaptive */}
-        <div className="tiktok-video-section">
-          <AnimatePresence initial={false} mode="wait">
-            <motion.div
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.1}
-              dragMomentum={false}
-              onDragEnd={handleDragEnd}
-              className="tiktok-video-container"
-              key={currentIndex}
-              initial={{ 
-                opacity: 0,
-                scale: 0.95,
-                y: 50
-              }}
-              animate={{ 
-                opacity: 1,
-                scale: 1,
-                y: 0,
-                transition: {
-                  duration: 0.4,
-                  ease: [0.25, 0.46, 0.45, 0.94] // TikTok easing
-                }
-              }}
-              exit={{ 
-                opacity: 0,
-                scale: 0.95,
-                y: -50,
-                transition: {
-                  duration: 0.3,
-                  ease: [0.55, 0.085, 0.68, 0.53]
-                }
-              }}
-            >
-              {/* Video Player */}
-              <video
-                ref={(el) => (videoRefs.current[currentIndex] = el)}
-                src={currentVideo.videoUrl}
-                className="w-full h-full object-contain rounded-lg"
-                loop={false}
-                playsInline
-                autoPlay
-                onClick={handleVideoClick}
-                onDoubleClick={handleDoubleTap}
-              />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Side Panel - All content outside video container */}
-        <div className="tiktok-side-panel">
-          {/* Video Info Section */}
-          <div className="flex-1 p-6 space-y-6">
-            {/* Author Info */}
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                {currentVideo.avatar || currentVideo.master?.avatar ? (
-                  <img 
-                    src={currentVideo.avatar || currentVideo.master?.avatar} 
-                    alt={currentVideo.username || currentVideo.master?.name || 'Avatar'}
+        {/* TikTok Style Layout - Vertical Video Player */}
+        <div className="relative w-full h-full flex items-center justify-center">
+          {/* Main Video Container - Vertical Format (9:16) */}
+          <div className="relative w-full max-w-sm mx-auto">
+            <AnimatePresence initial={false} mode="wait">
+              <motion.div
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={0.1}
+                dragMomentum={false}
+                onDragEnd={handleDragEnd}
+                className="relative w-full mx-auto"
+                key={currentIndex}
+                initial={{ 
+                  opacity: 0,
+                  scale: 0.95,
+                  y: 50
+                }}
+                animate={{ 
+                  opacity: 1,
+                  scale: 1,
+                  y: 0,
+                  transition: {
+                    duration: 0.4,
+                    ease: [0.25, 0.46, 0.45, 0.94]
+                  }
+                }}
+                exit={{ 
+                  opacity: 0,
+                  scale: 0.95,
+                  y: -50,
+                  transition: {
+                    duration: 0.3,
+                    ease: [0.55, 0.085, 0.68, 0.53]
+                  }
+                }}
+              >
+                {/* Video Container - Vertical Adaptive */}
+                <div className="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden">
+                  <video
+                    ref={(el) => (videoRefs.current[currentIndex] = el)}
+                    src={currentVideo.videoUrl}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                      if (e.currentTarget.nextSibling) {
-                        (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
+                    loop={false}
+                    playsInline
+                    autoPlay
+                    onClick={handleVideoClick}
+                    onDoubleClick={handleDoubleTap}
+                  />
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Video Info - Bottom Left - Adapted for vertical format */}
+          <div className="absolute bottom-20 left-4 z-30 max-w-xs">
+            <div className="space-y-3">
+              {/* Author Info */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                  {currentVideo.avatar || currentVideo.master?.avatar ? (
+                    <img 
+                      src={currentVideo.avatar?.startsWith('http') ? currentVideo.avatar : `https://mebelplace.com.kz${currentVideo.avatar}` || 
+                             currentVideo.master?.avatar?.startsWith('http') ? currentVideo.master?.avatar : `https://mebelplace.com.kz${currentVideo.master?.avatar}`} 
+                      alt={currentVideo.username || currentVideo.master?.name || 'Avatar'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log('Avatar image failed to load:', e.currentTarget.src);
+                        e.currentTarget.style.display = 'none'
+                        if (e.currentTarget.nextSibling) {
+                          (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <span 
+                    className="text-white font-bold text-sm"
+                    style={{ display: currentVideo.avatar || currentVideo.master?.avatar ? 'none' : 'flex' }}
+                  >
+                    {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
+                  </span>
+                </div>
+                <div>
+                  <button
+                    onClick={() => {
+                      const authorId = currentVideo.authorId || currentVideo.author_id || currentVideo.masterId || currentVideo.master?.id
+                      if (authorId) {
+                        window.location.href = `/profile/${authorId}`
                       }
                     }}
-                  />
-                ) : null}
-                <span 
-                  className="text-white font-bold text-sm"
-                  style={{ display: currentVideo.avatar || currentVideo.master?.avatar ? 'none' : 'flex' }}
-                >
-                  {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
-                </span>
+                    className="text-white font-semibold text-sm hover:text-blue-300 transition-colors"
+                  >
+                    {currentVideo.username || currentVideo.master?.name || 'Автор'}
+                  </button>
+                  <p className="text-white/60 text-xs">
+                    {formatTimeAgo(currentVideo.createdAt)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-white font-semibold text-lg">
-                  {currentVideo.username || currentVideo.master?.name || 'Автор'}
-                </h3>
-                <p className="text-white/60 text-sm">
-                  {formatTimeAgo(currentVideo.createdAt)}
-                </p>
+
+              {/* Video Title & Description */}
+              <div className="space-y-2">
+                <h2 className="text-white font-bold text-sm leading-tight">
+                  {currentVideo.title}
+                </h2>
+                
+                {currentVideo.description && (
+                  <p className="text-white/80 text-xs leading-relaxed line-clamp-2">
+                    {currentVideo.description}
+                  </p>
+                )}
+
+                {/* Tags */}
+                {currentVideo.tags && currentVideo.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {currentVideo.tags.slice(0, 3).map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-white/10 rounded-full text-white/90 font-medium text-xs"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Video Title & Description */}
-            <div className="space-y-3">
-              <h2 className="text-white font-bold text-xl leading-tight">
-                {currentVideo.title}
-              </h2>
-              
-              {currentVideo.description && (
-                <p className="text-white/80 text-sm leading-relaxed">
-                  {currentVideo.description}
-                </p>
-              )}
-
-              {/* Tags */}
-              {currentVideo.tags && currentVideo.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {currentVideo.tags.slice(0, 5).map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-white/10 rounded-full text-white/90 font-medium text-xs"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
+              {/* Order Button */}
+              {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
+                <div className="pt-2">
+                  <OrderButton video={currentVideo} className="w-full max-w-xs" />
                 </div>
               )}
-            </div>
-
-            {/* Order Button */}
-            {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
-              <div className="pt-4">
-                <OrderButton video={currentVideo} className="w-full" />
-              </div>
-            )}
-
-            {/* Video Progress */}
-            <div className="space-y-2">
-              <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                <motion.div
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full"
-                  style={{ 
-                    width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
-                  }}
-                  initial={{ width: 0 }}
-                  animate={{ 
-                    width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
-                  }}
-                  transition={{ duration: 0.1 }}
-                />
-              </div>
-              <div className="flex justify-between items-center text-xs text-white/70">
-                <span>
-                  {Math.floor(videoProgress / 60)}:{String(Math.floor(videoProgress % 60)).padStart(2, '0')}
-                </span>
-                <span>
-                  {Math.floor(videoDuration / 60)}:{String(Math.floor(videoDuration % 60)).padStart(2, '0')}
-                </span>
-              </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="p-6 border-t border-white/10">
-            <div className="flex flex-col space-y-4">
-              {/* Like */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLike}
-                className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
+          {/* Action Buttons - Right Side - Adapted for vertical format */}
+          <div className="absolute right-4 bottom-20 z-30 flex flex-col space-y-4">
+            {/* Like */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleLike}
+              className="flex flex-col items-center space-y-1"
+            >
+              <motion.div 
+                className={`w-12 h-12 rounded-full flex items-center justify-center ${videoState.isLiked ? 'bg-red-500' : 'bg-white/20'}`}
+                animate={videoState.isLiked ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                transition={{ duration: 0.3 }}
               >
-                <motion.div 
-                  className={`p-2 rounded-full ${videoState.isLiked ? 'bg-red-500' : 'bg-white/20'}`}
-                  animate={videoState.isLiked ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Heart 
-                    className={`w-5 h-5 ${videoState.isLiked ? 'text-white fill-white' : 'text-white'}`}
-                  />
-                </motion.div>
-                <span className="text-white font-semibold">
-                  {formatCount(videoState.likeCount)}
-                </span>
-              </motion.button>
+                <Heart 
+                  className={`w-6 h-6 ${videoState.isLiked ? 'text-white fill-white' : 'text-white'}`}
+                />
+              </motion.div>
+              <span className="text-white font-semibold text-xs">
+                {formatCount(videoState.likeCount)}
+              </span>
+            </motion.button>
 
-              {/* Comments */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowComments(true)}
-                className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
-              >
-                <div className="p-2 rounded-full bg-white/20">
-                  <MessageCircle className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-white font-semibold">
-                  {formatCount(currentVideo.commentCount)}
-                </span>
-              </motion.button>
+            {/* Comments */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowComments(true)}
+              className="flex flex-col items-center space-y-1"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                <MessageCircle className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-white font-semibold text-xs">
+                {formatCount(currentVideo.commentCount)}
+              </span>
+            </motion.button>
 
-              {/* Bookmark */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleBookmark}
-                className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
+            {/* Bookmark */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleBookmark}
+              className="flex flex-col items-center space-y-1"
+            >
+              <motion.div 
+                className={`w-12 h-12 rounded-full flex items-center justify-center ${bookmarkStates[currentVideo.id] ? 'bg-yellow-500' : 'bg-white/20'}`}
+                animate={bookmarkStates[currentVideo.id] ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                transition={{ duration: 0.3 }}
               >
-                <motion.div 
-                  className={`p-2 rounded-full ${bookmarkStates[currentVideo.id] ? 'bg-yellow-500' : 'bg-white/20'}`}
-                  animate={bookmarkStates[currentVideo.id] ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Bookmark className={`w-5 h-5 ${bookmarkStates[currentVideo.id] ? 'text-white fill-white' : 'text-white'}`} />
-                </motion.div>
-                <span className="text-white font-semibold">
-                  Сохранить
-                </span>
-              </motion.button>
+                <Bookmark className={`w-6 h-6 ${bookmarkStates[currentVideo.id] ? 'text-white fill-white' : 'text-white'}`} />
+              </motion.div>
+              <span className="text-white font-semibold text-xs">
+                Сохранить
+              </span>
+            </motion.button>
 
-              {/* Share */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleShare}
-                className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all"
-              >
-                <div className="p-2 rounded-full bg-white/20">
-                  <Share2 className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-white font-semibold">
-                  Поделиться
-                </span>
-              </motion.button>
+            {/* Share */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleShare}
+              className="flex flex-col items-center space-y-1"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                <Share2 className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-white font-semibold text-xs">
+                Поделиться
+              </span>
+            </motion.button>
+          </div>
+
+          {/* Navigation Arrows - Left Side - Moved left and up 30px */}
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 -translate-y-[30px] z-30 flex flex-col space-y-4">
+            {/* Previous Video Arrow */}
+            <motion.button
+              whileHover={currentIndex !== 0 ? { scale: 1.15, y: -2 } : {}}
+              whileTap={currentIndex !== 0 ? { scale: 0.9 } : {}}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              onClick={handlePrevVideo}
+              disabled={currentIndex === 0}
+              className={`w-10 h-10 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 flex items-center justify-center ${
+                currentIndex === 0 
+                  ? 'bg-white/5 text-white/20 cursor-not-allowed' 
+                  : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
+              }`}
+            >
+              <ChevronUp className="w-5 h-5" />
+            </motion.button>
+
+            {/* Next Video Arrow */}
+            <motion.button
+              whileHover={currentIndex !== videos.length - 1 ? { scale: 1.15, y: 2 } : {}}
+              whileTap={currentIndex !== videos.length - 1 ? { scale: 0.9 } : {}}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              onClick={handleNextVideo}
+              disabled={currentIndex === videos.length - 1}
+              className={`w-10 h-10 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 flex items-center justify-center ${
+                currentIndex === videos.length - 1
+                  ? 'bg-white/5 text-white/20 cursor-not-allowed' 
+                  : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
+              }`}
+            >
+              <ChevronDown className="w-5 h-5" />
+            </motion.button>
+          </div>
+
+          {/* Video Progress - Bottom - Adapted for vertical format */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30 w-64">
+            <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden">
+              <motion.div
+                className="absolute left-0 top-0 h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full"
+                style={{ 
+                  width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
+                }}
+                initial={{ width: 0 }}
+                animate={{ 
+                  width: `${videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0}%` 
+                }}
+                transition={{ duration: 0.1 }}
+              />
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Navigation Arrows - Right side, up/down */}
-      <div className="tiktok-nav-arrows">
-        {/* Previous Video Arrow */}
-        <motion.button
-          whileHover={currentIndex !== 0 ? { scale: 1.15, y: -2 } : {}}
-          whileTap={currentIndex !== 0 ? { scale: 0.9 } : {}}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          onClick={handlePrevVideo}
-          disabled={currentIndex === 0}
-          className={`p-3 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 ${
-            currentIndex === 0 
-              ? 'bg-white/5 text-white/20 cursor-not-allowed' 
-              : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
-          }`}
-        >
-          <ChevronUp className="w-6 h-6" />
-        </motion.button>
-
-        {/* Next Video Arrow */}
-        <motion.button
-          whileHover={currentIndex !== videos.length - 1 ? { scale: 1.15, y: 2 } : {}}
-          whileTap={currentIndex !== videos.length - 1 ? { scale: 0.9 } : {}}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          onClick={handleNextVideo}
-          disabled={currentIndex === videos.length - 1}
-          className={`p-3 rounded-full backdrop-blur-xl shadow-lg transition-all duration-300 ${
-            currentIndex === videos.length - 1
-              ? 'bg-white/5 text-white/20 cursor-not-allowed' 
-              : 'bg-white/20 text-white hover:bg-white/30 hover:shadow-xl'
-          }`}
-        >
-          <ChevronDown className="w-6 h-6" />
-        </motion.button>
-      </div>
 
 
       {/* Панель комментариев */}

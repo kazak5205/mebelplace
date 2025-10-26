@@ -8,11 +8,14 @@ const router = express.Router();
 // Configure multer for video uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, '../uploads/videos/');
+    console.log('[VIDEO UPLOAD] Setting destination to /app/uploads/videos/');
+    cb(null, '/app/uploads/videos/');
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'video-' + uniqueSuffix + '.' + file.originalname.split('.').pop());
+    const filename = 'video-' + uniqueSuffix + '.' + file.originalname.split('.').pop();
+    console.log('[VIDEO UPLOAD] Generated filename:', filename);
+    cb(null, filename);
   }
 });
 
@@ -32,8 +35,14 @@ const upload = multer({
 
 // POST /api/videos/upload - Upload video (только для мастеров и админов)
 router.post('/upload', authenticateToken, requireRole(['master', 'admin']), upload.single('video'), async (req, res) => {
+  console.log('[VIDEO UPLOAD] Upload request received');
+  console.log('[VIDEO UPLOAD] User:', req.user);
+  console.log('[VIDEO UPLOAD] File:', req.file);
+  console.log('[VIDEO UPLOAD] Body:', req.body);
+  
   try {
     if (!req.file) {
+      console.log('[VIDEO UPLOAD] No file provided');
       return res.status(400).json({
         success: false,
         message: 'No video file provided',
@@ -54,18 +63,24 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
       tags: tags ? tags.split(',').map(tag => tag.trim()) : []
     };
 
+    console.log('[VIDEO UPLOAD] Creating video with data:', videoData);
     const video = await videoService.createVideo(videoData);
+    console.log('[VIDEO UPLOAD] Video created:', video.id);
     
     // Generate thumbnail immediately for fast preview
     try {
+      console.log('[VIDEO UPLOAD] Generating thumbnail...');
       await videoService.generateThumbnail(req.file.path, video.id);
+      console.log('[VIDEO UPLOAD] Thumbnail generated');
     } catch (error) {
-      console.error('Error generating thumbnail:', error);
+      console.error('[VIDEO UPLOAD] Error generating thumbnail:', error);
     }
     
     // Calculate duration asynchronously
+    console.log('[VIDEO UPLOAD] Calculating duration...');
     videoService.calculateDuration(req.file.path, video.id);
 
+    console.log('[VIDEO UPLOAD] Upload successful');
     res.json({
       success: true,
       data: video,
@@ -74,7 +89,8 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
     });
 
   } catch (error) {
-    console.error('Video upload error:', error);
+    console.error('[VIDEO UPLOAD] Upload error:', error);
+    console.error('[VIDEO UPLOAD] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to upload video',

@@ -277,7 +277,7 @@ const OrderResponsesPage: React.FC = () => {
                           alert('Ошибка: ID мастера не найден')
                           return
                         }
-                        navigate(`/master/${masterId}`)
+                        navigate(`/profile/${masterId}`)
                       }}
                       className="glass-button px-4 py-2 text-sm"
                     >

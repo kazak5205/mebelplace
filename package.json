@@ -51,5 +51,8 @@
     "mvp"
   ],
   "author": "MebelPlace Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.56.1"
+  }
 }

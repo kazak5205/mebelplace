@@ -219,6 +219,13 @@ class VideoService {
         return;
       }
 
+      // Check if video needs optimization by analyzing its structure
+      const needsOptimization = await this.checkVideoOptimizationNeeded(videoPath);
+      if (!needsOptimization) {
+        console.log(`✅ Video already has good structure: ${videoPath}`);
+        return;
+      }
+
       const tempPath = videoPath + '.faststart';
       
       return new Promise((resolve, reject) => {
@@ -227,6 +234,7 @@ class VideoService {
           .addOption('-c', 'copy') // Copy without re-encoding to prevent quality loss
           .addOption('-avoid_negative_ts', 'make_zero') // Fix timestamp issues
           .addOption('-fflags', '+genpts') // Generate presentation timestamps
+          .addOption('-max_muxing_queue_size', '1024') // Prevent buffer issues
           .output(tempPath)
           .on('start', (commandLine) => {
             console.log(`[OPTIMIZE] Starting optimization: ${commandLine}`);
@@ -265,6 +273,30 @@ class VideoService {
     } catch (error) {
       console.error('Error in optimizeVideoForFastStart:', error);
       throw error;
+    }
+  }
+
+  // Check if video needs optimization
+  async checkVideoOptimizationNeeded(videoPath) {
+    try {
+      const metadata = await ffprobe(videoPath);
+      
+      // Check if video has faststart flag
+      if (metadata.format && metadata.format.tags && metadata.format.tags.faststart) {
+        return false;
+      }
+      
+      // Check if video has good structure for streaming
+      if (metadata.format && metadata.format.duration) {
+        const duration = parseFloat(metadata.format.duration);
+        // For videos longer than 10 seconds, optimization is beneficial
+        return duration > 10;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking video optimization:', error);
+      return true; // Default to optimizing if we can't determine
     }
   }
 

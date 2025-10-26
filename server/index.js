@@ -93,6 +93,8 @@ app.use((req, res, next) => {
 app.use('/uploads', express.static('/app/server/uploads'));
 // Затем проверяем /app/uploads (старые файлы: видео, превью)
 app.use('/uploads', express.static('/app/uploads'));
+// Специально для видео файлов
+app.use('/uploads/videos', express.static('/app/uploads/videos'));
 
 // Routes
 app.use('/api/auth', authRoutes);

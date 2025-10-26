@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Play, Heart, MessageCircle, Grid, Bookmark, Upload, X, Eye, Share, MoreHorizontal, Plus, Check, UserPlus, UserMinus } from 'lucide-react'
+import { ArrowLeft, Play, Heart, MessageCircle, Grid, Bookmark, Upload, X, Eye, MoreHorizontal, UserPlus, UserMinus } from 'lucide-react'
 import { Video, User } from '../types'
 import { videoService } from '../services/videoService'
 import { userService } from '../services/userService'
@@ -31,10 +31,14 @@ const MasterChannelPage: React.FC = () => {
   const { on } = useSocket()
 
   useEffect(() => {
+    console.log('MasterChannelPage: id from useParams:', id)
+    console.log('MasterChannelPage: current URL:', window.location.href)
     if (id) {
       loadMasterInfo()
       loadMasterVideos()
       loadSubscriptionStatus()
+    } else {
+      console.error('MasterChannelPage: No id parameter found!')
     }
   }, [id])
 
@@ -59,11 +63,17 @@ const MasterChannelPage: React.FC = () => {
   }, [on])
 
   const loadMasterInfo = async () => {
-    if (!id) return
+    if (!id) {
+      console.error('loadMasterInfo: No id provided')
+      return
+    }
     try {
+      console.log('loadMasterInfo: Loading master info for id:', id)
       const data: any = await apiService.get(`/users/${id}`)
-      if (data) {
-        setMaster(data as User)
+      console.log('loadMasterInfo: API response:', data)
+      if (data?.data) {
+        setMaster(data.data as User)
+        console.log('loadMasterInfo: Master data set:', data.data)
       }
     } catch (error) {
       console.error('Failed to load master info:', error)
@@ -72,9 +82,12 @@ const MasterChannelPage: React.FC = () => {
 
   const loadMasterVideos = async () => {
     try {
+      console.log('loadMasterVideos: Loading videos for author_id:', id)
       setLoading(true)
       const response = await videoService.getVideos({ author_id: id, limit: 50 })
+      console.log('loadMasterVideos: API response:', response)
       setVideos(response.videos)
+      console.log('loadMasterVideos: Videos set:', response.videos)
       // НЕ перезаписываем master - loadMasterInfo() уже загрузил правильные данные с subscribers_count!
     } catch (error) {
       console.error('Failed to load master videos:', error)
@@ -254,12 +267,25 @@ const MasterChannelPage: React.FC = () => {
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-cyan-400 p-0.5">
                 <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
                   {master.avatar ? (
-                    <img src={master.avatar} alt={displayName} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-2xl font-bold text-white">
-                      {displayName.charAt(0).toUpperCase()}
-                    </span>
-                  )}
+                    <img 
+                      src={master.avatar.startsWith('http') ? master.avatar : `https://mebelplace.com.kz${master.avatar}`} 
+                      alt={displayName} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log('Avatar image failed to load:', e.currentTarget.src);
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextSibling) {
+                          (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex';
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <span 
+                    className="text-2xl font-bold text-white"
+                    style={{ display: master.avatar ? 'none' : 'flex' }}
+                  >
+                    {displayName.charAt(0).toUpperCase()}
+                  </span>
                 </div>
               </div>
             </motion.div>
@@ -299,9 +325,15 @@ const MasterChannelPage: React.FC = () => {
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-white">
-                    {formatCount((master as any).subscribersCount || (master as any).subscribers_count || (master as any).followersCount || (master as any).followers_count || 0)}
+                    {formatCount((master as any).subscribersCount || (master as any).subscribers_count || 0)}
                   </div>
                   <div className="text-xs text-white/60">Подписчики</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-white">
+                    {formatCount(videos.reduce((sum, v) => sum + Number(v.views || v.viewsCount || 0), 0))}
+                  </div>
+                  <div className="text-xs text-white/60">Просмотры</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-white">
@@ -459,8 +491,9 @@ const MasterChannelPage: React.FC = () => {
             )}
           </motion.div>
         </motion.div>
+      </motion.div>
 
-        {/* TikTok-Style Video Grid */}
+      {/* TikTok-Style Video Grid */}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -577,117 +610,141 @@ const MasterChannelPage: React.FC = () => {
           </motion.div>
         </AnimatePresence>
 
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-card p-6 w-full max-w-md"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">Загрузить видео</h3>
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="glass-button p-2"
+        {/* TikTok-Style Upload Modal */}
+        <AnimatePresence>
+          {showUploadModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                className="bg-gray-900 rounded-2xl p-6 w-full max-w-md"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-white">Загрузить видео</h3>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowUploadModal(false)}
+                    className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </motion.button>
+                </div>
 
-            <form onSubmit={handleUploadVideo} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Видео файл *
-                </label>
-                <input
-                  id="video-file"
-                  type="file"
-                  accept="video/*"
-                  required
-                  className="glass-input w-full"
-                />
-              </div>
+                <form onSubmit={handleUploadVideo} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">
+                      Видео файл *
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="video-file"
+                        type="file"
+                        accept="video/*"
+                        required
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-pink-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-500 file:text-white hover:file:bg-pink-600"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Название *
-                </label>
-                <input
-                  type="text"
-                  value={uploadForm.title}
-                  onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
-                  required
-                  placeholder="Название вашего видео"
-                  className="glass-input w-full"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">
+                      Название *
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadForm.title}
+                      onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                      required
+                      placeholder="Название вашего видео"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-pink-500"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Описание
-                </label>
-                <textarea
-                  value={uploadForm.description}
-                  onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
-                  rows={3}
-                  placeholder="Расскажите о вашем видео..."
-                  className="glass-input w-full resize-none"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">
+                      Описание
+                    </label>
+                    <textarea
+                      value={uploadForm.description}
+                      onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                      rows={3}
+                      placeholder="Расскажите о вашем видео..."
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-pink-500 resize-none"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Категория
-                </label>
-                <select
-                  value={uploadForm.category}
-                  onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
-                  className="glass-input w-full"
-                >
-                  <option value="general">Общее</option>
-                  <option value="furniture">Мебель</option>
-                  <option value="design">Дизайн</option>
-                  <option value="tutorial">Обучение</option>
-                  <option value="repair">Ремонт</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">
+                      Категория
+                    </label>
+                    <select
+                      value={uploadForm.category}
+                      onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500"
+                    >
+                      <option value="general">Общее</option>
+                      <option value="furniture">Мебель</option>
+                      <option value="design">Дизайн</option>
+                      <option value="tutorial">Обучение</option>
+                      <option value="repair">Ремонт</option>
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Теги (через запятую)
-                </label>
-                <input
-                  type="text"
-                  value={uploadForm.tags}
-                  onChange={(e) => setUploadForm({ ...uploadForm, tags: e.target.value })}
-                  placeholder="мебель, дизайн, интерьер"
-                  className="glass-input w-full"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">
+                      Теги (через запятую)
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadForm.tags}
+                      onChange={(e) => setUploadForm({ ...uploadForm, tags: e.target.value })}
+                      placeholder="мебель, дизайн, интерьер"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-pink-500"
+                    />
+                  </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  className="glass-button"
-                >
-                  Отмена
-                </button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  type="submit"
-                  disabled={uploading}
-                  className="glass-button bg-gradient-to-r from-pink-500 to-pink-600 disabled:opacity-50"
-                >
-                  {uploading ? 'Загрузка...' : 'Загрузить'}
-                </motion.button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
+                  <div className="flex gap-3 pt-4">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="button"
+                      onClick={() => setShowUploadModal(false)}
+                      className="flex-1 bg-white/10 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                    >
+                      Отмена
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      disabled={uploading}
+                      className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-semibold py-3 px-4 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {uploading ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full"
+                        />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
+                      <span>{uploading ? 'Загрузка...' : 'Загрузить'}</span>
+                    </motion.button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
     </div>
   )
 }

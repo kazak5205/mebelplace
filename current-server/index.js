@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
@@ -15,6 +16,7 @@ const chatRoutes = require('./routes/chat');
 const pushRoutes = require('./routes/push');
 const subscriptionRoutes = require('./routes/subscriptions');
 const adminRoutes = require('./routes/admin');
+const supportRoutes = require('./routes/support');
 const { initDatabase } = require('./config/database');
 const { setupSocket } = require('./config/socket');
 
@@ -53,6 +55,9 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files (uploads)
+app.use('/uploads', express.static('/app/uploads'));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/videos', videoRoutes);
@@ -63,6 +68,7 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/support', supportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -87,7 +93,7 @@ const PORT = process.env.PORT || 3001;
 
 // Initialize database and start server
 initDatabase().then(() => {
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📱 Socket.IO ready for real-time communication`);
   });

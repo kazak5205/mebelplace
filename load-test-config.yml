@@ -1,0 +1,103 @@
+config:
+  target: 'https://mebelplace.com.kz'
+  phases:
+    # Разогрев - 50 пользователей в течение 1 минуты
+    - duration: 60
+      arrivalRate: 1
+      name: "Warm up"
+    
+    # Основная нагрузка - 300 пользователей в течение 5 минут
+    - duration: 300
+      arrivalRate: 1
+      name: "Load test 300 users"
+    
+    # Пиковая нагрузка - 500 пользователей в течение 2 минут
+    - duration: 120
+      arrivalRate: 2
+      name: "Peak load 500 users"
+    
+    # Снижение нагрузки
+    - duration: 60
+      arrivalRate: 0.5
+      name: "Cool down"
+
+  defaults:
+    headers:
+      User-Agent: "MebelPlace Load Test"
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      Accept-Language: "ru-RU,ru;q=0.9,en;q=0.8"
+      Accept-Encoding: "gzip, deflate, br"
+      Connection: "keep-alive"
+
+scenarios:
+  # Сценарий 1: Главная страница
+  - name: "Homepage Load"
+    weight: 40
+    flow:
+      - get:
+          url: "/"
+          capture:
+            - json: "$.success"
+              as: "success"
+      
+      # Проверяем API видео
+      - get:
+          url: "/api/videos/feed"
+          capture:
+            - json: "$.data.videos[0].id"
+              as: "videoId"
+      
+      # Переходим к конкретному видео
+      - get:
+          url: "/?videoId={{ videoId }}"
+      
+      # Проверяем загрузку видео
+      - get:
+          url: "/api/videos/{{ videoId }}"
+
+  # Сценарий 2: API тестирование
+  - name: "API Load Test"
+    weight: 30
+    flow:
+      - get:
+          url: "/api/videos/feed"
+      
+      - get:
+          url: "/api/videos/trending"
+      
+      - get:
+          url: "/api/orders/feed"
+          expect:
+            - statusCode: 401  # Ожидаем 401 без авторизации
+
+  # Сценарий 3: Статические ресурсы
+  - name: "Static Resources"
+    weight: 20
+    flow:
+      - get:
+          url: "/assets/index-fce62f4d.js"
+      
+      - get:
+          url: "/assets/index-fce62f4d.css"
+      
+      - get:
+          url: "/uploads/videos/video-1761336455293-171264941.mp4"
+
+  # Сценарий 4: Поиск и навигация
+  - name: "Search and Navigation"
+    weight: 10
+    flow:
+      - get:
+          url: "/"
+      
+      # Симуляция поиска
+      - get:
+          url: "/api/videos/feed"
+          qs:
+            search: "мебель"
+      
+      - get:
+          url: "/login"
+      
+      - get:
+          url: "/register"

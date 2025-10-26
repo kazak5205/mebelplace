@@ -8,6 +8,7 @@ import {
   FlatList,
   StatusBar,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import {
@@ -66,7 +67,7 @@ const TikTokPlayerScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const recordView = async (video: VideoItem) => {
+  const recordView = async (video: VideoType) => {
     if (!video) return;
     try {
       await apiService.post(`/videos/${video.id}/view`, {
@@ -85,19 +86,19 @@ const TikTokPlayerScreen = ({ route, navigation }: any) => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
-      if (video.is_liked) {
+      if (video.isLiked) {
         await apiService.delete(`/videos/${video.id}/like`);
       } else {
         await apiService.post(`/videos/${video.id}/like`);
       }
 
-      setVideos((prev) =>
+      setVideos((prev: VideoType[]) =>
         prev.map((v, i) =>
           i === currentIndex
             ? {
                 ...v,
-                is_liked: !v.is_liked,
-                likes: v.is_liked ? v.likes - 1 : v.likes + 1,
+                isLiked: !v.isLiked,
+                likes: v.isLiked ? v.likes - 1 : v.likes + 1,
               }
             : v
         )
@@ -181,7 +182,7 @@ const TikTokPlayerScreen = ({ route, navigation }: any) => {
     return `${day} ${month}`;
   };
 
-  const renderVideo = ({ item, index }: { item: VideoItem; index: number }) => {
+  const renderVideo = ({ item, index }: { item: VideoType; index: number }) => {
     return (
       <View style={styles.videoContainer}>
         <Video
@@ -205,11 +206,30 @@ const TikTokPlayerScreen = ({ route, navigation }: any) => {
         {/* Правая панель действий */}
         <View style={styles.rightActions}>
           {/* Аватар автора */}
-          <View style={styles.avatarContainer}>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={() => {
+              const authorId = item.authorId || item.author_id;
+              if (authorId) {
+                navigation.navigate('MasterChannel', { masterId: authorId });
+              }
+            }}
+          >
             <View style={styles.avatar}>
-              <Ionicons name="person-outline" size={24} color="#FFF" />
+              {item.avatar ? (
+                <Image 
+                  source={{ uri: `https://mebelplace.com.kz${item.avatar}` }}
+                  style={styles.avatarImage}
+                  onError={(error) => {
+                    console.log('Avatar image failed to load:', `https://mebelplace.com.kz${item.avatar}`);
+                    // The fallback icon will be shown automatically
+                  }}
+                />
+              ) : (
+                <Ionicons name="person-outline" size={24} color="#FFF" />
+              )}
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* Лайк */}
           <TouchableOpacity
@@ -426,6 +446,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#FFF',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
   },
   actionButton: {
     alignItems: 'center',

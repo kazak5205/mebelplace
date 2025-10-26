@@ -14,7 +14,7 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
     console.log('Files:', req.files?.length || 0);
     console.log('User:', req.user?.id, req.user?.username);
     
-    const { title, description, category, location, region, budget, deadline } = req.body;
+    const { title, description, category, city, region, budget, deadline } = req.body;
     const clientId = req.user.id;
 
     if (!title || !description) {
@@ -32,11 +32,11 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
 
     // Создание заявки
     console.log('Inserting order with params:', {
-      title, description, images, clientId, category, location, region, budget, deadline
+      title, description, images, clientId, category, city, region, budget, deadline
     });
     
     const result = await pool.query(`
-      INSERT INTO orders (title, description, images, client_id, category, location, region, price, deadline, status)
+      INSERT INTO orders (title, description, images, client_id, category, city, region, price, deadline, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `, [
@@ -45,7 +45,7 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
       images,
       clientId,
       category || 'general',
-      location,
+      city,
       region || null,
       budget ? parseFloat(budget) : null,
       deadline ? new Date(deadline) : null,
@@ -199,15 +199,20 @@ router.get('/regions', async (req, res) => {
 // GET /api/orders/categories - Получить категории заявок (ПУБЛИЧНЫЙ)
 router.get('/categories', async (req, res) => {
   try {
-    const categories = [
-      { id: 'furniture', name: 'Мебель', description: 'Изготовление и ремонт мебели' },
-      { id: 'carpentry', name: 'Столярные работы', description: 'Работы по дереву' },
-      { id: 'upholstery', name: 'Обивка мебели', description: 'Перетяжка и реставрация' },
-      { id: 'restoration', name: 'Реставрация', description: 'Восстановление старинной мебели' },
-      { id: 'custom', name: 'На заказ', description: 'Индивидуальное изготовление' },
-      { id: 'repair', name: 'Ремонт', description: 'Ремонт и восстановление' },
-      { id: 'other', name: 'Другое', description: 'Прочие работы' }
-    ];
+    // Получаем категории из базы данных
+    const result = await pool.query(`
+      SELECT id, name, slug, description, color, sort_order
+      FROM content_categories 
+      WHERE is_active = true 
+      ORDER BY sort_order, name
+    `);
+    
+    const categories = result.rows.map(row => ({
+      id: row.slug,
+      name: row.name,
+      description: row.description,
+      color: row.color
+    }));
 
     res.json({
       success: true,

@@ -108,10 +108,13 @@ export const Avatar: React.FC<AvatarProps> = ({
       >
         {showImage ? (
           <img
-            src={src}
+            src={src?.startsWith('http') ? src : `https://mebelplace.com.kz${src}`}
             alt={name}
             className="w-full h-full object-cover"
-            onError={() => setImageError(true)}
+            onError={() => {
+              console.log('Avatar image failed to load:', src);
+              setImageError(true);
+            }}
           />
         ) : (
           <span>{initials}</span>

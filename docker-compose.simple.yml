@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: mebelplace-postgres-prod
+    environment:
+      POSTGRES_DB: mebelplace_prod
+      POSTGRES_USER: mebelplace
+      POSTGRES_PASSWORD: mebelplace123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - mebelplace
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mebelplace -d mebelplace_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mebelplace-redis-prod
+    command: redis-server --requirepass mebelplace123
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - mebelplace
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  mebelplace:
+    driver: bridge

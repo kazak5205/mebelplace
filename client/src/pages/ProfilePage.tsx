@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Camera, Save, X, Heart, Grid, Bookmark, Settings, LogOut, Play, Eye, MessageCircle, Share, MoreHorizontal, Plus, Check } from 'lucide-react'
+import { User, Camera, X, Heart, Grid, Bookmark, Settings, LogOut, Play, Eye, MessageCircle, MoreHorizontal, Check } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { userService } from '../services/userService'
 import { videoService } from '../services/videoService'
@@ -313,11 +313,11 @@ const ProfilePage: React.FC = () => {
                 <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
                   {user?.avatar ? (
                     <img
-                      src={user.avatar}
+                      src={user.avatar.startsWith('http') ? user.avatar : `https://mebelplace.com.kz${user.avatar}`}
                       alt={displayName}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        console.log('Avatar image failed to load, showing fallback');
+                        console.log('Avatar image failed to load:', e.currentTarget.src);
                         e.currentTarget.style.display = 'none';
                         if (e.currentTarget.nextSibling) {
                           (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex';
@@ -779,7 +779,7 @@ const ProfilePage: React.FC = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     className="flex items-center space-x-4 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                    onClick={() => window.location.href = `/master/${subscription.id}`}
+                    onClick={() => window.location.href = `/profile/${subscription.id}`}
                   >
                     <img 
                       src={subscription.avatar || '/default-avatar.png'} 
@@ -850,6 +850,7 @@ const ProfilePage: React.FC = () => {
           </motion.div>
         </div>
       )}
+      </motion.div>
     </div>
   )
 }

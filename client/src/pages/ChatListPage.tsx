@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MessageCircle, Search, Plus } from 'lucide-react'
+import { MessageCircle, Search, Headphones } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import GlassCard from '../components/GlassCard'
-import SelectMasterModal from '../components/SelectMasterModal'
 import { Chat } from '../types'
 import { chatService } from '../services/chatService'
 import { useSocket } from '../contexts/SocketContext'
@@ -13,9 +12,7 @@ const ChatListPage: React.FC = () => {
   const [chats, setChats] = useState<Chat[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showMasterModal, setShowMasterModal] = useState(false)
-  const [creatingChat, setCreatingChat] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [_error] = useState<string | null>(null)
   const navigate = useNavigate()
   const { socket, on, off } = useSocket()
   const { user } = useAuth()
@@ -142,23 +139,6 @@ const ChatListPage: React.FC = () => {
     return date.toLocaleDateString()
   }
 
-  const handleCreateChat = async (masterId: string) => {
-    try {
-      setCreatingChat(true)
-      setError(null)
-      const chat = await chatService.createChatWithUser(masterId)
-      // Переходим в созданный чат
-      navigate(`/chat/${chat.id}`)
-    } catch (err: any) {
-      console.error('Failed to create chat:', err)
-      const errorMessage = err.response?.data?.message || err.message || 'Не удалось создать чат'
-      setError(errorMessage)
-      // Автоматически скрываем ошибку через 5 секунд
-      setTimeout(() => setError(null), 5000)
-    } finally {
-      setCreatingChat(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -177,61 +157,21 @@ const ChatListPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-center"
+        className="flex items-center justify-center relative"
       >
         <h1 className="text-3xl font-bold gradient-text text-center">Чаты</h1>
-      </motion.div>
-
-      {/* Disclaimer */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="glass-card p-4 border-l-4 border-yellow-500/50"
-      >
-        <div className="flex items-start space-x-3">
-          <div className="w-6 h-6 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-yellow-400 text-sm font-bold">!</span>
-          </div>
-          <div>
-            <h3 className="text-yellow-400 font-semibold text-sm mb-1">Дисклеймер</h3>
-            <p className="text-white/70 text-xs leading-relaxed">
-              MebelPlace является платформой для связи между клиентами и мастерами. 
-              Мы не несем ответственности за качество выполненных работ, сроки выполнения 
-              или любые споры между участниками. Все договоренности заключаются напрямую 
-              между клиентом и мастером. Используйте платформу на свой страх и риск.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex justify-end"
-      >
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setShowMasterModal(true)}
-          disabled={creatingChat}
-          className="glass-button flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => navigate('/user/support')}
+          className="absolute right-4 glass-button flex items-center space-x-2"
         >
-          <Plus className="w-5 h-5" />
-          <span>{creatingChat ? 'Создание...' : 'Новый чат'}</span>
+          <Headphones className="w-5 h-5" />
+          <span>Поддержка</span>
         </motion.button>
       </motion.div>
       
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="bg-red-500/90 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg"
-        >
-          {error}
-        </motion.div>
-      )}
+      
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -287,13 +227,36 @@ const ChatListPage: React.FC = () => {
                         e.stopPropagation()
                         const participant: any = getOtherParticipant(chat)
                         if (participant?.role === 'master') {
-                          navigate(`/master/${participant.user_id}`)
+                          navigate(`/profile/${participant.user_id}`)
                         }
                       }}
-                      className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold"
+                      className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold overflow-hidden"
                       aria-label="Канал мастера"
                     >
-                      {((getOtherParticipant(chat) as any)?.name || (getOtherParticipant(chat) as any)?.username || 'U').charAt(0).toUpperCase()}
+                      {(() => {
+                        const participant = getOtherParticipant(chat) as any;
+                        if (participant?.avatar) {
+                          return (
+                            <img
+                              src={participant.avatar.startsWith('http') ? participant.avatar : `https://mebelplace.com.kz${participant.avatar}`}
+                              alt={participant?.name || participant?.username || 'User'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.log('Chat list avatar image failed to load:', e.currentTarget.src);
+                                e.currentTarget.style.display = 'none';
+                                if (e.currentTarget.nextSibling) {
+                                  (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex';
+                                }
+                              }}
+                            />
+                          );
+                        }
+                        return (
+                          <span style={{ display: participant?.avatar ? 'none' : 'flex' }}>
+                            {(participant?.name || participant?.username || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        );
+                      })()}
                     </button>
                     {(getOtherParticipant(chat) as any)?.is_active && (
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900" />
@@ -327,12 +290,6 @@ const ChatListPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal for selecting master */}
-      <SelectMasterModal
-        isOpen={showMasterModal}
-        onClose={() => setShowMasterModal(false)}
-        onSelect={handleCreateChat}
-      />
     </div>
   )
 }

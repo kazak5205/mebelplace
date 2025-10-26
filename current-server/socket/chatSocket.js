@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const chatService = require('../services/chatService');
-const pool = require('../config/db');
+const pool = require('../config/database');
 
 class ChatSocket {
   constructor(io) {

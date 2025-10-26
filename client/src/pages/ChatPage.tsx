@@ -285,10 +285,33 @@ const ChatPage: React.FC = () => {
                   navigate(`/master/${participant.user_id}`)
                 }
               }}
-              className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold"
+              className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold overflow-hidden"
               aria-label="Канал мастера"
             >
-              {((getOtherParticipant() as any)?.name || (getOtherParticipant() as any)?.username || 'U').charAt(0).toUpperCase()}
+              {(() => {
+                const participant = getOtherParticipant() as any;
+                if (participant?.avatar) {
+                  return (
+                    <img
+                      src={participant.avatar.startsWith('http') ? participant.avatar : `https://mebelplace.com.kz${participant.avatar}`}
+                      alt={participant?.name || participant?.username || 'User'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log('Chat avatar image failed to load:', e.currentTarget.src);
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextSibling) {
+                          (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex';
+                        }
+                      }}
+                    />
+                  );
+                }
+                return (
+                  <span style={{ display: participant?.avatar ? 'none' : 'flex' }}>
+                    {(participant?.name || participant?.username || 'U').charAt(0).toUpperCase()}
+                  </span>
+                );
+              })()}
             </button>
             {(getOtherParticipant() as any)?.is_active && (
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900" />

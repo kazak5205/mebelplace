@@ -926,4 +926,47 @@ router.get('/audit-log', authenticateToken, requireRole(['admin']), async (req, 
   }
 });
 
+// GET /api/admin/support-messages - Get all support messages
+router.get('/support-messages', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT 
+        sm.*,
+        u.username,
+        u.email,
+        u.first_name,
+        u.last_name,
+        u.avatar
+      FROM support_messages sm
+      INNER JOIN users u ON sm.user_id = u.id
+      ORDER BY sm.created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+
+    const countResult = await pool.query('SELECT COUNT(*) FROM support_messages');
+
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: parseInt(countResult.rows[0].count),
+        pages: Math.ceil(countResult.rows[0].count / limit)
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get support messages error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get support messages',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 module.exports = router;

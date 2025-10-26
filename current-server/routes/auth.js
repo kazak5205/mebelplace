@@ -112,7 +112,7 @@ router.post('/login', authRateLimit, async (req, res) => {
 
     // Get user from database by phone
     const result = await pool.query(
-      'SELECT id, email, username, password_hash, first_name, last_name, phone, role, is_active, is_verified FROM users WHERE phone = $1',
+      'SELECT id, username, password_hash, first_name, last_name, phone, role, is_active, is_verified FROM users WHERE phone = $1',
       [phone]
     );
 
@@ -216,7 +216,7 @@ router.post('/refresh', async (req, res) => {
 
     // Get user info
     const userResult = await pool.query(
-      'SELECT id, email, username, first_name, last_name, role, is_active, is_verified FROM users WHERE id = $1',
+      'SELECT id, username, first_name, last_name, role, is_active, is_verified FROM users WHERE id = $1',
       [decoded.userId]
     );
 
@@ -282,7 +282,7 @@ router.get('/me', async (req, res) => {
       
       // Получаем пользователя из БД
       const result = await pool.query(
-        'SELECT id, email, username, first_name, last_name, phone, avatar, role, is_active, is_verified, created_at FROM users WHERE id = $1 AND is_active = true',
+        'SELECT id, username, first_name, last_name, phone, avatar, role, is_active, is_verified, created_at FROM users WHERE id = $1 AND is_active = true',
         [decoded.userId]
       );
 
