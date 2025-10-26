@@ -286,7 +286,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          Spacer(),
+          const Spacer(),
           Text(
             '${(order.price ?? 0).toStringAsFixed(0)} ₸',
             style: TextStyle(
@@ -445,7 +445,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
               // TODO: Откликнуться на заявку
               Navigator.pushNamed(context, '/order-respond', arguments: order.id);
             },
-            icon: Icon(Icons.reply, size: 18.sp),
+            icon: const Icon(Icons.reply, size: 18.sp),
             label: Text('Откликнуться'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -466,11 +466,11 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
               // TODO: Написать сообщение
               Navigator.pushNamed(context, '/chat', arguments: order.customerId);
             },
-            icon: Icon(Icons.message, size: 18.sp),
+            icon: const Icon(Icons.message, size: 18.sp),
             label: Text('Написать'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
-              side: BorderSide(color: AppColors.primary),
+              side: const BorderSide(color: AppColors.primary),
               padding: EdgeInsets.symmetric(vertical: 16.h),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.r),
@@ -510,7 +510,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               Text(
                 '${order.responseCount}',
                 style: TextStyle(
@@ -531,12 +531,12 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               foregroundColor: AppColors.primary,
-              side: BorderSide(color: AppColors.primary),
+              side: const BorderSide(color: AppColors.primary),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-            child: Text('Посмотреть отклики'),
+            child: const Text('Посмотреть отклики'),
           ),
         ],
       ),
@@ -586,7 +586,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-            child: Text(
+            child: const Text(
               'Повторить',
               style: TextStyle(color: Colors.white),
             ),
