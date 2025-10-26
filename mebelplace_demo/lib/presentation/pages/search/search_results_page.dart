@@ -83,10 +83,10 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
     return Container(
       height: 40.h,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -271,7 +271,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                     width: 32.w,
                     height: 32.w,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -365,10 +365,10 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
       margin: EdgeInsets.only(bottom: 16.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -390,7 +390,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(order.status).withOpacity(0.2),
+                  color: _getStatusColor(order.status).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8.r),
                   border: Border.all(
                     color: _getStatusColor(order.status).withValues(alpha: 0.5),
@@ -413,7 +413,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           Text(
             order.description,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14.sp,
             ),
             maxLines: 2,
@@ -442,7 +442,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
               Text(
                 _formatDate(order.createdAt),
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 12.sp,
                 ),
               ),
@@ -462,10 +462,10 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
       margin: EdgeInsets.only(bottom: 16.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -589,7 +589,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           Icon(
             icon,
             size: 80.sp,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           SizedBox(height: 24.h),
           Text(

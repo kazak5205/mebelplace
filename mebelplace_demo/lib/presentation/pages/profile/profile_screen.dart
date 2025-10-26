@@ -137,7 +137,7 @@ class ProfileScreen extends ConsumerWidget {
                     '${user.firstName} ${user.lastName}',
                     style: TextStyle(
                       fontSize: 16.sp,
-                      color: AppColors.white.withOpacity(0.8),
+                      color: AppColors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -146,7 +146,7 @@ class ProfileScreen extends ConsumerWidget {
                   user.phone ?? 'Нет телефона',
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: AppColors.white.withOpacity(0.7),
+                    color: AppColors.white.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -261,7 +261,7 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(height: 40.h),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Row(

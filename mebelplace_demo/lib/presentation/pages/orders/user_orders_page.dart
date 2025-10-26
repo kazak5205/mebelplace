@@ -88,10 +88,10 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
           // Поиск
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
@@ -100,12 +100,12 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
               decoration: InputDecoration(
                 hintText: 'Поиск заявок...',
                 hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 14.sp,
                 ),
                 prefixIcon: Icon(
                   Icons.search,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   size: 20.sp,
                 ),
                 border: InputBorder.none,
@@ -143,13 +143,13 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
                       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                       decoration: BoxDecoration(
                         color: isSelected 
-                          ? AppColors.primary.withOpacity(0.2)
-                          : Colors.white.withOpacity(0.05),
+                          ? AppColors.primary.withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(20.r),
                         border: Border.all(
                           color: isSelected 
                             ? AppColors.primary
-                            : Colors.white.withOpacity(0.2),
+                            : Colors.white.withValues(alpha: 0.2),
                           width: 1,
                         ),
                       ),
@@ -158,7 +158,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
                         style: TextStyle(
                           color: isSelected 
                             ? AppColors.primary
-                            : Colors.white.withOpacity(0.7),
+                            : Colors.white.withValues(alpha: 0.7),
                           fontSize: 12.sp,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
@@ -205,10 +205,10 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
         child: Container(
           padding: EdgeInsets.all(20.w),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -238,7 +238,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
               Text(
                 order.description,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 14.sp,
                 ),
                 maxLines: 2,
@@ -254,10 +254,10 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
-                        color: AppColors.primary.withOpacity(0.5),
+                        color: AppColors.primary.withValues(alpha: 0.5),
                       ),
                     ),
                     child: Row(
@@ -287,10 +287,10 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.2),
+                      color: Colors.blue.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
-                        color: Colors.blue.withOpacity(0.5),
+                        color: Colors.blue.withValues(alpha: 0.5),
                       ),
                     ),
                     child: Row(
@@ -320,7 +320,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
                   Text(
                     _formatDate(order.createdAt),
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12.sp,
                     ),
                   ),
@@ -362,10 +362,10 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.2),
+        color: statusColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(
-          color: statusColor.withOpacity(0.5),
+          color: statusColor.withValues(alpha: 0.5),
         ),
       ),
       child: Text(
@@ -387,7 +387,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
           Icon(
             Icons.description_outlined,
             size: 80.sp,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           SizedBox(height: 24.h),
           Text(
@@ -402,7 +402,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
           Text(
             'Создайте первую заявку и найдите\nподходящего мастера',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,
@@ -436,7 +436,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
           Icon(
             Icons.error_outline,
             size: 64.sp,
-            color: Colors.red.withOpacity(0.7),
+            color: Colors.red.withValues(alpha: 0.7),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -451,7 +451,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
           Text(
             error,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,

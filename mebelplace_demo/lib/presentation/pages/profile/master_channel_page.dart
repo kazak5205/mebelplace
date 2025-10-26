@@ -102,15 +102,15 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.1),
-            AppColors.secondary.withOpacity(0.1),
+            AppColors.primary.withValues(alpha: 0.1),
+            AppColors.secondary.withValues(alpha: 0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -171,7 +171,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           Text(
             master['description'],
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14.sp,
               height: 1.4,
             ),
@@ -202,7 +202,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
               Text(
                 '(${master['reviewsCount']} отзывов)',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 12.sp,
                 ),
               ),
@@ -222,10 +222,10 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -243,7 +243,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           Container(
             width: 1,
             height: 40.h,
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
           ),
           
           Expanded(
@@ -258,7 +258,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           Container(
             width: 1,
             height: 40.h,
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
           ),
           
           Expanded(
@@ -299,7 +299,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
             fontSize: 12.sp,
           ),
         ),
@@ -439,7 +439,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha: 0.7),
                         ],
                       ),
                     ),
@@ -452,7 +452,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(4.r),
                       ),
                       child: Text(
@@ -472,7 +472,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
                       width: 40.w,
                       height: 40.w,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -507,28 +507,28 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
               children: [
                 Icon(
                   Icons.visibility,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   size: 12.sp,
                 ),
                 SizedBox(width: 4.w),
                 Text(
                   '${video.views}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 10.sp,
                   ),
                 ),
                 SizedBox(width: 12.w),
                 Icon(
                   Icons.favorite,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   size: 12.sp,
                 ),
                 SizedBox(width: 4.w),
                 Text(
                   '${video.likesCount}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 10.sp,
                   ),
                 ),
@@ -545,10 +545,10 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
       margin: EdgeInsets.all(16.w),
       padding: EdgeInsets.all(40.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -557,7 +557,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           Icon(
             Icons.video_library_outlined,
             size: 64.sp,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -572,7 +572,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           Text(
             'Мастер еще не загрузил видео',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
           ),
@@ -589,7 +589,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           Icon(
             Icons.error_outline,
             size: 64.sp,
-            color: Colors.red.withOpacity(0.7),
+            color: Colors.red.withValues(alpha: 0.7),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -604,7 +604,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           Text(
             error,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,
