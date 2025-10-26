@@ -69,7 +69,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
               'Опубликовать',
               style: TextStyle(
                 color: _isUploading 
-                  ? Colors.white.withOpacity(0.5)
+                  ? Colors.white.withValues(alpha: 0.5)
                   : AppColors.primary,
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -131,10 +131,10 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -158,10 +158,10 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
               child: Container(
                 height: 120.h,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03),
+                  color: Colors.white.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     width: 2,
                     style: BorderStyle.solid,
                   ),
@@ -187,7 +187,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
                     Text(
                       'MP4, MOV до 100MB',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 12.sp,
                       ),
                     ),
@@ -216,7 +216,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha: 0.7),
                         ],
                       ),
                     ),
@@ -281,10 +281,10 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -308,10 +308,10 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
               child: Container(
                 height: 80.h,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03),
+                  color: Colors.white.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     width: 2,
                     style: BorderStyle.solid,
                   ),
@@ -390,10 +390,10 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -415,22 +415,22 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
             decoration: InputDecoration(
               hintText: 'Введите название видео...',
               hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 14.sp,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: AppColors.primary),
+                borderSide: const BorderSide(color: AppColors.primary),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
@@ -455,10 +455,10 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -481,22 +481,22 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
             decoration: InputDecoration(
               hintText: 'Опишите ваше видео...',
               hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 14.sp,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: AppColors.primary),
+                borderSide: const BorderSide(color: AppColors.primary),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
@@ -521,10 +521,10 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -546,17 +546,17 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: AppColors.primary),
+                borderSide: const BorderSide(color: AppColors.primary),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
             dropdownColor: AppColors.dark,
             items: _categories.map((category) {
@@ -584,10 +584,10 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -608,22 +608,22 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
             decoration: InputDecoration(
               hintText: 'мебель, дизайн, ремонт...',
               hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 14.sp,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: AppColors.primary),
+                borderSide: const BorderSide(color: AppColors.primary),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
           ),
         ],
@@ -657,7 +657,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
           Text(
             'Это может занять несколько минут',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
           ),

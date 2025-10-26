@@ -34,7 +34,7 @@ class LoadingWidget extends StatelessWidget {
                 message!,
                 style: TextStyle(
                   fontSize: 16.sp,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),

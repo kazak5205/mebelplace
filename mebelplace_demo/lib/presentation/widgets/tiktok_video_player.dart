@@ -289,7 +289,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                     fontWeight: FontWeight.w600,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.75),
+                        color: Colors.black.withValues(alpha: 0.75),
                         offset: const Offset(0, 1),
                         blurRadius: 3,
                       ),
@@ -320,7 +320,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                     fontWeight: FontWeight.w600,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.75),
+                        color: Colors.black.withValues(alpha: 0.75),
                         offset: const Offset(0, 1),
                         blurRadius: 3,
                       ),
@@ -351,7 +351,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                     fontWeight: FontWeight.w600,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.75),
+                        color: Colors.black.withValues(alpha: 0.75),
                         offset: const Offset(0, 1),
                         blurRadius: 3,
                       ),
@@ -406,7 +406,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                   fontWeight: FontWeight.bold,
                   shadows: [
                     Shadow(
-                      color: Colors.black.withOpacity(0.75),
+                      color: Colors.black.withValues(alpha: 0.75),
                       offset: const Offset(0, 1),
                       blurRadius: 3,
                     ),
@@ -416,7 +416,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
               Text(
                 ' • ${video.timeAgo}',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 14.sp,
                 ),
               ),
@@ -433,7 +433,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
               fontWeight: FontWeight.w600,
               shadows: [
                 Shadow(
-                  color: Colors.black.withOpacity(0.75),
+                  color: Colors.black.withValues(alpha: 0.75),
                   offset: const Offset(0, 1),
                   blurRadius: 3,
                 ),
@@ -449,11 +449,11 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
             Text(
               video.description!,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 fontSize: 14.sp,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withOpacity(0.75),
+                    color: Colors.black.withValues(alpha: 0.75),
                     offset: const Offset(0, 1),
                     blurRadius: 3,
                   ),
@@ -478,7 +478,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                     fontWeight: FontWeight.bold,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.75),
+                        color: Colors.black.withValues(alpha: 0.75),
                         offset: const Offset(0, 1),
                         blurRadius: 3,
                       ),
@@ -512,8 +512,8 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                 color: isActive
                     ? Colors.white
                     : isCompleted
-                        ? Colors.white.withOpacity(0.5)
-                        : Colors.white.withOpacity(0.2),
+                        ? Colors.white.withValues(alpha: 0.5)
+                        : Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(1.r),
               ),
             ),
