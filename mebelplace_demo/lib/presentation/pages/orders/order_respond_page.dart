@@ -383,7 +383,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
       child: ElevatedButton.icon(
         onPressed: _submitResponse,
         icon: const Icon(Icons.send, size: 18.sp),
-        label: Text('Отправить предложение'),
+        label: const Text('Отправить предложение'),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
@@ -435,7 +435,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
     try {
       // TODO: Загрузить детали заявки через API
       // Пока используем mock данные
-      await Future.delayed(Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 500));
       
       setState(() {
         _order = OrderModel(
@@ -446,7 +446,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
           clientId: 'customer1',
           price: 250000,
           status: 'active',
-          createdAt: DateTime.now().subtract(Duration(days: 2)),
+          createdAt: DateTime.now().subtract(const Duration(days: 2)),
           images: [],
           responseCount: 0,
           hasMyResponse: false,
@@ -473,10 +473,10 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
     
     try {
       // TODO: Отправить отклик через API
-      await Future.delayed(Duration(seconds: 2)); // Имитация отправки
+      await Future.delayed(const Duration(seconds: 2)); // Имитация отправки
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Предложение успешно отправлено!'),
           backgroundColor: Colors.green,
         ),

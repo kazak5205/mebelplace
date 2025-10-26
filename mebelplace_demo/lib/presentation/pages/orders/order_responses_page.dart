@@ -39,7 +39,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -299,7 +299,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             onPressed: () {
               _showAcceptDialog(response);
             },
-            icon: Icon(Icons.check, size: 16.sp),
+            icon: const Icon(Icons.check, size: 16.sp),
             label: Text('Принять'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
