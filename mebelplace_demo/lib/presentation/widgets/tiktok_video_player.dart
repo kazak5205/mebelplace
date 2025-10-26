@@ -174,7 +174,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
   }
 
   Widget _buildVideoItem(VideoModel video) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: double.infinity,
       child: _videoController.value.isInitialized
