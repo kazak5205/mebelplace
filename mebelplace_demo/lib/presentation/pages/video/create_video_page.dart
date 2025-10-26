@@ -639,7 +639,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
+          const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             strokeWidth: 3,
           ),
@@ -669,7 +669,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickVideo(
       source: ImageSource.gallery,
-      maxDuration: Duration(minutes: 5),
+      maxDuration: const Duration(minutes: 5),
     );
     
     if (pickedFile != null) {
@@ -701,7 +701,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     
     if (_selectedVideo == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Выберите видео для загрузки'),
           backgroundColor: Colors.red,
         ),
@@ -715,7 +715,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     
     try {
       // TODO: Загрузить видео через API
-      await Future.delayed(Duration(seconds: 3)); // Имитация загрузки
+      await Future.delayed(const Duration(seconds: 3)); // Имитация загрузки
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
