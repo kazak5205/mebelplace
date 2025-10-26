@@ -9,14 +9,6 @@ workflows:
     environment:
       groups:
         - Grand
-        
-        # Xcode project settings
-        XCODE_WORKSPACE: mebelplace_demo/ios/Runner.xcworkspace
-        XCODE_SCHEME: Runner
-        
-        # Flutter settings
-        FLUTTER_VERSION: 3.16.0
-        
       xcode: latest
       cocoapods: default
       
