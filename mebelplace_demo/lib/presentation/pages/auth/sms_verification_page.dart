@@ -8,9 +8,9 @@ class SmsVerificationPage extends ConsumerStatefulWidget {
   final String phoneNumber;
   
   const SmsVerificationPage({
-    Key? key,
+    super.key,
     required this.phoneNumber,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<SmsVerificationPage> createState() => _SmsVerificationPageState();
@@ -333,7 +333,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
     
     if (code.length != 4) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Введите полный код'),
           backgroundColor: Colors.red,
         ),
@@ -346,7 +346,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
     });
     
     // TODO: Отправить код на сервер для проверки
-    Future.delayed(Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
           _isVerifying = false;
@@ -354,7 +354,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
         
         // Имитация успешной верификации
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Номер успешно подтвержден!'),
             backgroundColor: Colors.green,
           ),
@@ -372,7 +372,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
     });
     
     // TODO: Отправить новый код на сервер
-    Future.delayed(Duration(seconds: 1), () {
+    Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         setState(() {
           _isResending = false;
@@ -386,7 +386,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
         _focusNodes[0].requestFocus();
         
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Новый код отправлен!'),
             backgroundColor: Colors.green,
           ),

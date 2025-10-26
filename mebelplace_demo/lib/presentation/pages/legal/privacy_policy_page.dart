@@ -5,7 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 
 class PrivacyPolicyPage extends ConsumerStatefulWidget {
-  const PrivacyPolicyPage({Key? key}) : super(key: key);
+  const PrivacyPolicyPage({super.key});
 
   @override
   ConsumerState<PrivacyPolicyPage> createState() => _PrivacyPolicyPageState();

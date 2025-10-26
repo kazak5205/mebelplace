@@ -8,7 +8,7 @@ import '../widgets/tiktok_video_player.dart';
 import '../widgets/loading_widget.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();

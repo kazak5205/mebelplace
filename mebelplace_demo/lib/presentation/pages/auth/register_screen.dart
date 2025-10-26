@@ -5,7 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../providers/app_providers.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
