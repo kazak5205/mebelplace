@@ -1,7 +1,50 @@
-# Codemagic configuration for MebelPlace iOS App Store build
+# Codemagic configuration for MebelPlace iOS App Store build and Android APK
 # This file configures automatic building and uploading to App Store Connect
 
 workflows:
+  mebelplace-android:
+    name: MebelPlace Android APK
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      groups:
+        - Grand
+      vars:
+        FLUTTER_VERSION: stable
+      
+    scripts:
+      - name: Set up Flutter
+        script: |
+          flutter sdk install $FLUTTER_VERSION
+          
+      - name: Get Flutter packages
+        script: |
+          cd mebelplace_demo
+          flutter packages pub get
+          
+      - name: Flutter analyze
+        script: |
+          cd mebelplace_demo
+          flutter analyze --no-fatal-infos
+          
+      - name: Build APK
+        script: |
+          cd mebelplace_demo
+          flutter build apk --release \
+            --build-name=1.0.0 \
+            --build-number=1
+            
+    artifacts:
+      - mebelplace_demo/build/app/outputs/flutter-apk/*.apk
+      
+    publishing:
+      email:
+        recipients:
+          - bekaron.company@gmail.com
+        notify:
+          success: true
+          failure: true
+  
   mebelplace-ios:
     name: MebelPlace iOS App Store
     max_build_duration: 60
@@ -11,6 +54,11 @@ workflows:
         - Grand
       vars:
         FLUTTER_VERSION: stable
+        BUNDLE_ID: "com.mebelplace.mebelplaceDemo"
+        APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
+        APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
+        CERTIFICATE_PRIVATE_KEY: $CERTIFICATE_PRIVATE_KEY
       xcode: latest
       cocoapods: default
       
@@ -18,6 +66,23 @@ workflows:
       app_store_connect: mebelplace-integration
       
     scripts:
+      - name: Set up keychain
+        script: |
+          keychain initialize
+          
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "com.mebelplace.my" \
+            --type IOS_APP_STORE
+            
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+          
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+          
       - name: Set up Flutter
         script: |
           flutter sdk install $FLUTTER_VERSION
@@ -42,13 +107,26 @@ workflows:
           cd mebelplace_demo
           echo "Skipping tests for App Store build"
           
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          # Fetch signing files from Codemagic code signing identities
+          app-store-connect fetch-signing-files \
+            "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          # Add certificates to keychain
+          keychain add-certificates
+          # Configure Xcode project to use profiles
+          xcode-project use-profiles --project mebelplace_demo/ios/Runner.xcodeproj
+          
       - name: Build ipa for distribution
         script: |
           cd mebelplace_demo
           flutter build ipa --release \
             --build-name=1.0.0 \
             --build-number=1 \
-            --export-options-plist=/Users/builder/export_options.plist
+            --export-options-plist=$CM_BUILD_DIR/mebelplace_demo/export_options.plist
             
       - name: Upload to App Store Connect
         script: |

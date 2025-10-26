@@ -5,7 +5,7 @@
     <key>method</key>
     <string>app-store</string>
     <key>teamID</key>
-    <string>YOUR_TEAM_ID</string>
+    <string>MZ64UQ254W</string>
     <key>uploadBitcode</key>
     <false/>
     <key>uploadSymbols</key>
@@ -24,7 +24,7 @@
     <string>Apple Distribution</string>
     <key>provisioningProfiles</key>
     <dict>
-        <key>com.mebelplace.my</key>
+        <key>com.mebelplace.mebelplaceDemo</key>
         <string>MebelPlace App Store Profile</string>
     </dict>
 </dict>
