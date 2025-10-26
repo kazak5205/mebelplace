@@ -19,10 +19,10 @@ class ApiService {
     
     // Добавляем интерцептор для JWT токенов
     _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
+      onRequest: (options, handler) async {
         // Добавляем JWT токен если есть
-        final token = LocalStorage().getToken();
-        if (token.isNotEmpty) {
+        final token = await LocalStorage().getToken();
+        if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         handler.next(options);
