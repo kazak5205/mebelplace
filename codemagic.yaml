@@ -22,10 +22,8 @@ workflows:
           
       - name: Fetch signing files
         script: |
-          # Создайте эти файлы в Codemagic UI:
-          # - Distribution certificate (.p12)
-          # - Provisioning profile (.mobileprovision)
-          app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create
+          # Автоматическое создание сертификатов отключено
+          echo "Skipping automatic certificate creation"
           
       - name: Set up signing certificate
         script: |
