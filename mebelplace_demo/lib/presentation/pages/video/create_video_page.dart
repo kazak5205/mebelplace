@@ -718,7 +718,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
       await Future.delayed(const Duration(seconds: 3)); // Имитация загрузки
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Видео успешно загружено!'),
           backgroundColor: Colors.green,
         ),

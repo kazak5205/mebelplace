@@ -202,7 +202,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
               child: Container(
                 width: 80.w,
                 height: 80.w,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.black54,
                   shape: BoxShape.circle,
                 ),

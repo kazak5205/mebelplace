@@ -8,7 +8,7 @@ void main() {
   testWidgets('App starts without crashing', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(
-      ProviderScope(
+      const ProviderScope(
         child: MebelPlaceApp(),
       ),
     );
