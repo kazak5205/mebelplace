@@ -62,9 +62,9 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           labelColor: AppColors.primary,
           unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
           tabs: [
-            Tab(text: 'Видео'),
-            Tab(text: 'Заявки'),
-            Tab(text: 'Мастера'),
+            const Tab(text: 'Видео'),
+            const Tab(text: 'Заявки'),
+            const Tab(text: 'Мастера'),
           ],
         ),
       ),
@@ -438,7 +438,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               Text(
                 _formatDate(order.createdAt),
                 style: TextStyle(
@@ -650,7 +650,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-            child: Text(
+            child: const Text(
               'Повторить',
               style: TextStyle(color: Colors.white),
             ),
@@ -669,7 +669,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
   String _formatDuration(int seconds) {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
-    return '${minutes}:${remainingSeconds.toString().padLeft(2, '0')}';
+    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   String _formatDate(DateTime dateTime) {
