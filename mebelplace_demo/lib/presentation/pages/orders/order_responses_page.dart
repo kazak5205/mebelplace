@@ -300,7 +300,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               _showAcceptDialog(response);
             },
             icon: const Icon(Icons.check, size: 16.sp),
-            label: Text('Принять'),
+            label: const Text('Принять'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
@@ -319,11 +319,11 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             onPressed: () {
               Navigator.pushNamed(context, '/chat', arguments: response.masterId);
             },
-            icon: Icon(Icons.message, size: 16.sp),
-            label: Text('Написать'),
+            icon: const Icon(Icons.message, size: 16.sp),
+            label: const Text('Написать'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
-              side: BorderSide(color: AppColors.primary),
+              side: const BorderSide(color: AppColors.primary),
               padding: EdgeInsets.symmetric(vertical: 12.h),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.r),
@@ -377,7 +377,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             onPressed: () {
               Navigator.pop(context);
             },
-            icon: Icon(Icons.arrow_back, size: 18.sp),
+            icon: const Icon(Icons.arrow_back, size: 18.sp),
             label: Text('Назад к заявке'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -432,7 +432,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-            child: Text(
+            child: const Text(
               'Повторить',
               style: TextStyle(color: Colors.white),
             ),
@@ -447,13 +447,13 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.dark,
-        title: Text(
+        title: const Text(
           'Принять предложение?',
           style: TextStyle(color: Colors.white),
         ),
         content: Text(
           'Вы уверены, что хотите принять предложение от ${response.masterName ?? 'мастера'}?',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+          style: const TextStyle(color: Colors.white.withValues(alpha: 0.8)),
         ),
         actions: [
           TextButton(
