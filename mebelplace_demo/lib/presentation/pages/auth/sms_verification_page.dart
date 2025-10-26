@@ -21,7 +21,6 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
   final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
   
   bool _isVerifying = false;
-  bool _isResending = false;
   int _resendCountdown = 60;
 
   @override
@@ -367,15 +366,11 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
   }
 
   void _resendCode() {
-    setState(() {
-      _isResending = true;
-    });
     
     // TODO: Отправить новый код на сервер
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         setState(() {
-          _isResending = false;
           _resendCountdown = 60;
         });
         
