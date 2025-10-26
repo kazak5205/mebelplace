@@ -9,6 +9,8 @@ workflows:
     environment:
       groups:
         - Grand
+      vars:
+        FLUTTER_VERSION: stable
       xcode: latest
       cocoapods: default
       
@@ -16,22 +18,10 @@ workflows:
       app_store_connect: mebelplace-integration
       
     scripts:
-      - name: Set up keychain to be used for codesigning
+      - name: Set up Flutter
         script: |
-          keychain initialize
-          
-      - name: Fetch signing files
-        script: |
-          # Автоматическое создание сертификатов отключено
-          echo "Skipping automatic certificate creation"
-          
-      - name: Set up signing certificate
-        script: |
-          keychain add-certificates
-          
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
+          flutter sdk install $FLUTTER_VERSION
+          flutter config --enable-web
           
       - name: Get Flutter packages
         script: |
