@@ -51,7 +51,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -170,7 +170,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               Text(
                 _formatDate(_order!.createdAt),
                 style: TextStyle(
@@ -368,7 +368,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.primary),
+              borderSide: const BorderSide(color: AppColors.primary),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
           ),
@@ -382,7 +382,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: _submitResponse,
-        icon: Icon(Icons.send, size: 18.sp),
+        icon: const Icon(Icons.send, size: 18.sp),
         label: Text('Отправить предложение'),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -405,11 +405,11 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
+          const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             strokeWidth: 3,
           ),
-          SizedBox(height: 24.h),
+          const SizedBox(height: 24.h),
           Text(
             'Отправляем предложение...',
             style: TextStyle(
