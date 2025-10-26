@@ -18,7 +18,7 @@ void main() {
 }
 
 class MebelPlaceApp extends ConsumerWidget {
-  const MebelPlaceApp({Key? key}) : super(key: key);
+  const MebelPlaceApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,7 +41,7 @@ class MebelPlaceApp extends ConsumerWidget {
 }
 
 class AppNavigator extends ConsumerWidget {
-  const AppNavigator({Key? key}) : super(key: key);
+  const AppNavigator({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,7 +54,7 @@ class AppNavigator extends ConsumerWidget {
 }
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({Key? key}) : super(key: key);
+  const AuthScreen({super.key});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -156,7 +156,7 @@ class _AuthScreenState extends State<AuthScreen> {
 class MainNavigation extends StatefulWidget {
   final UserModel? user;
 
-  const MainNavigation({Key? key, this.user}) : super(key: key);
+  const MainNavigation({super.key, this.user});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -308,7 +308,7 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         title: Row(
           children: [
-            Icon(Icons.login, color: AppColors.primary),
+            const Icon(Icons.login, color: AppColors.primary),
             SizedBox(width: 12.w),
             const Text(
               'Вход в аккаунт',

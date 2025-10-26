@@ -49,7 +49,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -209,7 +209,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
             ),
             keyboardType: TextInputType.number,
             maxLength: 1,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               counterText: '',
               border: InputBorder.none,
             ),
@@ -302,7 +302,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
+          const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             strokeWidth: 3,
           ),
