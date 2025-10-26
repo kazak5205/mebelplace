@@ -1,0 +1,170 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'user_model.dart';
+
+part 'order_model.g.dart';
+
+@JsonSerializable()
+class OrderModel {
+  final String id;
+  final String clientId;
+  final String? masterId;
+  final String title;
+  final String description;
+  final String category;
+  final String? region;
+  final String status;
+  final double? price;
+  final DateTime? deadline;
+  final String? location;
+  final List<String> images;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+  final UserModel? client;
+  final int responseCount;
+  final bool hasMyResponse;
+
+  const OrderModel({
+    required this.id,
+    required this.clientId,
+    this.masterId,
+    required this.title,
+    required this.description,
+    required this.category,
+    this.region,
+    required this.status,
+    this.price,
+    this.deadline,
+    this.location,
+    required this.images,
+    required this.createdAt,
+    this.updatedAt,
+    this.client,
+    required this.responseCount,
+    required this.hasMyResponse,
+  });
+
+  factory OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
+  Map<String, dynamic> toJson() => _$OrderModelToJson(this);
+
+  OrderModel copyWith({
+    String? id,
+    String? clientId,
+    String? masterId,
+    String? title,
+    String? description,
+    String? category,
+    String? region,
+    String? status,
+    double? price,
+    DateTime? deadline,
+    String? location,
+    List<String>? images,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    UserModel? client,
+    int? responseCount,
+    bool? hasMyResponse,
+  }) {
+    return OrderModel(
+      id: id ?? this.id,
+      clientId: clientId ?? this.clientId,
+      masterId: masterId ?? this.masterId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      category: category ?? this.category,
+      region: region ?? this.region,
+      status: status ?? this.status,
+      price: price ?? this.price,
+      deadline: deadline ?? this.deadline,
+      location: location ?? this.location,
+      images: images ?? this.images,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      client: client ?? this.client,
+      responseCount: responseCount ?? this.responseCount,
+      hasMyResponse: hasMyResponse ?? this.hasMyResponse,
+    );
+  }
+
+  String get formattedPrice {
+    if (price == null) return 'Договорная';
+    return '${price!.toStringAsFixed(0)} ₸';
+  }
+
+  String get formattedDeadline {
+    if (deadline == null) return 'Не указан';
+    final now = DateTime.now();
+    final difference = deadline!.difference(now);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} дней';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} часов';
+    } else {
+      return 'Срочно';
+    }
+  }
+
+  String get timeAgo {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inDays > 7) {
+      return '${createdAt.day} ${_getMonthName(createdAt.month)}';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}д назад';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}ч назад';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}м назад';
+    } else {
+      return 'только что';
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+      'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'
+    ];
+    return months[month - 1];
+  }
+
+  String get statusText {
+    switch (status) {
+      case 'pending':
+        return 'Ожидает откликов';
+      case 'accepted':
+        return 'Принят мастером';
+      case 'in_progress':
+        return 'В работе';
+      case 'completed':
+        return 'Завершен';
+      case 'cancelled':
+        return 'Отменен';
+      default:
+        return status;
+    }
+  }
+
+  String get categoryText {
+    switch (category) {
+      case 'furniture':
+        return 'Мебель';
+      case 'carpentry':
+        return 'Столярные работы';
+      case 'upholstery':
+        return 'Обивка мебели';
+      case 'restoration':
+        return 'Реставрация';
+      case 'custom':
+        return 'На заказ';
+      case 'repair':
+        return 'Ремонт';
+      case 'other':
+        return 'Другое';
+      default:
+        return category;
+    }
+  }
+}
