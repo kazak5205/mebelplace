@@ -453,12 +453,14 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
         );
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка загрузки заявки: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка загрузки заявки: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -475,22 +477,26 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
       // TODO: Отправить отклик через API
       await Future.delayed(const Duration(seconds: 2)); // Имитация отправки
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Предложение успешно отправлено!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Предложение успешно отправлено!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        Navigator.pop(context);
+      }
       
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка отправки: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка отправки: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isSubmitting = false;

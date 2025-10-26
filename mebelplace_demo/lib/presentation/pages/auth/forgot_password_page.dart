@@ -444,12 +444,14 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
         _isSending = false;
       });
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка отправки: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка отправки: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
