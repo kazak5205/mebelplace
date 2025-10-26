@@ -1046,26 +1046,6 @@ class ViewData {
   });
 }
 
-class OrderResponse {
-  final String id;
-  final String orderId;
-  final String masterId;
-  final String message;
-  final double? price;
-  final DateTime? deadline;
-  final DateTime createdAt;
-
-  OrderResponse({
-    required this.id,
-    required this.orderId,
-    required this.masterId,
-    required this.message,
-    this.price,
-    this.deadline,
-    required this.createdAt,
-  });
-}
-
 class OrderResponseRequest {
   final String message;
   final double? price;

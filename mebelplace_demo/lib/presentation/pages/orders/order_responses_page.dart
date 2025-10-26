@@ -292,7 +292,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
     );
   }
 
-  Widget _buildActions(Map<String, dynamic> response) {
+  Widget _buildActions(OrderResponse response) {
     return Row(
       children: [
         Expanded(
@@ -318,7 +318,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
-              Navigator.pushNamed(context, '/chat', arguments: response['masterId']);
+              Navigator.pushNamed(context, '/chat', arguments: response.masterId);
             },
             icon: Icon(Icons.message, size: 16.sp),
             label: Text('Написать'),
@@ -337,7 +337,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
         
         IconButton(
           onPressed: () {
-            Navigator.pushNamed(context, '/master-profile', arguments: response['masterId']);
+            Navigator.pushNamed(context, '/master-profile', arguments: response.masterId);
           },
           icon: Icon(Icons.person, color: Colors.white.withOpacity(0.7)),
         ),
@@ -443,7 +443,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
     );
   }
 
-  void _showAcceptDialog(Map<String, dynamic> response) {
+  void _showAcceptDialog(OrderResponse response) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -453,7 +453,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           style: TextStyle(color: Colors.white),
         ),
         content: Text(
-          'Вы уверены, что хотите принять предложение от ${response['masterName']}?',
+          'Вы уверены, что хотите принять предложение от ${response.masterName ?? 'мастера'}?',
           style: TextStyle(color: Colors.white.withOpacity(0.8)),
         ),
         actions: [

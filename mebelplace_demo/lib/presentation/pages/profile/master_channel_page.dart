@@ -425,7 +425,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12.r),
                 image: DecorationImage(
-                  image: NetworkImage(video.thumbnailUrl),
+                  image: NetworkImage(video.thumbnailUrl ?? ''),
                   fit: BoxFit.cover,
                 ),
               ),
