@@ -61,15 +61,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Телефон',
-                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                 prefixIcon: const Icon(Icons.phone, color: AppColors.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -91,15 +91,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Имя пользователя',
-                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                 prefixIcon: const Icon(Icons.person, color: AppColors.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -121,15 +121,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Имя (необязательно)',
-                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                 prefixIcon: const Icon(Icons.badge, color: AppColors.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -145,15 +145,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Фамилия (необязательно)',
-                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                 prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -169,15 +169,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Роль',
-                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                 prefixIcon: const Icon(Icons.work, color: AppColors.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -210,12 +210,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Пароль',
-                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                 prefixIcon: const Icon(Icons.lock, color: AppColors.primary),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                   onPressed: () {
                     setState(() {
@@ -225,11 +225,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -255,12 +255,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Подтвердите пароль',
-                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                 prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                   onPressed: () {
                     setState(() {
@@ -270,11 +270,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),

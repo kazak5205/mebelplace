@@ -108,13 +108,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             Icon(
               Icons.chat_bubble_outline,
               size: 64.sp,
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
             ),
             SizedBox(height: 16.h),
             Text(
               'Пока нет сообщений',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 16.sp,
               ),
             ),
@@ -122,7 +122,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             Text(
               'Начните диалог!',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 14.sp,
               ),
             ),
@@ -169,13 +169,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               decoration: BoxDecoration(
                 color: isMe 
-                  ? AppColors.primary.withOpacity(0.8)
-                  : Colors.white.withOpacity(0.1),
+                  ? AppColors.primary.withValues(alpha: 0.8)
+                  : Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20.r),
                 border: Border.all(
                   color: isMe 
-                    ? AppColors.primary.withOpacity(0.3)
-                    : Colors.white.withOpacity(0.1),
+                    ? AppColors.primary.withValues(alpha: 0.3)
+                    : Colors.white.withValues(alpha: 0.1),
                   width: 1,
                 ),
               ),
@@ -207,7 +207,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   Text(
                     _formatTime(message.createdAt),
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 10.sp,
                     ),
                   ),
@@ -240,7 +240,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         color: AppColors.dark,
         border: Border(
           top: BorderSide(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -250,10 +250,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(25.r),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -263,7 +263,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 decoration: InputDecoration(
                   hintText: 'Напишите сообщение...',
                   hintStyle: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 14.sp,
                   ),
                   border: InputBorder.none,
@@ -295,7 +295,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 borderRadius: BorderRadius.circular(24.r),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -324,7 +324,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           Icon(
             Icons.error_outline,
             size: 64.sp,
-            color: Colors.red.withOpacity(0.7),
+            color: Colors.red.withValues(alpha: 0.7),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -339,7 +339,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           Text(
             error,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,
