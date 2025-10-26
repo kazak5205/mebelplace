@@ -50,15 +50,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: 'Телефон',
-              labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
               prefixIcon: const Icon(Icons.phone, color: AppColors.primary),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
@@ -81,12 +81,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: 'Пароль',
-              labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
               prefixIcon: const Icon(Icons.lock, color: AppColors.primary),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
                 onPressed: () {
                   setState(() {
@@ -96,11 +96,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),

@@ -102,15 +102,15 @@ class _SupportPageState extends ConsumerState<SupportPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.1),
-            AppColors.secondary.withOpacity(0.1),
+            AppColors.primary.withValues(alpha: 0.1),
+            AppColors.secondary.withValues(alpha: 0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -134,7 +134,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
           Text(
             'Если у вас есть вопросы или проблемы, мы готовы помочь вам их решить.',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14.sp,
               height: 1.4,
             ),
@@ -153,10 +153,10 @@ class _SupportPageState extends ConsumerState<SupportPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -291,17 +291,17 @@ class _SupportPageState extends ConsumerState<SupportPage> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               fontSize: 14.sp,
             ),
             prefixIcon: Icon(icon, color: AppColors.primary, size: 20.sp),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+              borderSide: const BorderSide(color: Colors.white),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+              borderSide: const BorderSide(color: Colors.white),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
@@ -334,11 +334,11 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             prefixIcon: Icon(Icons.category, color: AppColors.primary, size: 20.sp),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+              borderSide: const BorderSide(color: Colors.white),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+              borderSide: const BorderSide(color: Colors.white),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
@@ -367,10 +367,10 @@ class _SupportPageState extends ConsumerState<SupportPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -438,10 +438,10 @@ class _SupportPageState extends ConsumerState<SupportPage> {
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
+          color: Colors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -451,7 +451,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
               width: 40.w,
               height: 40.w,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.2),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Icon(
@@ -479,7 +479,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 12.sp,
                     ),
                   ),
@@ -489,7 +489,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             
             Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               size: 16.sp,
             ),
           ],
@@ -502,10 +502,10 @@ class _SupportPageState extends ConsumerState<SupportPage> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -583,7 +583,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
               Text(
                 value,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 12.sp,
                   height: 1.3,
                 ),
@@ -617,7 +617,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
           Text(
             'Мы ответим вам в ближайшее время',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
           ),
