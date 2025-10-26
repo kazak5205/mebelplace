@@ -540,7 +540,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
           ),
           SizedBox(height: 12.h),
           DropdownButtonFormField<String>(
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             style: TextStyle(color: Colors.white, fontSize: 14.sp),
             decoration: InputDecoration(
               border: OutlineInputBorder(
