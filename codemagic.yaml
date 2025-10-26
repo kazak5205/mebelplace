@@ -99,6 +99,3 @@ workflows:
         submit_to_app_store: false # Измените на true для автоматической отправки в App Store
         
         release_type: AFTER_APPROVAL
-        
-        submit_to_app_store: false
-        submit_to_testflight: true
