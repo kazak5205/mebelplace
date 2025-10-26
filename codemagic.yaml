@@ -1,7 +1,50 @@
-# Codemagic configuration for MebelPlace iOS App Store build
+# Codemagic configuration for MebelPlace iOS App Store build and Android APK
 # This file configures automatic building and uploading to App Store Connect
 
 workflows:
+  mebelplace-android:
+    name: MebelPlace Android APK
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      groups:
+        - Grand
+      vars:
+        FLUTTER_VERSION: stable
+      
+    scripts:
+      - name: Set up Flutter
+        script: |
+          flutter sdk install $FLUTTER_VERSION
+          
+      - name: Get Flutter packages
+        script: |
+          cd mebelplace_demo
+          flutter packages pub get
+          
+      - name: Flutter analyze
+        script: |
+          cd mebelplace_demo
+          flutter analyze --no-fatal-infos
+          
+      - name: Build APK
+        script: |
+          cd mebelplace_demo
+          flutter build apk --release \
+            --build-name=1.0.0 \
+            --build-number=1
+            
+    artifacts:
+      - mebelplace_demo/build/app/outputs/flutter-apk/*.apk
+      
+    publishing:
+      email:
+        recipients:
+          - bekaron.company@gmail.com
+        notify:
+          success: true
+          failure: true
+  
   mebelplace-ios:
     name: MebelPlace iOS App Store
     max_build_duration: 60
@@ -50,11 +93,15 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+          # Fetch signing files from Codemagic code signing identities
+          app-store-connect fetch-signing-files \
+            "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
+          # Add certificates to keychain
           keychain add-certificates
-          xcode-project use-profiles
+          # Configure Xcode project to use profiles
+          xcode-project use-profiles --project mebelplace_demo/ios/Runner.xcodeproj
           
       - name: Build ipa for distribution
         script: |
