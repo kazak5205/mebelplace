@@ -61,10 +61,10 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
           unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
-          tabs: [
-            const Tab(text: 'Видео'),
-            const Tab(text: 'Заявки'),
-            const Tab(text: 'Мастера'),
+          tabs: const [
+            Tab(text: 'Видео'),
+            Tab(text: 'Заявки'),
+            Tab(text: 'Мастера'),
           ],
         ),
       ),

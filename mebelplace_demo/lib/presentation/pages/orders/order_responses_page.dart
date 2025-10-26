@@ -237,7 +237,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           child: _buildInfoItem(
             Icons.schedule,
             'Срок',
-            '${response.deadline != null ? 'До ${response.deadline!.day}.${response.deadline!.month}' : 'Не указан'}',
+            response.deadline != null ? 'До ${response.deadline!.day}.${response.deadline!.month}' : 'Не указан',
             Colors.blue,
           ),
         ),

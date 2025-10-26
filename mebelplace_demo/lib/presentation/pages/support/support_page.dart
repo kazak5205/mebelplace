@@ -328,7 +328,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          value: _selectedCategory,
+          initialValue: _selectedCategory,
           style: TextStyle(color: Colors.white, fontSize: 14.sp),
           decoration: InputDecoration(
             prefixIcon: Icon(Icons.category, color: AppColors.primary, size: 20.sp),
@@ -639,28 +639,32 @@ class _SupportPageState extends ConsumerState<SupportPage> {
       // TODO: Отправить сообщение через API
       await Future.delayed(const Duration(seconds: 2)); // Имитация отправки
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Сообщение отправлено! Мы ответим вам в ближайшее время.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Очищаем форму
-      _nameController.clear();
-      _emailController.clear();
-      _messageController.clear();
-      setState(() {
-        _selectedCategory = 'Техническая поддержка';
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Сообщение отправлено! Мы ответим вам в ближайшее время.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Очищаем форму
+        _nameController.clear();
+        _emailController.clear();
+        _messageController.clear();
+        setState(() {
+          _selectedCategory = 'Техническая поддержка';
+        });
+      }
       
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка отправки: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка отправки: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isSending = false;

@@ -353,9 +353,7 @@ class OrderRepository {
       final token = await _localStorage.getToken();
       if (token == null) throw Exception('Not authenticated');
       
-      final imageFiles = images != null 
-          ? images.map((path) => File(path)).toList()
-          : null;
+      final imageFiles = images?.map((path) => File(path)).toList();
       
       final response = await _apiService.createOrder(
         title,
