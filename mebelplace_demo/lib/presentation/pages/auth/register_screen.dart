@@ -165,7 +165,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             
             // Role Selection
             DropdownButtonFormField<String>(
-              initialValue: _selectedRole,
+              value: _selectedRole,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Роль',

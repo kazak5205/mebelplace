@@ -328,7 +328,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
         ),
         SizedBox(height: 8.h),
         DropdownButtonFormField<String>(
-          initialValue: _selectedCategory,
+          value: _selectedCategory,
           style: TextStyle(color: Colors.white, fontSize: 14.sp),
           decoration: InputDecoration(
             prefixIcon: Icon(Icons.category, color: AppColors.primary, size: 20.sp),
