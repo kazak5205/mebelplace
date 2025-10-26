@@ -241,7 +241,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             child: ElevatedButton.icon(
               onPressed: _sendMessage,
               icon: const Icon(Icons.send, size: 18.sp),
-              label: Text('Отправить сообщение'),
+              label: const Text('Отправить сообщение'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -640,7 +640,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
       await Future.delayed(const Duration(seconds: 2)); // Имитация отправки
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Сообщение отправлено! Мы ответим вам в ближайшее время.'),
           backgroundColor: Colors.green,
         ),

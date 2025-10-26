@@ -49,7 +49,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -234,7 +234,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
                       child: Container(
                         width: 24.w,
                         height: 24.w,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: Colors.red,
                           shape: BoxShape.circle,
                         ),
@@ -360,7 +360,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
                       child: Container(
                         width: 20.w,
                         height: 20.w,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: Colors.red,
                           shape: BoxShape.circle,
                         ),
