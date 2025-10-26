@@ -1,50 +1,7 @@
-# Codemagic configuration for MebelPlace iOS App Store build and Android APK
+# Codemagic configuration for MebelPlace iOS App Store build
 # This file configures automatic building and uploading to App Store Connect
 
 workflows:
-  mebelplace-android:
-    name: MebelPlace Android APK
-    max_build_duration: 60
-    instance_type: linux_x2
-    environment:
-      groups:
-        - Grand
-      vars:
-        FLUTTER_VERSION: stable
-      
-    scripts:
-      - name: Set up Flutter
-        script: |
-          flutter sdk install $FLUTTER_VERSION
-          
-      - name: Get Flutter packages
-        script: |
-          cd mebelplace_demo
-          flutter packages pub get
-          
-      - name: Flutter analyze
-        script: |
-          cd mebelplace_demo
-          flutter analyze --no-fatal-infos
-          
-      - name: Build APK
-        script: |
-          cd mebelplace_demo
-          flutter build apk --release \
-            --build-name=1.0.0 \
-            --build-number=1
-            
-    artifacts:
-      - mebelplace_demo/build/app/outputs/flutter-apk/*.apk
-      
-    publishing:
-      email:
-        recipients:
-          - bekaron.company@gmail.com
-        notify:
-          success: true
-          failure: true
-  
   mebelplace-ios:
     name: MebelPlace iOS App Store
     max_build_duration: 60
@@ -54,7 +11,6 @@ workflows:
         - Grand
       vars:
         FLUTTER_VERSION: stable
-        BUNDLE_ID: "com.mebelplace.mebelplaceDemo"
       xcode: latest
       cocoapods: default
       
@@ -62,17 +18,6 @@ workflows:
       app_store_connect: mebelplace-integration
       
     scripts:
-      - name: Set up code signing
-        script: |
-          # Используем автоматическую подпись через Xcode
-          cd mebelplace_demo/ios
-          
-          # Включаем автоматическую подпись в Xcode проекте
-          sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' Runner.xcodeproj/project.pbxproj || true
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = MZ64UQ254W;/g' Runner.xcodeproj/project.pbxproj || true
-          
-          echo "✅ Automatic code signing enabled"
-          
       - name: Set up Flutter
         script: |
           flutter sdk install $FLUTTER_VERSION
@@ -97,26 +42,13 @@ workflows:
           cd mebelplace_demo
           echo "Skipping tests for App Store build"
           
-      - name: Set up code signing
-        script: |
-          keychain initialize
-          # Fetch signing files from Codemagic code signing identities
-          app-store-connect fetch-signing-files \
-            "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-          # Add certificates to keychain
-          keychain add-certificates
-          # Configure Xcode project to use profiles
-          xcode-project use-profiles --project mebelplace_demo/ios/Runner.xcodeproj
-          
       - name: Build ipa for distribution
         script: |
           cd mebelplace_demo
           flutter build ipa --release \
             --build-name=1.0.0 \
             --build-number=1 \
-            --export-method=app-store
+            --export-options-plist=/Users/builder/export_options.plist
             
       - name: Upload to App Store Connect
         script: |
