@@ -382,7 +382,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: _submitResponse,
-        icon: const Icon(Icons.send, size: 18.sp),
+        icon: Icon(Icons.send, size: 18.sp),
         label: const Text('Отправить предложение'),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -409,7 +409,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             strokeWidth: 3,
           ),
-          const SizedBox(height: 24.h),
+          SizedBox(height: 24.h),
           Text(
             'Отправляем предложение...',
             style: TextStyle(

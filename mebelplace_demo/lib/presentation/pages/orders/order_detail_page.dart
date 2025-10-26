@@ -445,7 +445,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
               // TODO: Откликнуться на заявку
               Navigator.pushNamed(context, '/order-respond', arguments: order.id);
             },
-            icon: const Icon(Icons.reply, size: 18.sp),
+            icon: Icon(Icons.reply, size: 18.sp),
             label: const Text('Откликнуться'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -466,7 +466,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
               // TODO: Написать сообщение
               Navigator.pushNamed(context, '/chat', arguments: order.customerId);
             },
-            icon: const Icon(Icons.message, size: 18.sp),
+            icon: Icon(Icons.message, size: 18.sp),
             label: const Text('Написать'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,

@@ -412,7 +412,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
             onPressed: () {
               Navigator.pushNamed(context, '/create-order');
             },
-            icon: const Icon(Icons.add, size: 18.sp),
+            icon: Icon(Icons.add, size: 18.sp),
             label: const Text('Создать заявку'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

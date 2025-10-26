@@ -299,7 +299,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             onPressed: () {
               _showAcceptDialog(response);
             },
-            icon: const Icon(Icons.check, size: 16.sp),
+            icon: Icon(Icons.check, size: 16.sp),
             label: const Text('Принять'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -319,7 +319,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             onPressed: () {
               Navigator.pushNamed(context, '/chat', arguments: response.masterId);
             },
-            icon: const Icon(Icons.message, size: 16.sp),
+            icon: Icon(Icons.message, size: 16.sp),
             label: const Text('Написать'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
@@ -377,7 +377,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             onPressed: () {
               Navigator.pop(context);
             },
-            icon: const Icon(Icons.arrow_back, size: 18.sp),
+            icon: Icon(Icons.arrow_back, size: 18.sp),
             label: const Text('Назад к заявке'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -453,7 +453,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
         ),
         content: Text(
           'Вы уверены, что хотите принять предложение от ${response.masterName ?? 'мастера'}?',
-          style: const TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
         ),
         actions: [
           TextButton(

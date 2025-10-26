@@ -240,7 +240,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _sendMessage,
-              icon: const Icon(Icons.send, size: 18.sp),
+              icon: Icon(Icons.send, size: 18.sp),
               label: const Text('Отправить сообщение'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
