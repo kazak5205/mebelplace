@@ -13,7 +13,7 @@ workflows:
       cocoapods: default
       
     integrations:
-      app_store_connect: default
+      app_store_connect: mebelplace-integration
       
     scripts:
       - name: Set up keychain to be used for codesigning
