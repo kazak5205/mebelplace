@@ -540,7 +540,7 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
           ),
           SizedBox(height: 12.h),
           DropdownButtonFormField<String>(
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             style: TextStyle(color: Colors.white, fontSize: 14.sp),
             decoration: InputDecoration(
               border: OutlineInputBorder(
@@ -717,21 +717,25 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
       // TODO: Загрузить видео через API
       await Future.delayed(const Duration(seconds: 3)); // Имитация загрузки
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Видео успешно загружено!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Видео успешно загружено!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        Navigator.pop(context);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка загрузки: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка загрузки: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isUploading = false;
