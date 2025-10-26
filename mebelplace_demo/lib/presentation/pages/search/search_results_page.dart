@@ -60,7 +60,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           controller: _tabController,
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.white.withOpacity(0.7),
+          unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
           tabs: [
             Tab(text: 'Видео'),
             Tab(text: 'Заявки'),
@@ -96,19 +96,19 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
         decoration: InputDecoration(
           hintText: 'Поиск...',
           hintStyle: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: 14.sp,
           ),
           prefixIcon: Icon(
             Icons.search,
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
             size: 20.sp,
           ),
           suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
                 icon: Icon(
                   Icons.clear,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   size: 20.sp,
                 ),
                 onPressed: () {
@@ -238,7 +238,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.7),
+                        Colors.black.withValues(alpha: 0.7),
                       ],
                     ),
                   ),
@@ -251,7 +251,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(4.r),
                     ),
                     child: Text(
@@ -308,7 +308,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                 Text(
                   video.description ?? '',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 12.sp,
                   ),
                   maxLines: 2,
@@ -321,28 +321,28 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                   children: [
                     Icon(
                       Icons.person,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       size: 12.sp,
                     ),
                     SizedBox(width: 4.w),
                     Text(
                       video.username ?? '',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 12.sp,
                       ),
                     ),
                     SizedBox(width: 16.w),
                     Icon(
                       Icons.visibility,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       size: 12.sp,
                     ),
                     SizedBox(width: 4.w),
                     Text(
                       '${video.views}',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 12.sp,
                       ),
                     ),
@@ -393,7 +393,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                   color: _getStatusColor(order.status).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8.r),
                   border: Border.all(
-                    color: _getStatusColor(order.status).withOpacity(0.5),
+                    color: _getStatusColor(order.status).withValues(alpha: 0.5),
                   ),
                 ),
                 child: Text(
@@ -516,7 +516,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                 Text(
                   master['description'],
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 12.sp,
                   ),
                   maxLines: 2,
@@ -544,14 +544,14 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                     SizedBox(width: 12.w),
                     Icon(
                       Icons.work,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       size: 14.sp,
                     ),
                     SizedBox(width: 4.w),
                     Text(
                       '${master['ordersCount']} заказов',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 12.sp,
                       ),
                     ),
@@ -568,7 +568,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
             },
             icon: Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               size: 16.sp,
             ),
           ),
@@ -604,7 +604,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           Text(
             'Попробуйте изменить поисковый запрос',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
           ),
@@ -621,7 +621,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           Icon(
             Icons.error_outline,
             size: 64.sp,
-            color: Colors.red.withOpacity(0.7),
+            color: Colors.red.withValues(alpha: 0.7),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -636,7 +636,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           Text(
             error,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,
