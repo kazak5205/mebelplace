@@ -14,14 +14,14 @@ class TikTokVideoPlayer extends StatefulWidget {
   final Function(VideoModel video)? onComment;
 
   const TikTokVideoPlayer({
-    Key? key,
+    super.key,
     required this.videos,
     this.initialIndex = 0,
     this.onVideoChanged,
     this.onLike,
     this.onShare,
     this.onComment,
-  }) : super(key: key);
+  });
 
   @override
   State<TikTokVideoPlayer> createState() => _TikTokVideoPlayerState();
