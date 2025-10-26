@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/video_model.dart';
-import '../../../data/models/user_model.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/tiktok_video_player.dart';

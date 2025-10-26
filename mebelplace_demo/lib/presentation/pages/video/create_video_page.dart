@@ -5,7 +5,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/theme/app_theme.dart';
-import '../../providers/app_providers.dart';
 
 class CreateVideoPage extends ConsumerStatefulWidget {
   const CreateVideoPage({Key? key}) : super(key: key);
