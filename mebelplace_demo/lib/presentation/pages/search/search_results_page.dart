@@ -143,9 +143,9 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
 
   Widget _buildFilteredVideos(List<VideoModel> videos) {
     final filteredVideos = videos.where((video) =>
-      (video.title?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
+      video.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
       (video.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-      (video.tags?.any((tag) => tag.toLowerCase().contains(_searchQuery.toLowerCase())) ?? false)
+      video.tags.any((tag) => tag.toLowerCase().contains(_searchQuery.toLowerCase()))
     ).toList();
     
     if (filteredVideos.isEmpty) {

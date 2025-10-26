@@ -164,6 +164,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             SizedBox(height: 16.h),
             
             // Role Selection
+            // ignore: deprecated_member_use
             DropdownButtonFormField<String>(
               value: _selectedRole,
               style: const TextStyle(color: Colors.white),

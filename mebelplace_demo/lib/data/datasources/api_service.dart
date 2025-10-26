@@ -714,9 +714,9 @@ class ApiService {
         
         // Фильтруем видео по запросу на клиенте
         final filteredVideos = allVideos.where((video) =>
-          (video.title?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+          video.title.toLowerCase().contains(query.toLowerCase()) ||
           (video.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-          (video.tags?.any((tag) => tag.toLowerCase().contains(query.toLowerCase())) ?? false)
+          video.tags.any((tag) => tag.toLowerCase().contains(query.toLowerCase()))
         ).toList();
         
         return ApiResponse<List<VideoModel>>(
@@ -736,9 +736,9 @@ class ApiService {
     } catch (e) {
       // Fallback для демо
       final filteredVideos = _mockVideos.where((video) =>
-        (video.title?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+        video.title.toLowerCase().contains(query.toLowerCase()) ||
         (video.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-        (video.tags?.any((tag) => tag.toLowerCase().contains(query.toLowerCase())) ?? false)
+        video.tags.any((tag) => tag.toLowerCase().contains(query.toLowerCase()))
       ).toList();
       
       return ApiResponse<List<VideoModel>>(
