@@ -318,7 +318,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
                 Navigator.pushNamed(context, '/chat', arguments: widget.masterId);
               },
               icon: const Icon(Icons.message, size: 18.sp),
-              label: Text('Написать'),
+              label: const Text('Написать'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -338,7 +338,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
                 // TODO: Подписаться/отписаться
               },
               icon: const Icon(Icons.person_add, size: 18.sp),
-              label: Text('Подписаться'),
+              label: const Text('Подписаться'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
@@ -620,7 +620,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-            child: Text(
+            child: const Text(
               'Повторить',
               style: TextStyle(color: Colors.white),
             ),

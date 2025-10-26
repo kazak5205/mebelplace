@@ -51,7 +51,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: _buildSearchField(),
