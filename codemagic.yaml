@@ -1,0 +1,104 @@
+# Codemagic configuration for MebelPlace iOS App Store build
+# This file configures automatic building and uploading to App Store Connect
+
+workflows:
+  mebelplace-ios:
+    name: MebelPlace iOS App Store
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      vars:
+        # App Store Connect API Key
+        APP_STORE_CONNECT_ISSUER_ID: Encrypted(...) # Замените на ваш Issuer ID
+        APP_STORE_CONNECT_API_KEY: Encrypted(...)   # Замените на ваш API Key
+        APP_STORE_CONNECT_API_KEY_ID: Encrypted(...) # Замените на ваш Key ID
+        
+        # Bundle ID
+        BUNDLE_ID: com.mebelplace.my
+        
+        # App Store Connect Team ID
+        APP_STORE_CONNECT_TEAM_ID: Encrypted(...) # Замените на ваш Team ID
+        
+        # Xcode project settings
+        XCODE_WORKSPACE: mebelplace_demo/ios/Runner.xcworkspace
+        XCODE_SCHEME: Runner
+        
+        # Flutter settings
+        FLUTTER_VERSION: 3.16.0
+        
+      xcode: latest
+      cocoapods: default
+      
+    scripts:
+      - name: Set up keychain to be used for codesigning
+        script: |
+          keychain initialize
+          
+      - name: Fetch signing files
+        script: |
+          # Создайте эти файлы в Codemagic UI:
+          # - Distribution certificate (.p12)
+          # - Provisioning profile (.mobileprovision)
+          app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create
+          
+      - name: Set up signing certificate
+        script: |
+          keychain add-certificates
+          
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+          
+      - name: Get Flutter packages
+        script: |
+          cd mebelplace_demo
+          flutter packages pub get
+          
+      - name: Install pods
+        script: |
+          cd mebelplace_demo/ios
+          pod install
+          
+      - name: Flutter analyze
+        script: |
+          cd mebelplace_demo
+          flutter analyze
+          
+      - name: Flutter unit tests
+        script: |
+          cd mebelplace_demo
+          flutter test
+          
+      - name: Build ipa for distribution
+        script: |
+          cd mebelplace_demo
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=1 \
+            --export-options-plist=/Users/builder/export_options.plist
+            
+      - name: Upload to App Store Connect
+        script: |
+          app-store-connect upload \
+            --ipa mebelplace_demo/build/ios/ipa/mebelplace.ipa \
+            --app-id $BUNDLE_ID
+            
+    artifacts:
+      - mebelplace_demo/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+      
+    publishing:
+      app_store_connect:
+        auth: integration
+        
+        submit_to_testflight: true
+        beta_groups:
+          - "MebelPlace Beta Testers"
+          
+        submit_to_app_store: false # Измените на true для автоматической отправки в App Store
+        
+        release_type: AFTER_APPROVAL
+        
+        submit_to_app_store: false
+        submit_to_testflight: true
