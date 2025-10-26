@@ -9,7 +9,7 @@ import '../../widgets/loading_widget.dart';
 import '../orders/order_detail_page.dart';
 
 class UserOrdersPage extends ConsumerStatefulWidget {
-  const UserOrdersPage({Key? key}) : super(key: key);
+  const UserOrdersPage({super.key});
 
   @override
   ConsumerState<UserOrdersPage> createState() => _UserOrdersPageState();

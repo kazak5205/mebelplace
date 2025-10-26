@@ -12,9 +12,9 @@ class MasterChannelPage extends ConsumerStatefulWidget {
   final String masterId;
   
   const MasterChannelPage({
-    Key? key,
+    super.key,
     required this.masterId,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<MasterChannelPage> createState() => _MasterChannelPageState();

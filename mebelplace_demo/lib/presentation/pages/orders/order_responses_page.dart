@@ -11,9 +11,9 @@ class OrderResponsesPage extends ConsumerStatefulWidget {
   final String orderId;
   
   const OrderResponsesPage({
-    Key? key,
+    super.key,
     required this.orderId,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<OrderResponsesPage> createState() => _OrderResponsesPageState();
