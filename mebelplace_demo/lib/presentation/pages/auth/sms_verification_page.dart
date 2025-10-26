@@ -278,7 +278,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
           onPressed: _resendCountdown > 0 ? null : _resendCode,
           child: Text(
             _resendCountdown > 0 
-              ? 'Отправить повторно через ${_resendCountdown}с'
+              ? 'Отправить повторно через $_resendCountdown с'
               : 'Отправить повторно',
             style: TextStyle(
               color: _resendCountdown > 0 
