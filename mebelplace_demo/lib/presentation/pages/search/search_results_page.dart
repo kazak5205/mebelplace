@@ -223,7 +223,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8.r),
               image: DecorationImage(
-                image: NetworkImage(video.thumbnailUrl),
+                image: NetworkImage(video.thumbnailUrl ?? ''),
                 fit: BoxFit.cover,
               ),
             ),
@@ -306,7 +306,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                 SizedBox(height: 4.h),
                 
                 Text(
-                  video.description,
+                  video.description ?? '',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 12.sp,
@@ -326,7 +326,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      video.username,
+                      video.username ?? '',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 12.sp,

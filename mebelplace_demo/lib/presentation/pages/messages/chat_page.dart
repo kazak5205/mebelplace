@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/chat_model.dart';
+import '../../../data/models/message_model.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/loading_widget.dart';
 
@@ -99,7 +100,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  Widget _buildMessagesList(List<ChatModel> messages) {
+  Widget _buildMessagesList(List<MessageModel> messages) {
     if (messages.isEmpty) {
       return Center(
         child: Column(

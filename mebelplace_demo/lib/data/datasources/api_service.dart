@@ -635,7 +635,6 @@ class ApiService {
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> messagesJson = data['data'] ?? [];
         // TODO: Временно до исправления fromJson
         final messages = <MessageModel>[];
         
@@ -675,7 +674,6 @@ class ApiService {
       });
       
       if (response.statusCode == 200) {
-        final data = response.data;
         // TODO: Временно до исправления fromJson
         final message = MessageModel(
           id: 'temp',
@@ -1102,24 +1100,6 @@ class CategoryData {
     required this.id,
     required this.name,
     required this.description,
-  });
-}
-
-class MessageModel {
-  final String id;
-  final String chatId;
-  final String userId;
-  final String content;
-  final DateTime createdAt;
-  final UserModel? user;
-
-  MessageModel({
-    required this.id,
-    required this.chatId,
-    required this.userId,
-    required this.content,
-    required this.createdAt,
-    this.user,
   });
 }
 

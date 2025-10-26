@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
-import 'data/repositories/app_repositories.dart';
 import 'data/models/user_model.dart';
 import 'presentation/pages/home_screen.dart';
 import 'presentation/pages/auth/login_screen.dart';
@@ -13,7 +12,6 @@ import 'presentation/pages/orders/create_order_screen.dart';
 import 'presentation/pages/messages/messages_screen.dart';
 import 'presentation/pages/profile/profile_screen.dart';
 import 'presentation/providers/app_providers.dart';
-import 'presentation/providers/repository_providers.dart';
 
 void main() {
   runApp(const ProviderScope(child: MebelPlaceApp()));
