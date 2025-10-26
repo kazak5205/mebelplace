@@ -9,15 +9,15 @@ workflows:
     environment:
       vars:
         # App Store Connect API Key
-        APP_STORE_CONNECT_ISSUER_ID: Encrypted(94ce68e4-bd5a-4bf4-b266-46f0b9bd0596)
-        APP_STORE_CONNECT_API_KEY_CONTENT: Encrypted(-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgXgSbslYnlaFQ2tWT\n0O86ENr1XqEsMRgvLes5n6FdFeOgCgYIKoZIzj0DAQehRANCAARQEldtPVorpEmi\nUdVxt8m/0+FCY1M1OzjNWDGPkwyZ8ZjGD0O8jpKs26RAKYZuJWpdV4guIKhpgBNw\nCSZUy1HR\n-----END PRIVATE KEY-----)
-        APP_STORE_CONNECT_API_KEY_ID: Encrypted(7R2G5C786A)
+        APP_STORE_CONNECT_ISSUER_ID: Encrypted(...) # Добавьте в Environment Variables
+        APP_STORE_CONNECT_API_KEY_CONTENT: Encrypted(...) # Добавьте в Environment Variables
+        APP_STORE_CONNECT_API_KEY_ID: Encrypted(...) # Добавьте в Environment Variables
         
         # Bundle ID
         BUNDLE_ID: com.mebelplace.my
         
         # App Store Connect Team ID
-        APP_STORE_CONNECT_TEAM_ID: Encrypted(MZ64UQ254W)
+        APP_STORE_CONNECT_TEAM_ID: Encrypted(...) # Добавьте в Environment Variables
         
         # Xcode project settings
         XCODE_WORKSPACE: mebelplace_demo/ios/Runner.xcworkspace
