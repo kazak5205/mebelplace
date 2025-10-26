@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/order_model.dart';
-import '../../providers/app_providers.dart';
 
 class OrderRespondPage extends ConsumerStatefulWidget {
   final String orderId;

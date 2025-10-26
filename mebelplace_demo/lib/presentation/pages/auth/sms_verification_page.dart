@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../providers/app_providers.dart';
 
 class SmsVerificationPage extends ConsumerStatefulWidget {
   final String phoneNumber;

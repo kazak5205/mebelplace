@@ -22,7 +22,7 @@ class ApiService {
       onRequest: (options, handler) {
         // Добавляем JWT токен если есть
         final token = LocalStorage().getToken();
-        if (token != null) {
+        if (token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         handler.next(options);
@@ -172,7 +172,6 @@ class ApiService {
       }
     }
     
-    throw Exception('Неверный номер телефона или пароль');
   }
 
   Future<ApiResponse<AuthData>> register(RegisterRequest request) async {
@@ -634,7 +633,6 @@ class ApiService {
       final response = await _dio.get('/chats/$chatId/messages');
       
       if (response.statusCode == 200) {
-        final data = response.data;
         // TODO: Временно до исправления fromJson
         final messages = <MessageModel>[];
         
@@ -902,7 +900,6 @@ class ApiService {
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> responsesJson = data['data'] ?? [];
         // TODO: Временно до исправления fromJson
         final responses = <OrderResponse>[];
         
