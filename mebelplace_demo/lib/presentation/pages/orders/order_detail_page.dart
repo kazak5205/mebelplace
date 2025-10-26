@@ -11,9 +11,9 @@ class OrderDetailPage extends ConsumerStatefulWidget {
   final String orderId;
   
   const OrderDetailPage({
-    Key? key,
+    super.key,
     required this.orderId,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<OrderDetailPage> createState() => _OrderDetailPageState();
@@ -39,7 +39,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -53,7 +53,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.share, color: Colors.white),
+            icon: const Icon(Icons.share, color: Colors.white),
             onPressed: () {
               // TODO: Поделиться заявкой
             },

@@ -20,7 +20,7 @@ class _PrivacyPolicyPageState extends ConsumerState<PrivacyPolicyPage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(

@@ -5,7 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 
 class TermsOfServicePage extends ConsumerStatefulWidget {
-  const TermsOfServicePage({Key? key}) : super(key: key);
+  const TermsOfServicePage({super.key});
 
   @override
   ConsumerState<TermsOfServicePage> createState() => _TermsOfServicePageState();
@@ -20,7 +20,7 @@ class _TermsOfServicePageState extends ConsumerState<TermsOfServicePage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(

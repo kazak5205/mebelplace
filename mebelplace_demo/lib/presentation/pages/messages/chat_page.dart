@@ -11,9 +11,9 @@ class ChatPage extends ConsumerStatefulWidget {
   final String chatId;
   
   const ChatPage({
-    Key? key,
+    super.key,
     required this.chatId,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<ChatPage> createState() => _ChatPageState();
@@ -68,7 +68,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         backgroundColor: AppColors.dark,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -355,7 +355,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-            child: Text(
+            child: const Text(
               'Повторить',
               style: TextStyle(color: Colors.white),
             ),

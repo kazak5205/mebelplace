@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 
 class CreateOrderScreen extends ConsumerWidget {
-  const CreateOrderScreen({Key? key}) : super(key: key);
+  const CreateOrderScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

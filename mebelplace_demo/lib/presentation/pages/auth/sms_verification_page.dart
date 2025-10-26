@@ -399,7 +399,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
 
   void _startCountdown() {
     Future.doWhile(() async {
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 1));
       if (mounted) {
         setState(() {
           _resendCountdown--;
