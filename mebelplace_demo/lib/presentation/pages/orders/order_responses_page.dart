@@ -378,7 +378,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               Navigator.pop(context);
             },
             icon: const Icon(Icons.arrow_back, size: 18.sp),
-            label: Text('Назад к заявке'),
+            label: const Text('Назад к заявке'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -465,7 +465,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               Navigator.pop(context);
               // TODO: Принять предложение
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Предложение принято!'),
                   backgroundColor: Colors.green,
                 ),
@@ -474,7 +474,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
             ),
-            child: Text('Принять', style: TextStyle(color: Colors.white)),
+            child: const Text('Принять', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

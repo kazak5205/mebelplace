@@ -55,7 +55,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.add, color: Colors.white),
+            icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () {
               Navigator.pushNamed(context, '/create-order');
             },
@@ -314,7 +314,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
                     ),
                   ),
                   
-                  Spacer(),
+                  const Spacer(),
                   
                   // Дата
                   Text(
@@ -412,7 +412,7 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
             onPressed: () {
               Navigator.pushNamed(context, '/create-order');
             },
-            icon: Icon(Icons.add, size: 18.sp),
+            icon: const Icon(Icons.add, size: 18.sp),
             label: Text('Создать заявку'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
