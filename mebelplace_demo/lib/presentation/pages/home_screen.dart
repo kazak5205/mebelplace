@@ -63,7 +63,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Icon(
             Icons.video_library_outlined,
             size: 80.sp,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
           ),
           SizedBox(height: 24.h),
           Text(
@@ -71,7 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
           ),
           SizedBox(height: 8.h),
@@ -79,7 +79,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             'Загрузите первое видео!',
             style: TextStyle(
               fontSize: 14.sp,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -95,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Icon(
             Icons.error_outline,
             size: 80.sp,
-            color: Colors.red.withOpacity(0.7),
+            color: Colors.red.withValues(alpha: 0.7),
           ),
           SizedBox(height: 24.h),
           Text(
@@ -103,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
           ),
           SizedBox(height: 8.h),
@@ -111,7 +111,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             error,
             style: TextStyle(
               fontSize: 14.sp,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
             textAlign: TextAlign.center,
           ),
@@ -204,7 +204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             width: 60.w,
             height: 60.w,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.2),
+              color: AppColors.primary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(30.r),
             ),
             child: Icon(
@@ -218,7 +218,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label,
             style: TextStyle(
               fontSize: 12.sp,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
             textAlign: TextAlign.center,
           ),
@@ -287,7 +287,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 'Отличное видео! Очень понравилось качество работы.',
                                 style: TextStyle(
                                   fontSize: 14.sp,
-                                  color: Colors.white.withOpacity(0.8),
+                                  color: Colors.white.withValues(alpha: 0.8),
                                 ),
                               ),
                               SizedBox(height: 4.h),
@@ -295,7 +295,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 '2ч назад',
                                 style: TextStyle(
                                   fontSize: 12.sp,
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withValues(alpha: 0.5),
                                 ),
                               ),
                             ],
@@ -303,7 +303,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         Icon(
                           Icons.favorite_border,
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                           size: 16.sp,
                         ),
                       ],
@@ -315,7 +315,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: Row(
@@ -326,7 +326,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       decoration: InputDecoration(
                         hintText: 'Добавить комментарий...',
                         hintStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                         ),
                         border: InputBorder.none,
                       ),

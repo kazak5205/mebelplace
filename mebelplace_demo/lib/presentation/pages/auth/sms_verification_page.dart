@@ -116,15 +116,15 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.2),
-            AppColors.secondary.withOpacity(0.2),
+            AppColors.primary.withValues(alpha: 0.2),
+            AppColors.secondary.withValues(alpha: 0.2),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         shape: BoxShape.circle,
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -158,7 +158,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
         Text(
           'Мы отправили SMS с кодом подтверждения на номер',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 14.sp,
           ),
           textAlign: TextAlign.center,
@@ -189,12 +189,12 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
           width: 60.w,
           height: 60.w,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: _focusNodes[index].hasFocus 
                 ? AppColors.primary 
-                : Colors.white.withOpacity(0.2),
+                : Colors.white.withValues(alpha: 0.2),
               width: 2,
             ),
           ),
@@ -269,7 +269,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
         Text(
           'Не получили код?',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
             fontSize: 14.sp,
           ),
         ),
@@ -282,7 +282,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
               : 'Отправить повторно',
             style: TextStyle(
               color: _resendCountdown > 0 
-                ? Colors.white.withOpacity(0.5)
+                ? Colors.white.withValues(alpha: 0.5)
                 : AppColors.primary,
               fontSize: 14.sp,
               fontWeight: FontWeight.w600,
@@ -319,7 +319,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
           Text(
             'Пожалуйста, подождите',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14.sp,
             ),
           ),
