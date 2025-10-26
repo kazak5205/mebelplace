@@ -55,3 +55,4 @@ if exist "build\ios\iphoneos\Runner.app" (
 
 echo [INFO] 🎉 Готово! Приложение подготовлено для App Store.
 pause
+
