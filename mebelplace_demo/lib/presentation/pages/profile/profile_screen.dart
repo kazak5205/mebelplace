@@ -8,7 +8,7 @@ import '../auth/login_screen.dart';
 import '../auth/register_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -215,7 +215,7 @@ class ProfileScreen extends ConsumerWidget {
 }
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({Key? key}) : super(key: key);
+  const AuthScreen({super.key});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();

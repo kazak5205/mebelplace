@@ -12,9 +12,9 @@ class SearchResultsPage extends ConsumerStatefulWidget {
   final String query;
   
   const SearchResultsPage({
-    Key? key,
+    super.key,
     required this.query,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<SearchResultsPage> createState() => _SearchResultsPageState();

@@ -7,7 +7,7 @@ import 'dart:io';
 import '../../../core/theme/app_theme.dart';
 
 class CreateVideoPage extends ConsumerStatefulWidget {
-  const CreateVideoPage({Key? key}) : super(key: key);
+  const CreateVideoPage({super.key});
 
   @override
   ConsumerState<CreateVideoPage> createState() => _CreateVideoPageState();

@@ -5,7 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 
 class SupportPage extends ConsumerStatefulWidget {
-  const SupportPage({Key? key}) : super(key: key);
+  const SupportPage({super.key});
 
   @override
   ConsumerState<SupportPage> createState() => _SupportPageState();
