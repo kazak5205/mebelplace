@@ -30,8 +30,7 @@ workflows:
           
       - name: Install pods
         script: |
-          cd mebelplace_demo/ios
-          pod install
+          find . -name "Podfile" -execdir pod install \;
           
       - name: Flutter analyze
         script: |
