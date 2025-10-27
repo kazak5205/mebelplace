@@ -85,7 +85,14 @@ workflows:
           
           # Import distribution certificate to the correct keychain
           echo "Importing distribution certificate..."
-          security import distribution.p12 -k "$KEYCHAIN_PATH" -P "" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild -A
+          # Try with empty password first
+          security import distribution.p12 -k "$KEYCHAIN_PATH" -P "" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild -A 2>&1 | tee /tmp/import_result.txt
+          
+          # If failed, try with temp123456 password
+          if grep -q "MAC verification failed" /tmp/import_result.txt; then
+            echo "Empty password failed, trying with password..."
+            security import distribution.p12 -k "$KEYCHAIN_PATH" -P "temp123456" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild -A
+          fi
           
           # Unlock keychain
           security unlock-keychain -p "" "$KEYCHAIN_PATH"
