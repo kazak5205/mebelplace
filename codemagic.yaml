@@ -67,11 +67,14 @@ workflows:
       - name: Set up code signing
         script: |
           echo "========================================="
-          echo "🔧 Using Xcode Automatic Signing"
+          echo "🔧 Setting up App Store Connect API key"
           echo "========================================="
-          echo "Team: MZ64UQ254W"
-          echo "Bundle ID: com.mebelplace.mebelplaceDemo"
-          echo "✅ Xcode will automatically provision signing via App Store Connect API"
+          
+          # Set up App Store Connect API key
+          mkdir -p ~/private_keys
+          cp $CM_BUILD_DIR/mebelplace_demo/ios/AuthKey_7R2G5C786A.p8 ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+          
+          echo "✅ API key configured - Xcode will use automatic signing"
             
           
       - name: Set up Flutter
