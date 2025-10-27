@@ -146,9 +146,9 @@ workflows:
             
       - name: Upload to App Store Connect
         script: |
-          app-store-connect upload \
-            --ipa mebelplace_demo/build/ios/ipa/mebelplace.ipa \
-            --app-id $BUNDLE_ID
+          app-store-connect publish \
+            --path mebelplace_demo/build/ios/ipa/*.ipa \
+            --testflight
             
     artifacts:
       - mebelplace_demo/build/ios/ipa/*.ipa
