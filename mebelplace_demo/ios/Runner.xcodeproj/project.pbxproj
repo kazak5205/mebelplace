@@ -375,6 +375,7 @@
 			VERSIONING_SYSTEM = "apple-generic";
 			DEVELOPMENT_TEAM = MZ64UQ254W;
 			CODE_SIGN_STYLE = Automatic;
+			CODE_SIGN_IDENTITY = "Apple Distribution";
 		};
 		name = Profile;
 		};
@@ -580,6 +581,7 @@
 			VERSIONING_SYSTEM = "apple-generic";
 			DEVELOPMENT_TEAM = MZ64UQ254W;
 			CODE_SIGN_STYLE = Automatic;
+			CODE_SIGN_IDENTITY = "Apple Distribution";
 		};
 		name = Release;
 		};
