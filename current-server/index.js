@@ -18,6 +18,7 @@ const subscriptionRoutes = require('./routes/subscriptions');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const supportRoutes = require('./routes/support');
+const searchRoutes = require('./routes/search');
 const { initDatabase } = require('./config/database');
 const { setupSocket } = require('./config/socket');
 
@@ -72,6 +73,7 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/search', searchRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
