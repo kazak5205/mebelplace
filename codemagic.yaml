@@ -171,14 +171,30 @@ workflows:
             
             echo "Found archive: $XCARCHIVE"
             
-            # Manual export using xcodebuild
+            # Manual export using xcodebuild with authentication
             mkdir -p build/ios/ipa
             
-            xcodebuild -exportArchive \
-              -archivePath "$XCARCHIVE" \
-              -exportOptionsPlist $CM_BUILD_DIR/mebelplace_demo/export_options.plist \
-              -exportPath build/ios/ipa \
-              -allowProvisioningUpdates
+            # Use App Store Connect API authentication if available
+            if [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && [ -n "$APP_STORE_CONNECT_ISSUER_ID" ]; then
+              echo "Using App Store Connect API authentication"
+              
+              xcodebuild -exportArchive \
+                -archivePath "$XCARCHIVE" \
+                -exportOptionsPlist $CM_BUILD_DIR/mebelplace_demo/export_options.plist \
+                -exportPath build/ios/ipa \
+                -allowProvisioningUpdates \
+                -authenticationKeyPath ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8 \
+                -authenticationKeyID $APP_STORE_CONNECT_KEY_IDENTIFIER \
+                -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID
+            else
+              echo "Using keychain authentication"
+              
+              xcodebuild -exportArchive \
+                -archivePath "$XCARCHIVE" \
+                -exportOptionsPlist $CM_BUILD_DIR/mebelplace_demo/export_options.plist \
+                -exportPath build/ios/ipa \
+                -allowProvisioningUpdates
+            fi
             
             if [ $? -eq 0 ]; then
               echo "✅ Manual IPA export successful"

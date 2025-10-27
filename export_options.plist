@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>method</key>
-    <string>app-store</string>
+    <string>app-store-connect</string>
     <key>teamID</key>
     <string>MZ64UQ254W</string>
     <key>uploadBitcode</key>
@@ -23,7 +23,7 @@
     <key>provisioningProfiles</key>
     <dict>
         <key>com.mebelplace.mebelplaceDemo</key>
-        <string>MebelPlace App Store Profile</string>
+        <string>MebelPlace AppStore</string>
     </dict>
 </dict>
 </plist>
