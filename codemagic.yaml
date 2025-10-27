@@ -144,10 +144,28 @@ workflows:
             --build-number=1 \
             --export-options-plist=$CM_BUILD_DIR/mebelplace_demo/export_options.plist
             
+      - name: Find IPA file
+        script: |
+          echo "========================================="
+          echo "🔍 Searching for IPA file"
+          echo "========================================="
+          cd $CM_BUILD_DIR/mebelplace_demo
+          find . -name "*.ipa" -type f
+          echo "========================================="
+          
       - name: Upload to App Store Connect
         script: |
+          cd $CM_BUILD_DIR/mebelplace_demo
+          IPA_PATH=$(find . -name "*.ipa" -type f | head -n 1)
+          echo "Found IPA: $IPA_PATH"
+          
+          if [ -z "$IPA_PATH" ]; then
+            echo "❌ No IPA file found!"
+            exit 1
+          fi
+          
           app-store-connect publish \
-            --path $CM_BUILD_DIR/mebelplace_demo/build/ios/ipa/*.ipa \
+            --path "$IPA_PATH" \
             --testflight
             
     artifacts:
