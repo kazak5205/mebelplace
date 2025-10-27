@@ -83,24 +83,15 @@ workflows:
           echo "Converting certificate..."
           openssl x509 -in distribution.cer -inform DER -out cert.pem -outform PEM
           
-          # Check if certificate and key match
-          echo "Checking certificate modulus..."
-          openssl x509 -in cert.pem -noout -modulus | openssl md5
-          echo "Checking key modulus..."
-          openssl rsa -in mykey.key -noout -modulus | openssl md5
+          # Import certificate and key SEPARATELY (not as .p12!)
+          echo "Importing certificate..."
+          security import cert.pem \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security \
+            -k "$KEYCHAIN_PATH"
           
-          # Create .p12 from .pem + .key ON MACOS - try without password first
-          echo "Creating p12 WITHOUT password..."
-          openssl pkcs12 -export \
-            -out distribution.p12 \
-            -inkey mykey.key \
-            -in cert.pem \
-            -passout pass:
-          
-          # Import to keychain WITHOUT password
-          echo "Importing to keychain..."
-          security import distribution.p12 \
-            -P "" \
+          echo "Importing private key..."
+          security import mykey.key \
             -T /usr/bin/codesign \
             -T /usr/bin/security \
             -k "$KEYCHAIN_PATH"
