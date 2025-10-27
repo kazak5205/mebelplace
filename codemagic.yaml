@@ -147,7 +147,7 @@ workflows:
       - name: Upload to App Store Connect
         script: |
           app-store-connect publish \
-            --path mebelplace_demo/build/ios/ipa/*.ipa \
+            --path $CM_BUILD_DIR/mebelplace_demo/build/ios/ipa/*.ipa \
             --testflight
             
     artifacts:
