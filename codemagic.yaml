@@ -67,25 +67,25 @@ workflows:
       - name: Set up code signing
         script: |
           echo "========================================="
-          echo "🔧 Setting up iOS Code Signing with Codemagic"
+          echo "🔧 Setting up iOS Code Signing"
           echo "========================================="
           
-          # Use Codemagic's built-in code signing setup
+          # Fetch signing files uploaded to Codemagic (certificates and profiles)
+          # This uses files you've uploaded in Codemagic UI under Code signing identities
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
+            --type IOS_APP_STORE
           
           # Add certificates to keychain
           keychain add-certificates
           
-          # Configure Xcode project to use the profiles
+          # Configure Xcode project to use the fetched profiles
           xcode-project use-profiles
           
-          # Verify
+          # Verify setup
           echo "========================================="
           echo "Available signing identities:"
           security find-identity -v -p codesigning
-          echo "========================================="
+          echo ""
           echo "Installed provisioning profiles:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
           echo "========================================="
