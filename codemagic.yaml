@@ -96,6 +96,11 @@ workflows:
             fi
           done
           
+          # Use xcode-project command to apply profiles to Xcode project
+          echo "Applying profiles to Xcode project..."
+          cd $CM_BUILD_DIR/mebelplace_demo
+          xcode-project use-profiles
+          
           # Verify
           echo "========================================="
           echo "Available signing identities:"
