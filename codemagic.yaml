@@ -139,10 +139,38 @@ workflows:
       - name: Build ipa for distribution
         script: |
           cd mebelplace_demo
+          
+          echo "========================================="
+          echo "🏗️ Building IPA"
+          echo "========================================="
+          
           flutter build ipa --release \
             --build-name=1.0.0 \
             --build-number=1 \
-            --export-options-plist=$CM_BUILD_DIR/mebelplace_demo/export_options.plist
+            --export-options-plist=$CM_BUILD_DIR/mebelplace_demo/export_options.plist \
+            --verbose
+          
+          BUILD_EXIT_CODE=$?
+          
+          echo "========================================="
+          echo "Build exit code: $BUILD_EXIT_CODE"
+          echo "========================================="
+          
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "❌ Flutter build failed!"
+            exit $BUILD_EXIT_CODE
+          fi
+          
+          echo "Checking build output..."
+          ls -la build/ios/ || true
+          ls -la build/ios/ipa/ || true
+          ls -la build/ios/archive/ || true
+          
+          echo "Searching for xcarchive..."
+          find build/ios -name "*.xcarchive" -type d || true
+          
+          echo "Searching for .app..."
+          find build/ios -name "*.app" -type d || true
             
       - name: Find IPA file
         script: |
