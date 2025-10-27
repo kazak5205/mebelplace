@@ -349,6 +349,56 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// GET /api/auth/profile - Get current user profile
+router.get('/profile', async (req, res) => {
+  try {
+    // Получаем токен из заголовка
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access token required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const token = authHeader.substring(7);
+    const jwt = require('jsonwebtoken');
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // Получаем профиль пользователя
+    const userResult = await pool.query(
+      `SELECT id, username, email, first_name, last_name, phone, avatar, role, bio, created_at
+       FROM users 
+       WHERE id = $1 AND is_active = true`,
+      [decoded.userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('Error getting profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get profile',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // PUT /api/auth/profile - Update user profile
 router.put('/profile', avatarUpload.single('avatar'), async (req, res) => {
   console.log('🔵 Profile update request received');

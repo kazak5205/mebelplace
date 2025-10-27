@@ -291,22 +291,27 @@ router.get('/master/:masterId', async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
-    // Get master profile
+    // Get master profile with stats
     const masterResult = await pool.query(`
       SELECT 
-        id,
-        username,
-        email,
-        first_name,
-        last_name,
-        phone,
-        avatar,
-        role,
-        bio,
-        created_at,
-        is_verified
-      FROM users 
-      WHERE id = $1 AND role = 'master' AND is_active = true
+        u.id,
+        u.username,
+        u.email,
+        u.first_name,
+        u.last_name,
+        u.phone,
+        u.avatar,
+        u.role,
+        u.bio,
+        u.created_at,
+        u.is_verified,
+        COUNT(DISTINCT s1.id) as subscribers_count,
+        COUNT(DISTINCT s2.id) as following_count
+      FROM users u
+      LEFT JOIN subscriptions s1 ON u.id = s1.master_id
+      LEFT JOIN subscriptions s2 ON u.id = s2.user_id
+      WHERE u.id = $1 AND u.role = 'master' AND u.is_active = true
+      GROUP BY u.id
     `, [masterId]);
 
     if (masterResult.rows.length === 0) {
@@ -341,7 +346,7 @@ router.get('/master/:masterId', async (req, res) => {
       [masterId]
     );
 
-    // Map videos to camelCase
+    // Map videos to camelCase (with both naming conventions for compatibility)
     const mappedVideos = videosResult.rows.map(video => ({
       id: video.id,
       title: video.title,
@@ -354,8 +359,11 @@ router.get('/master/:masterId', async (req, res) => {
       category: video.category,
       tags: video.tags,
       views: parseInt(video.view_count) || 0,
+      viewsCount: parseInt(video.view_count) || 0,
       likes: parseInt(video.like_count) || 0,
+      likesCount: parseInt(video.like_count) || 0,
       comments: parseInt(video.comment_count) || 0,
+      commentsCount: parseInt(video.comment_count) || 0,
       isPublic: video.is_public,
       createdAt: video.created_at,
       updatedAt: video.updated_at
@@ -376,7 +384,9 @@ router.get('/master/:masterId', async (req, res) => {
           bio: master.bio,
           isVerified: master.is_verified,
           createdAt: master.created_at,
-          videoCount: parseInt(countResult.rows[0].total)
+          videoCount: parseInt(countResult.rows[0].total),
+          subscribersCount: parseInt(master.subscribers_count) || 0,
+          followingCount: parseInt(master.following_count) || 0
         },
         videos: mappedVideos,
         pagination: {

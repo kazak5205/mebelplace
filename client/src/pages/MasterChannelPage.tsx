@@ -545,15 +545,20 @@ const MasterChannelPage: React.FC = () => {
                     >
                       {video.thumbnailUrl ? (
                         <img 
-                          src={video.thumbnailUrl} 
+                          src={video.thumbnailUrl.startsWith('http') ? video.thumbnailUrl : `https://mebelplace.com.kz${video.thumbnailUrl}`} 
                           alt={video.title}
                           className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log('Thumbnail failed to load:', e.currentTarget.src);
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
                         />
-                      ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                          <Play className="w-8 h-8 text-white/40" />
-                        </div>
-                      )}
+                      ) : null}
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center" style={{ display: video.thumbnailUrl ? 'none' : 'flex' }}>
+                        <Play className="w-8 h-8 text-white/40" />
+                      </div>
                       
                       {/* Overlay with stats */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300">
