@@ -57,6 +57,7 @@ services:
     container_name: mebelplace-backend-prod
     environment:
       - APP_ENV=production
+      - TZ=Asia/Almaty
     env_file:
       - ./.env
     ports:
@@ -82,7 +83,7 @@ services:
           memory: 6G
           cpus: '3.0'
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://0.0.0.0:3001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

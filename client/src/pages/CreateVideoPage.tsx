@@ -26,7 +26,8 @@ const CreateVideoPage: React.FC = () => {
     title: '',
     description: '',
     category: 'furniture',
-    tags: ''
+    tags: '',
+    furniturePrice: ''
   })
   const [error, setError] = useState<string | null>(null)
 
@@ -91,6 +92,9 @@ const CreateVideoPage: React.FC = () => {
       submitData.append('description', formData.description)
       submitData.append('category', formData.category)
       submitData.append('tags', formData.tags)
+      if (formData.furniturePrice) {
+        submitData.append('furniturePrice', formData.furniturePrice)
+      }
 
       await videoService.uploadVideo(submitData)
 
@@ -295,6 +299,25 @@ const CreateVideoPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Цена мебели (₸)
+                </label>
+                <input
+                  type="number"
+                  name="furniturePrice"
+                  value={formData.furniturePrice}
+                  onChange={handleInputChange}
+                  className="glass-input w-full"
+                  placeholder="Например: 150000"
+                  min="0"
+                  step="1000"
+                />
+                <p className="text-xs text-white/50 mt-1">
+                  Укажите стоимость изделия (не обязательно)
+                </p>
               </div>
 
               <div>

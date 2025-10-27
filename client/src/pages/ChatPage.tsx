@@ -191,11 +191,12 @@ const ChatPage: React.FC = () => {
 
   const handleBlockUser = async () => {
     const otherParticipant: any = getOtherParticipant()
-    if (!otherParticipant?.user_id) return
+    const participantId = otherParticipant?.user_id || otherParticipant?.userId || otherParticipant?.id
+    if (!participantId) return
 
     if (confirm(`Заблокировать пользователя ${otherParticipant?.name || otherParticipant?.username}?`)) {
       try {
-        await userService.blockUser(otherParticipant.user_id)
+        await userService.blockUser(participantId)
         setShowMenu(false)
         alert('Пользователь заблокирован')
         navigate('/chat')

@@ -103,13 +103,13 @@ const EditProfileScreen = ({ navigation }: any) => {
         name: 'avatar.jpg',
       } as any);
 
-      // Загружаем на сервер
-      // Синхронизировано с web: uploadImage возвращает { url }
-      const data: any = await apiService.uploadImage(formData);
-      const url = (data.data || data).url;
-      if (url) {
+      // Загружаем на сервер через /api/auth/profile
+      const { authService } = await import('@shared/services/authService');
+      const response = await authService.uploadAvatar(formData);
+      
+      if (response && response.avatar) {
         // Обновляем локальное состояние
-        setFormData(prev => ({ ...prev, avatar: url }));
+        setFormData(prev => ({ ...prev, avatar: response.avatar }));
         Alert.alert('Успешно', 'Аватар обновлен');
       }
     } catch (error) {

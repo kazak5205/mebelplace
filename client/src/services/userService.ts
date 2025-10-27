@@ -38,5 +38,10 @@ export const userService = {
   // Избранные видео (используем реальные эндпоинты из /server/routes/videos.js)
   async getBookmarkedVideos() {
     return apiService.get('/videos/bookmarked')
+  },
+
+  // Лайкнутые видео
+  async getLikedVideos() {
+    return apiService.get('/videos/liked')
   }
 }

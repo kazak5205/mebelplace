@@ -44,7 +44,7 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
       });
     }
 
-    const { title, description, category, tags } = req.body;
+    const { title, description, category, tags, furniturePrice } = req.body;
     console.log('[VIDEO UPLOAD] User:', JSON.stringify(req.user));
     const videoData = {
       title,
@@ -55,7 +55,8 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
       fileSize: req.file.size,
       authorId: req.user?.id || req.user?.userId,
       category: category || 'general',
-      tags: tags ? tags.split(',').map(tag => tag.trim()) : []
+      tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      furniturePrice: furniturePrice ? parseFloat(furniturePrice) : null
     };
     console.log('[VIDEO UPLOAD] VideoData:', JSON.stringify(videoData));
 
@@ -105,8 +106,8 @@ router.get('/feed', async (req, res) => {
         u.last_name,
         avp.priority_order,
         avp.is_featured,
-        COUNT(vl.id) as like_count,
-        COUNT(vc.id) as comment_count
+        COUNT(DISTINCT vl.id) as like_count,
+        COUNT(DISTINCT vc.id) as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN admin_video_priorities avp ON v.id = avp.video_id
@@ -148,8 +149,8 @@ router.get('/feed', async (req, res) => {
         u.last_name,
         avp.priority_order,
         avp.is_featured,
-        COUNT(vl.id) as like_count,
-        COUNT(vc.id) as comment_count
+        COUNT(DISTINCT vl.id) as like_count,
+        COUNT(DISTINCT vc.id) as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN admin_video_priorities avp ON v.id = avp.video_id
@@ -322,8 +323,8 @@ router.get('/master/:masterId', async (req, res) => {
     const videosResult = await pool.query(`
       SELECT 
         v.*,
-        COUNT(vl.id) as like_count,
-        COUNT(vc.id) as comment_count,
+        COUNT(DISTINCT vl.id) as like_count,
+        COUNT(DISTINCT vc.id) as comment_count,
         v.views as view_count
       FROM videos v
       LEFT JOIN video_likes vl ON v.id = vl.video_id
@@ -432,8 +433,9 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
         'DELETE FROM video_likes WHERE video_id = $1 AND user_id = $2',
         [videoId, userId]
       );
+      // Защита от отрицательных значений: GREATEST(likes - 1, 0)
       await pool.query(
-        'UPDATE videos SET likes = likes - 1 WHERE id = $1',
+        'UPDATE videos SET likes = GREATEST(likes - 1, 0) WHERE id = $1',
         [videoId]
       );
       isLiked = false;
@@ -746,6 +748,88 @@ router.post('/:id/view', async (req, res) => {
   }
 });
 
+// GET /api/videos/liked - Get liked videos for user
+// ВАЖНО: Должен быть ПЕРЕД /:id чтобы не перехватывался параметром
+router.get('/liked', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT 
+        v.*,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.avatar,
+        vl.created_at as liked_at
+      FROM videos v
+      INNER JOIN video_likes vl ON v.id = vl.video_id
+      INNER JOIN users u ON v.author_id = u.id
+      WHERE vl.user_id = $1
+      ORDER BY vl.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [req.user.id, limit, offset]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'Liked videos retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get liked videos error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve liked videos',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/videos/bookmarked - Get bookmarked videos for user
+// ВАЖНО: Должен быть ПЕРЕД /:id чтобы не перехватывался параметром
+router.get('/bookmarked', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT 
+        v.*,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.avatar,
+        vl.created_at as bookmarked_at
+      FROM videos v
+      INNER JOIN video_likes vl ON v.id = vl.video_id
+      INNER JOIN users u ON v.author_id = u.id
+      WHERE vl.user_id = $1 AND vl.is_bookmark = true
+      ORDER BY vl.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [req.user.id, limit, offset]);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      message: 'Bookmarked videos retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get bookmarked videos error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve bookmarked videos',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // GET /api/videos/:id - Get single video
 router.get('/:id', async (req, res) => {
   try {
@@ -758,8 +842,8 @@ router.get('/:id', async (req, res) => {
         u.avatar,
         u.first_name,
         u.last_name,
-        COUNT(vl.id) as like_count,
-        COUNT(vc.id) as comment_count
+        COUNT(DISTINCT vl.id) as like_count,
+        COUNT(DISTINCT vc.id) as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN video_likes vl ON v.id = vl.video_id
@@ -902,25 +986,17 @@ router.post('/:id/bookmark', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if already bookmarked
-    const bookmarkResult = await pool.query(
-      'SELECT id FROM video_likes WHERE video_id = $1 AND user_id = $2 AND is_bookmark = true',
-      [videoId, userId]
-    );
-
-    if (bookmarkResult.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Video already bookmarked',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Add to bookmarks
+    // Add to bookmarks using ON CONFLICT to update existing like record
+    // Если уже есть лайк - обновляем is_bookmark, если нет - создаем новую запись
     await pool.query(
-      'INSERT INTO video_likes (video_id, user_id, is_bookmark) VALUES ($1, $2, true)',
+      `INSERT INTO video_likes (video_id, user_id, is_bookmark) 
+       VALUES ($1, $2, true)
+       ON CONFLICT (video_id, user_id) 
+       DO UPDATE SET is_bookmark = true`,
       [videoId, userId]
     );
+
+    console.log(`[BOOKMARK] User ${userId} bookmarked video ${videoId}`);
 
     res.json({
       success: true,
@@ -962,11 +1038,13 @@ router.delete('/:id/bookmark', authenticateToken, async (req, res) => {
       });
     }
 
-    // Remove from bookmarks
+    // Remove from bookmarks - just set is_bookmark to false, don't delete the record
     await pool.query(
-      'DELETE FROM video_likes WHERE video_id = $1 AND user_id = $2 AND is_bookmark = true',
+      'UPDATE video_likes SET is_bookmark = false WHERE video_id = $1 AND user_id = $2',
       [videoId, userId]
     );
+
+    console.log(`[BOOKMARK] User ${userId} removed bookmark from video ${videoId}`);
 
     res.json({
       success: true,
@@ -983,46 +1061,6 @@ router.delete('/:id/bookmark', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to remove bookmark',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// GET /api/videos/bookmarked - Get bookmarked videos for user
-router.get('/bookmarked', authenticateToken, async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
-
-    const result = await pool.query(`
-      SELECT 
-        v.*,
-        u.username,
-        u.first_name,
-        u.last_name,
-        u.avatar,
-        vl.created_at as bookmarked_at
-      FROM videos v
-      INNER JOIN video_likes vl ON v.id = vl.video_id
-      INNER JOIN users u ON v.author_id = u.id
-      WHERE vl.user_id = $1 AND vl.is_bookmark = true
-      ORDER BY vl.created_at DESC
-      LIMIT $2 OFFSET $3
-    `, [req.user.id, limit, offset]);
-
-    res.json({
-      success: true,
-      data: result.rows,
-      message: 'Bookmarked videos retrieved successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get bookmarked videos error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve bookmarked videos',
-      error: error.message,
       timestamp: new Date().toISOString()
     });
   }

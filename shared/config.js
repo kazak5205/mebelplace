@@ -15,7 +15,7 @@ const config = {
 
   // SMS Configuration
   sms: {
-    apiKey: process.env.SMS_API_KEY || 'kza709b533060de72b09110d34ca60bee25bad4fd53e2bb6181fe47cb8a7cad16cb0b1',
+    apiKey: process.env.SMS_API_KEY || 'kz8a6b114a5eecbbdffcb1f0ea6a00189b81d6e6b7eaf6e6646e86bc8e77eb2e98a488',
     sender: 'MebelPlace'
   },
 

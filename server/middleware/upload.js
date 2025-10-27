@@ -9,7 +9,8 @@ const ensureUploadDirs = () => {
     '/app/uploads/thumbnails',
     '/app/uploads/avatars',
     '/app/uploads/order-photos',
-    '/app/uploads/chat-files'
+    '/app/uploads/chat-files',
+    '/app/uploads/images'
   ];
 
   dirs.forEach(dir => {
@@ -21,6 +22,21 @@ const ensureUploadDirs = () => {
 
 // Initialize upload directories
 ensureUploadDirs();
+
+// Avatar upload configuration - DEDICATED STORAGE
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    console.log('📸 AVATAR UPLOAD - Forcing /app/uploads/avatars/');
+    cb(null, '/app/uploads/avatars/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    const filename = 'img-' + uniqueSuffix + ext;
+    console.log('📸 AVATAR FILENAME:', filename);
+    cb(null, filename);
+  }
+});
 
 // Video upload configuration
 const videoStorage = multer.diskStorage({
@@ -45,19 +61,36 @@ const imageStorage = multer.diskStorage({
     const fullPath = req.originalUrl || '';
     const fieldName = file.fieldname || '';
     
-    console.log('🔍 Upload destination check:', { routePath, urlPath, fullPath, fieldName });
+    console.log('🔍 Upload destination check:', { 
+      routePath, 
+      urlPath, 
+      fullPath, 
+      fieldName,
+      method: req.method
+    });
     
-    if (fieldName === 'avatar' || routePath.includes('avatar') || urlPath.includes('avatar') || fullPath.includes('avatar') || fullPath.includes('/profile')) {
+    // PRIORITY 1: Check if this is avatar upload (profile route with PUT/PATCH)
+    if (fullPath.includes('/auth/profile') || fullPath.includes('/api/profile') || fieldName === 'avatar') {
       uploadPath += 'avatars/';
-    } else if (routePath.includes('order') || urlPath.includes('order') || fullPath.includes('order')) {
+      console.log('📸 Avatar upload detected');
+    } 
+    // PRIORITY 2: Check for order photos
+    else if (routePath.includes('order') || urlPath.includes('order') || fullPath.includes('order')) {
       uploadPath += 'order-photos/';
-    } else if (routePath.includes('chat') || urlPath.includes('chat') || fullPath.includes('chat')) {
+      console.log('📦 Order photo upload detected');
+    } 
+    // PRIORITY 3: Check for chat files
+    else if (routePath.includes('chat') || urlPath.includes('chat') || fullPath.includes('chat')) {
       uploadPath += 'chat-files/';
-    } else {
+      console.log('💬 Chat file upload detected');
+    } 
+    // PRIORITY 4: Default to images
+    else {
       uploadPath += 'images/';
+      console.log('🖼️ Default image upload');
     }
     
-    console.log('✅ Upload path:', uploadPath);
+    console.log('✅ Final upload path:', uploadPath);
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
@@ -115,6 +148,14 @@ const videoUpload = multer({
     fileSize: 200 * 1024 * 1024 // 200MB for videos
   },
   fileFilter: videoFilter
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB for avatars
+  },
+  fileFilter: imageFilter
 });
 
 const imageUpload = multer({
@@ -219,6 +260,7 @@ const getFileSize = (bytes) => {
 
 module.exports = {
   videoUpload,
+  avatarUpload,
   imageUpload,
   generalFileUpload,
   handleUploadError,

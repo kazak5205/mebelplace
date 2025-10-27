@@ -36,31 +36,31 @@ const Header: React.FC = () => {
     <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-card p-4 mx-6 mt-6 mb-0"
+      className="glass-card p-3 md:p-4 mx-2 md:mx-6 mt-2 md:mt-6 mb-0"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold gradient-text">
+      <div className="flex items-center justify-between gap-2 md:gap-4">
+        <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+          <h1 className="text-lg md:text-2xl font-bold gradient-text whitespace-nowrap">
             MebelPlace
           </h1>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <form onSubmit={handleSearchSubmit} className="relative">
+        <div className="flex items-center space-x-2 md:space-x-4 flex-1 justify-end">
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-xs md:max-w-md">
             <input
               type="text"
-              placeholder="Поиск видео, каналов, хештегов..."
+              placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-80 px-4 py-2 pl-10 bg-gray-900/90 border border-gray-700 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 backdrop-blur-md"
+              className="w-full px-3 md:px-4 py-1.5 md:py-2 pl-8 md:pl-10 bg-gray-900/90 border border-gray-700 rounded-xl text-sm md:text-base text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 backdrop-blur-md"
             />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/70" />
+            <Search className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-white/70" />
           </form>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1.5 md:space-x-3 flex-shrink-0">
             {user ? (
               <>
-                <div className="text-right">
+                <div className="text-right hidden md:block">
                   <p className="text-sm font-medium">{user.name}</p>
                   <p className="text-xs text-white/60">
                     {user.role === 'admin' ? 'Админ' : user.role === 'master' ? 'Мастер' : 'Клиент'}
@@ -72,29 +72,31 @@ const Header: React.FC = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="glass-button p-2 text-yellow-400 hover:text-yellow-300"
+                      className="glass-button p-1.5 md:p-2 text-yellow-400 hover:text-yellow-300"
                       title="Админка"
                     >
-                      <Settings className="w-5 h-5" />
+                      <Settings className="w-4 h-4 md:w-5 md:h-5" />
                     </motion.button>
                   </Link>
                 )}
                 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="glass-button p-2"
-                >
-                  <User className="w-5 h-5" />
-                </motion.button>
+                <Link to="/profile">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="glass-button p-1.5 md:p-2"
+                  >
+                    <User className="w-4 h-4 md:w-5 md:h-5" />
+                  </motion.button>
+                </Link>
 
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={logout}
-                  className="glass-button p-2 text-red-400 hover:text-red-300"
+                  className="glass-button p-1.5 md:p-2 text-red-400 hover:text-red-300 hidden md:block"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4 md:w-5 md:h-5" />
                 </motion.button>
               </>
             ) : (
@@ -103,12 +105,12 @@ const Header: React.FC = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="glass-button px-4 py-2"
+                    className="glass-button px-2 py-1 md:px-4 md:py-2 text-sm md:text-base"
                   >
                     Войти
                   </motion.button>
                 </Link>
-                <Link to="/register">
+                <Link to="/register" className="hidden md:block">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

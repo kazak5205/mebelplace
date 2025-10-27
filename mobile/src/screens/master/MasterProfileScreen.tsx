@@ -86,14 +86,12 @@ const MasterProfileScreen = ({ navigation }: any) => {
           name: 'avatar.jpg',
         } as any);
 
-        // TODO: Использовать правильный endpoint для загрузки аватара
-        // const response:any = await authService.uploadAvatar(formData);
-        // if (response && response.data) {
-        //   updateUser(response.data);
-        //   Alert.alert('Успех', 'Фото профиля обновлено');
-        // }
-        
-        Alert.alert('Инфо', 'Функция загрузки аватара будет добавлена позже');
+        // Используем /api/auth/profile для загрузки аватара
+        const response = await authService.uploadAvatar(formData);
+        if (response) {
+          updateUser(response);
+          Alert.alert('Успех', 'Фото профиля обновлено');
+        }
       }
     } catch (error) {
       console.error('Error changing avatar:', error);

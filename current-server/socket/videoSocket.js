@@ -36,8 +36,9 @@ const setupVideoSocket = (io) => {
             'DELETE FROM video_likes WHERE video_id = $1 AND user_id = $2',
             [videoId, socket.user.id]
           );
+          // Защита от отрицательных значений
           await pool.query(
-            'UPDATE videos SET likes = likes - 1 WHERE id = $1',
+            'UPDATE videos SET likes = GREATEST(likes - 1, 0) WHERE id = $1',
             [videoId]
           );
           isLiked = false;
@@ -95,6 +96,18 @@ const setupVideoSocket = (io) => {
 
         const comment = commentResult.rows[0];
 
+        // Update comment counter in videos table
+        await pool.query(
+          'UPDATE videos SET comments = comments + 1 WHERE id = $1',
+          [videoId]
+        );
+
+        // Get updated comment count
+        const videoResult = await pool.query(
+          'SELECT comments FROM videos WHERE id = $1',
+          [videoId]
+        );
+
         // Get user info for comment
         const userResult = await pool.query(
           'SELECT username, avatar, first_name, last_name FROM users WHERE id = $1',
@@ -109,16 +122,26 @@ const setupVideoSocket = (io) => {
           comment: {
             id: comment.id,
             content: comment.content,
+            username: comment.user.username,  // Добавлено для совместимости с REST API
+            avatar: comment.user.avatar,
+            first_name: comment.user.first_name,
+            last_name: comment.user.last_name,
+            user_id: socket.user.id,
+            created_at: comment.created_at,
+            likes: 0,
+            is_liked: false,
+            // Оставляем старый формат для обратной совместимости
             author: {
               id: socket.user.id,
               name: comment.user.username || `${comment.user.first_name} ${comment.user.last_name}`,
               avatar: comment.user.avatar
             },
             createdAt: comment.created_at
-          }
+          },
+          commentsCount: videoResult.rows[0].comments
         });
 
-        console.log(`💬 New comment on video ${videoId} by ${socket.user.username}`);
+        console.log(`💬 New comment on video ${videoId} by ${socket.user.username} (total: ${videoResult.rows[0].comments})`);
 
       } catch (error) {
         console.error('Error handling video comment:', error);

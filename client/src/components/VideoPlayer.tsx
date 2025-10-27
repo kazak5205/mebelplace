@@ -493,7 +493,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <>
       <Header />
-      <div ref={containerRef} className="fixed inset-0 bg-black z-40 overflow-hidden pt-16 pb-16">
+      <div ref={containerRef} className="fixed inset-0 bg-black z-40 overflow-hidden pt-4 pb-24">
         {/* Close Button - только если задан onClose */}
         {onClose && (
           <motion.button
@@ -530,7 +530,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         {/* TikTok Style Layout - Vertical Video Player */}
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Main Video Container - Vertical Format (9:16) */}
-          <div className="relative w-full max-w-sm mx-auto">
+          <div className="relative w-full max-w-md md:max-w-lg mx-auto h-full">
             <AnimatePresence initial={false} mode="wait">
               <motion.div
                 drag="y"
@@ -538,7 +538,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 dragElastic={0.1}
                 dragMomentum={false}
                 onDragEnd={handleDragEnd}
-                className="relative w-full mx-auto"
+                className="relative w-full h-full mx-auto"
                 key={currentIndex}
                 initial={{ 
                   opacity: 0,
@@ -565,7 +565,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 }}
               >
                 {/* Video Container - Vertical Adaptive */}
-                <div className="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden">
+                <div className="relative w-full h-full bg-black overflow-hidden">
                   <video
                     ref={(el) => (videoRefs.current[currentIndex] = el)}
                     src={currentVideo.videoUrl}
@@ -581,90 +581,101 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </AnimatePresence>
           </div>
 
-          {/* Video Info - Bottom Left - Adapted for vertical format */}
-          <div className="absolute bottom-20 left-4 z-30 max-w-xs">
-            <div className="space-y-3">
-              {/* Author Info */}
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                  {currentVideo.avatar || currentVideo.master?.avatar ? (
-                    <img 
-                      src={currentVideo.avatar?.startsWith('http') ? currentVideo.avatar : `https://mebelplace.com.kz${currentVideo.avatar}` || 
-                             currentVideo.master?.avatar?.startsWith('http') ? currentVideo.master?.avatar : `https://mebelplace.com.kz${currentVideo.master?.avatar}`} 
-                      alt={currentVideo.username || currentVideo.master?.name || 'Avatar'}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        console.log('Avatar image failed to load:', e.currentTarget.src);
-                        e.currentTarget.style.display = 'none'
-                        if (e.currentTarget.nextSibling) {
-                          (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
-                        }
-                      }}
-                    />
-                  ) : null}
-                  <span 
-                    className="text-white font-bold text-sm"
-                    style={{ display: currentVideo.avatar || currentVideo.master?.avatar ? 'none' : 'flex' }}
-                  >
-                    {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
-                  </span>
-                </div>
-                <div>
-                  <button
-                    onClick={() => {
-                      const authorId = currentVideo.authorId || currentVideo.author_id || currentVideo.masterId || currentVideo.master?.id
-                      if (authorId) {
-                        window.location.href = `/profile/${authorId}`
-                      }
-                    }}
-                    className="text-white font-semibold text-sm hover:text-blue-300 transition-colors"
-                  >
-                    {currentVideo.username || currentVideo.master?.name || 'Автор'}
-                  </button>
-                  <p className="text-white/60 text-xs">
-                    {formatTimeAgo(currentVideo.createdAt)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Video Title & Description */}
-              <div className="space-y-2">
-                <h2 className="text-white font-bold text-sm leading-tight">
+          {/* Video Info - Bottom Left - INSIDE video container */}
+          <div className="absolute bottom-32 left-4 z-40 max-w-xs">
+            <div className="space-y-2">
+              {/* Title - Always Visible */}
+              {currentVideo.title && (
+                <h3 className="text-white font-bold text-lg drop-shadow-lg">
                   {currentVideo.title}
-                </h2>
-                
-                {currentVideo.description && (
-                  <p className="text-white/80 text-xs leading-relaxed line-clamp-2">
-                    {currentVideo.description}
+                </h3>
+              )}
+              
+              {/* Author and Time */}
+              <button
+                onClick={() => {
+                  const authorId = currentVideo.authorId || currentVideo.author_id || currentVideo.masterId || currentVideo.master?.id
+                  if (authorId) {
+                    window.location.href = `/profile/${authorId}`
+                  }
+                }}
+                className="text-white font-semibold text-sm hover:text-blue-300 transition-colors drop-shadow-lg"
+              >
+                {currentVideo.username || currentVideo.master?.name || 'Автор'} • {formatTimeAgo(currentVideo.createdAt)}
+              </button>
+              
+              {/* Description */}
+              {currentVideo.description && (
+                <p className="text-white/90 text-sm line-clamp-2 drop-shadow-lg">
+                  {currentVideo.description}
+                </p>
+              )}
+              
+              {/* Furniture Price */}
+              {((currentVideo as any).furniture_price || (currentVideo as any).furniturePrice) && (
+                <div className="bg-gradient-to-r from-pink-500/90 to-purple-500/90 backdrop-blur-sm px-3 py-1.5 rounded-lg inline-block">
+                  <p className="text-white font-bold text-sm">
+                    {new Intl.NumberFormat('ru-KZ', { 
+                      style: 'currency', 
+                      currency: 'KZT',
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0
+                    }).format((currentVideo as any).furniture_price || (currentVideo as any).furniturePrice)}
                   </p>
-                )}
-
-                {/* Tags */}
-                {currentVideo.tags && currentVideo.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {currentVideo.tags.slice(0, 3).map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-white/10 rounded-full text-white/90 font-medium text-xs"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Order Button */}
-              {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
-                <div className="pt-2">
-                  <OrderButton video={currentVideo} className="w-full max-w-xs" />
                 </div>
               )}
             </div>
           </div>
 
+          {/* Order Button - Bottom Center - INSIDE video container, ABOVE navigation */}
+          {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
+            <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-xs px-4">
+              <OrderButton video={currentVideo} className="w-full" />
+            </div>
+          )}
+
           {/* Action Buttons - Right Side - Adapted for vertical format */}
-          <div className="absolute right-4 bottom-20 z-30 flex flex-col space-y-4">
+          <div className="absolute right-4 bottom-28 z-30 flex flex-col space-y-4">
+            {/* Author Avatar - Above Like */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                const authorId = currentVideo.authorId || currentVideo.author_id || currentVideo.masterId || currentVideo.master?.id
+                if (authorId) {
+                  window.location.href = `/profile/${authorId}`
+                }
+              }}
+              className="flex flex-col items-center space-y-1"
+            >
+              <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                {currentVideo.avatar || currentVideo.master?.avatar ? (
+                  <img 
+                    src={currentVideo.avatar?.startsWith('http') ? currentVideo.avatar : `https://mebelplace.com.kz${currentVideo.avatar}` || 
+                           currentVideo.master?.avatar?.startsWith('http') ? currentVideo.master?.avatar : `https://mebelplace.com.kz${currentVideo.master?.avatar}`} 
+                    alt={currentVideo.username || currentVideo.master?.name || 'Avatar'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.log('Avatar image failed to load:', e.currentTarget.src);
+                      e.currentTarget.style.display = 'none'
+                      if (e.currentTarget.nextSibling) {
+                        (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
+                      }
+                    }}
+                  />
+                ) : null}
+                <span 
+                  className="text-white font-bold text-sm"
+                  style={{ display: currentVideo.avatar || currentVideo.master?.avatar ? 'none' : 'flex' }}
+                >
+                  {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
+                </span>
+              </div>
+              <span className="text-white font-semibold text-xs">
+                {currentVideo.username || currentVideo.master?.name || 'Автор'}
+              </span>
+            </motion.button>
+
             {/* Like */}
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -942,7 +953,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
 
             {/* Форма комментария - ЗАФИКСИРОВАНА ВНИЗУ */}
-            <div className="absolute bottom-0 left-0 right-0 px-4 py-3 pb-20 bg-black/95 backdrop-blur-xl border-t border-white/10">
+            <div className="absolute bottom-0 left-0 right-0 px-4 py-3 pb-20 bg-black/95 backdrop-blur-xl border-t border-white/10 z-[110]">
               {canComment ? (
                 <form onSubmit={handleSubmitComment} className="flex space-x-3">
                   <input

@@ -8,7 +8,7 @@ const {
   authRateLimit 
 } = require('../middleware/auth');
 const smsService = require('../services/smsService');
-const { imageUpload, handleUploadError } = require('../middleware/upload');
+const { avatarUpload, imageUpload, handleUploadError } = require('../middleware/upload');
 const router = express.Router();
 
 // Хранилище SMS кодов (в продакшене использовать Redis)
@@ -105,7 +105,7 @@ router.post('/register', authRateLimit, async (req, res) => {
 // POST /api/auth/login - User login
 router.post('/login', authRateLimit, async (req, res) => {
   try {
-    const { phone, password } = req.body;
+    let { phone, password } = req.body;
 
     if (!phone || !password) {
       return res.status(400).json({
@@ -114,6 +114,17 @@ router.post('/login', authRateLimit, async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
+
+    // Normalize phone: 87XXXXXXXXX -> +77XXXXXXXXX
+    if (phone.startsWith('8')) {
+      phone = '+7' + phone.substring(1);
+    }
+    // Ensure phone starts with +7
+    if (!phone.startsWith('+')) {
+      phone = '+' + phone;
+    }
+
+    console.log('🔐 [LOGIN] Normalized phone:', phone);
 
     // Get user from database by phone
     const result = await pool.query(
@@ -339,7 +350,7 @@ router.get('/me', async (req, res) => {
 });
 
 // PUT /api/auth/profile - Update user profile
-router.put('/profile', imageUpload.single('avatar'), async (req, res) => {
+router.put('/profile', avatarUpload.single('avatar'), async (req, res) => {
   console.log('🔵 Profile update request received');
   console.log('📁 File:', req.file ? req.file.filename : 'No file');
   console.log('📝 Body:', req.body);

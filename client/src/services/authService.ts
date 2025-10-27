@@ -18,24 +18,32 @@ interface RegisterData {
 
 export const authService = {
   async login(phone: string, password: string): Promise<LoginResponse> {
-    const response = await apiService.post<LoginResponse>('/auth/login', { phone, password })
+    const response = await apiService.post<any>('/auth/login', { phone, password })
+    console.log('[AUTH] Login response:', response)
+    // apiService.post возвращает response.data.data, который уже содержит { user, accessToken, refreshToken }
     // Сохраняем токены
     if (response.accessToken) {
+      console.log('[AUTH] Saving accessToken')
       localStorage.setItem('accessToken', response.accessToken)
     }
     if (response.refreshToken) {
+      console.log('[AUTH] Saving refreshToken')
       localStorage.setItem('refreshToken', response.refreshToken)
     }
     return response
   },
 
   async register(userData: RegisterData): Promise<LoginResponse> {
-    const response = await apiService.post<LoginResponse>('/auth/register', userData)
+    const response = await apiService.post<any>('/auth/register', userData)
+    console.log('[AUTH] Register response:', response)
+    // apiService.post возвращает response.data.data, который уже содержит { user, accessToken, refreshToken }
     // Сохраняем токены
     if (response.accessToken) {
+      console.log('[AUTH] Saving accessToken')
       localStorage.setItem('accessToken', response.accessToken)
     }
     if (response.refreshToken) {
+      console.log('[AUTH] Saving refreshToken')
       localStorage.setItem('refreshToken', response.refreshToken)
     }
     return response

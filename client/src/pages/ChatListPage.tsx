@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MessageCircle, Search, Headphones } from 'lucide-react'
+import { MessageCircle, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import GlassCard from '../components/GlassCard'
 import { Chat } from '../types'
@@ -157,18 +157,9 @@ const ChatListPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-center relative"
+        className="flex items-center justify-center"
       >
         <h1 className="text-3xl font-bold gradient-text text-center">Чаты</h1>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/user/support')}
-          className="absolute right-4 glass-button flex items-center space-x-2"
-        >
-          <Headphones className="w-5 h-5" />
-          <span>Поддержка</span>
-        </motion.button>
       </motion.div>
       
       

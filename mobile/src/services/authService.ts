@@ -51,6 +51,12 @@ class MobileAuthService {
     return baseUserService.update(currentUser.id, userData);
   }
 
+  async uploadAvatar(formData: FormData): Promise<User> {
+    // Используем /api/auth/profile напрямую для загрузки аватара
+    const result = await apiClient.upload('/auth/profile', formData);
+    return result.data;
+  }
+
   async logout(): Promise<void> {
     await baseAuthService.logout();
     await AsyncStorage.removeItem('authToken');

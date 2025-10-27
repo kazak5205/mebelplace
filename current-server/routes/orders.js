@@ -8,8 +8,10 @@ const router = express.Router();
 // POST /api/orders/create - Создание заявки
 router.post('/create', authenticateToken, imageUpload.array('images', 5), async (req, res) => {
   try {
-    const { title, description, category, location, region, budget, deadline } = req.body;
+    const { title, description, category, location, city, region, budget, deadline } = req.body;
     const clientId = req.user.id;
+
+    console.log('[CREATE ORDER] Request:', { title, description, category, location, city, region, budget });
 
     if (!title || !description) {
       return res.status(400).json({
@@ -29,9 +31,12 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
       images = req.body.images;
     }
 
+    // Используем city (если передан) или location (для обратной совместимости)
+    const cityValue = city || location;
+
     // Создание заявки
     const result = await pool.query(`
-      INSERT INTO orders (title, description, images, client_id, category, location, region, price, deadline, status)
+      INSERT INTO orders (title, description, images, client_id, category, city, region, price, deadline, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `, [
@@ -40,7 +45,7 @@ router.post('/create', authenticateToken, imageUpload.array('images', 5), async 
       images,
       clientId,
       category || 'general',
-      location,
+      cityValue,
       region || null,
       budget ? parseFloat(budget) : null,
       deadline ? new Date(deadline) : null,

@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const chatService = require('../services/chatService');
-const pool = require('../config/database');
+const { pool } = require('../config/database');
 
 class ChatSocket {
   constructor(io) {
@@ -228,11 +228,14 @@ class ChatSocket {
   }
   
   // Обновление статуса пользователя в БД
+  // ИСПРАВЛЕНО: is_active НЕ должен меняться при подключении/отключении WebSocket!
+  // is_active = флаг блокировки аккаунта, а не онлайн статус
+  // Онлайн статус определяется по last_seen
   async setUserOnline(userId, isActive) {
     try {
       await pool.query(
-        'UPDATE users SET is_active = $1, last_seen = NOW() WHERE id = $2',
-        [isActive, userId]
+        'UPDATE users SET last_seen = NOW() WHERE id = $1',
+        [userId]
       );
     } catch (error) {
       console.error('Error updating user online status:', error);

@@ -22,6 +22,7 @@ const MasterChannelPage: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [isSubscribed, setIsSubscribed] = useState(false)
+  const [subscribersCount, setSubscribersCount] = useState(0)
   const [uploadForm, setUploadForm] = useState({
     title: '',
     description: '',
@@ -34,8 +35,7 @@ const MasterChannelPage: React.FC = () => {
     console.log('MasterChannelPage: id from useParams:', id)
     console.log('MasterChannelPage: current URL:', window.location.href)
     if (id) {
-      loadMasterInfo()
-      loadMasterVideos()
+      loadMasterData()
       loadSubscriptionStatus()
     } else {
       console.error('MasterChannelPage: No id parameter found!')
@@ -62,35 +62,35 @@ const MasterChannelPage: React.FC = () => {
     })
   }, [on])
 
-  const loadMasterInfo = async () => {
+  const loadMasterData = async () => {
     if (!id) {
-      console.error('loadMasterInfo: No id provided')
+      console.error('loadMasterData: No id provided')
       return
     }
     try {
-      console.log('loadMasterInfo: Loading master info for id:', id)
-      const data: any = await apiService.get(`/users/${id}`)
-      console.log('loadMasterInfo: API response:', data)
-      if (data?.data) {
-        setMaster(data.data as User)
-        console.log('loadMasterInfo: Master data set:', data.data)
+      console.log('loadMasterData: Loading master data for id:', id)
+      setLoading(true)
+      const data: any = await apiService.get(`/videos/master/${id}`)
+      console.log('loadMasterData: API response:', data)
+      
+      if (data?.master) {
+        console.log('loadMasterData: Setting master state with:', data.master)
+        setMaster(data.master as User)
+        setSubscribersCount(data.master.subscribersCount || data.master.subscribers_count || 0)
+        console.log('loadMasterData: Master data set:', data.master)
+      } else {
+        console.log('loadMasterData: No master data found in response:', data)
+      }
+      
+      if (data?.videos) {
+        console.log('loadMasterData: Setting videos state with:', data.videos)
+        setVideos(data.videos)
+        console.log('loadMasterData: Videos set:', data.videos)
+      } else {
+        console.log('loadMasterData: No videos data found in response:', data)
       }
     } catch (error) {
-      console.error('Failed to load master info:', error)
-    }
-  }
-
-  const loadMasterVideos = async () => {
-    try {
-      console.log('loadMasterVideos: Loading videos for author_id:', id)
-      setLoading(true)
-      const response = await videoService.getVideos({ author_id: id, limit: 50 })
-      console.log('loadMasterVideos: API response:', response)
-      setVideos(response.videos)
-      console.log('loadMasterVideos: Videos set:', response.videos)
-      // НЕ перезаписываем master - loadMasterInfo() уже загрузил правильные данные с subscribers_count!
-    } catch (error) {
-      console.error('Failed to load master videos:', error)
+      console.error('Failed to load master data:', error)
     } finally {
       setLoading(false)
     }
@@ -116,9 +116,11 @@ const MasterChannelPage: React.FC = () => {
       if (isSubscribed) {
         await userService.unsubscribe(id)
         setIsSubscribed(false)
+        setSubscribersCount(prev => Math.max(0, prev - 1)) // Уменьшаем счетчик подписчиков
       } else {
         await userService.subscribe(id)
         setIsSubscribed(true)
+        setSubscribersCount(prev => prev + 1) // Увеличиваем счетчик подписчиков
       }
     } catch (error) {
       console.error('Failed to toggle subscription:', error)
@@ -156,7 +158,7 @@ const MasterChannelPage: React.FC = () => {
         tags: ''
       })
       
-      await loadMasterVideos()
+      await loadMasterData()
     } catch (error) {
       console.error('Failed to upload video:', error)
       alert('Ошибка загрузки видео. Убедитесь, что вы мастер.')
@@ -325,7 +327,7 @@ const MasterChannelPage: React.FC = () => {
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-white">
-                    {formatCount((master as any).subscribersCount || (master as any).subscribers_count || 0)}
+                    {formatCount(subscribersCount)}
                   </div>
                   <div className="text-xs text-white/60">Подписчики</div>
                 </div>

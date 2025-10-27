@@ -8,7 +8,7 @@ const axios = require('axios');
 
 class SMSService {
   constructor() {
-    this.apiKey = process.env.MOBIZON_API_KEY || 'kza28b2431c84d125c7b571c1a20363bd4dfc77ca728e74f3f292eb4aee3985d952185';
+    this.apiKey = process.env.MOBIZON_API_KEY || 'kz8a6b114a5eecbbdffcb1f0ea6a00189b81d6e6b7eaf6e6646e86bc8e77eb2e98a488';
     this.apiUrl = 'https://api.mobizon.kz/service/message/sendsmsmessage';
   }
 
