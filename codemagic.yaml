@@ -77,11 +77,15 @@ workflows:
           
           # Import distribution certificate
           echo "Importing distribution certificate..."
-          security import distribution.p12 -k ~/Library/Keychains/codemagic.keychain-db -P "" -T /usr/bin/codesign -T /usr/bin/security
+          security import distribution.p12 -k ~/Library/Keychains/codemagic.keychain-db -P "" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
           
           # Unlock keychain
           security unlock-keychain -p "" ~/Library/Keychains/codemagic.keychain-db
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/codemagic.keychain-db
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: -s -k "" ~/Library/Keychains/codemagic.keychain-db
+          
+          # Make codemagic keychain the default for codesigning
+          security list-keychains -d user -s ~/Library/Keychains/codemagic.keychain-db
+          security default-keychain -s ~/Library/Keychains/codemagic.keychain-db
           
           # Install provisioning profiles
           echo "Installing provisioning profiles..."
