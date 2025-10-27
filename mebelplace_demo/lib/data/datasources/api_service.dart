@@ -6,6 +6,7 @@ import '../models/order_model.dart';
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
 import '../models/order_response_model.dart';
+import '../adapters/case_converter.dart';
 import 'local_storage.dart';
 
 // API Service with real endpoints from OpenAPI
@@ -27,6 +28,13 @@ class ApiService {
         }
         handler.next(options);
       },
+      onResponse: (response, handler) {
+        // ✅ ТРАНСФОРМАЦИЯ snake_case → camelCase (как веб-фронтенд!)
+        if (response.data != null) {
+          response.data = snakeToCamel(response.data);
+        }
+        return handler.next(response);
+      },
     ));
   }
 
@@ -40,17 +48,30 @@ class ApiService {
       });
       
       if (response.statusCode == 200) {
-        final data = response.data;
-        final user = UserModel.fromJson(data['user']);
-        final token = data['token'];
+        final responseData = response.data;
         
-        // Сохраняем токен
-        await LocalStorage().saveToken(token);
+        // ✅ БЭК ВОЗВРАЩАЕТ: { success, data: { user, accessToken, refreshToken } }
+        final data = responseData['data'] ?? responseData;
+        final user = UserModel.fromJson(data['user']);
+        
+        // ✅ Правильные поля (как веб-фронтенд)
+        final accessToken = data['accessToken'] ?? data['access_token'] ?? data['token'];
+        final refreshToken = data['refreshToken'] ?? data['refresh_token'];
+        
+        // Сохраняем токены
+        await LocalStorage().saveToken(accessToken);
+        if (refreshToken != null) {
+          await LocalStorage().saveRefreshToken(refreshToken);
+        }
         
         return ApiResponse<AuthData>(
           success: true,
-          data: AuthData(user: user, token: token),
-          message: 'Успешный вход',
+          data: AuthData(
+            user: user, 
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          ),
+          message: responseData['message'] ?? 'Успешный вход',
           timestamp: DateTime.now().toIso8601String(),
         );
       } else {
@@ -514,31 +535,57 @@ class ApiService {
     DateTime? deadline,
     List<File>? images,
   ) async {
-    await Future.delayed(const Duration(seconds: 2));
-    
-    final order = OrderModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
-      description: description,
-      category: category,
-      location: location,
-      region: region,
-      price: budget,
-      deadline: deadline,
-      status: 'pending',
-      clientId: '1',
-      hasMyResponse: false,
-      images: [],
-      responseCount: 0,
-      createdAt: DateTime.now(),
-    );
-    
-    return ApiResponse<OrderModel>(
-      success: true,
-      data: order,
-      message: 'Заказ создан',
-      timestamp: DateTime.now().toIso8601String(),
-    );
+    try {
+      // ✅ ИСПОЛЬЗУЕМ РЕАЛЬНЫЙ ENDPOINT /orders/create (как веб-фронтенд!)
+      final formData = FormData.fromMap({
+        'title': title,
+        'description': description,
+        'category': category,
+        if (location != null) 'location': location,
+        if (region != null) 'region': region,
+        if (budget != null) 'budget': budget,
+        if (deadline != null) 'deadline': deadline.toIso8601String(),
+      });
+      
+      // Добавляем изображения если есть
+      if (images != null && images.isNotEmpty) {
+        for (var i = 0; i < images.length; i++) {
+          formData.files.add(MapEntry(
+            'images',
+            await MultipartFile.fromFile(images[i].path),
+          ));
+        }
+      }
+      
+      final response = await _dio.post('/orders/create', data: formData);
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = response.data['data'] ?? response.data;
+        final order = OrderModel.fromJson(data);
+        
+        print('✅ API: Order created: ${order.id}');
+        
+        return ApiResponse<OrderModel>(
+          success: true,
+          data: order,
+          message: response.data['message'] ?? 'Заказ создан',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<OrderModel>(
+          success: false,
+          message: 'Ошибка создания заказа',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      print('❌ API: Create order error: $e');
+      return ApiResponse<OrderModel>(
+        success: false,
+        message: 'Ошибка создания заказа: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
   }
 
   Future<ApiResponse<OrderResponse>> respondToOrder(
@@ -697,25 +744,22 @@ class ApiService {
 
   Future<ApiResponse<List<VideoModel>>> searchVideos(String query) async {
     try {
-      // ВНИМАНИЕ: /search endpoint НЕ СУЩЕСТВУЕТ на реальном сервере!
-      // Используем фильтрацию на клиенте из /videos/feed
-      final response = await _dio.get('/videos/feed');
+      // ✅ ИСПОЛЬЗУЕМ РЕАЛЬНЫЙ ENDPOINT /search (как веб-фронтенд!)
+      final response = await _dio.get('/search', queryParameters: {
+        'q': query,
+        'type': 'video',
+      });
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> videosJson = data['data']['videos'] ?? [];
-        final allVideos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
+        final List<dynamic> videosJson = data['data']?['videos'] ?? data['videos'] ?? [];
+        final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
         
-        // Фильтруем видео по запросу на клиенте
-        final filteredVideos = allVideos.where((video) =>
-          video.title.toLowerCase().contains(query.toLowerCase()) ||
-          (video.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-          video.tags.any((tag) => tag.toLowerCase().contains(query.toLowerCase()))
-        ).toList();
+        print('🔍 API: Found ${videos.length} videos for query "$query"');
         
         return ApiResponse<List<VideoModel>>(
           success: true,
-          data: filteredVideos,
+          data: videos,
           message: null,
           timestamp: DateTime.now().toIso8601String(),
         );
@@ -728,6 +772,7 @@ class ApiService {
         );
       }
     } catch (e) {
+      print('❌ API: Search videos error: $e');
       return ApiResponse<List<VideoModel>>(
         success: false,
         data: [],
@@ -773,13 +818,72 @@ class ApiService {
 
   Future<ApiResponse<OrderFeedData>> getUserOrders() async {
     try {
-      // Используем реальный endpoint /orders для получения заказов пользователя
-      final response = await _dio.get('/orders');
+      // ✅ ИСПОЛЬЗУЕМ /orders/feed (как веб-фронтенд!)
+      // Бэк автоматически фильтрует по текущему пользователю
+      final response = await _dio.get('/orders/feed');
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> ordersJson = data['data'] ?? [];
+        final List<dynamic> ordersJson = data['data']?['orders'] ?? [];
         final orders = ordersJson.map((json) => OrderModel.fromJson(json)).toList();
+        
+        final pagination = data['data']?['pagination'];
+        
+        print('📦 API: Loaded ${orders.length} user orders');
+        
+        return ApiResponse<OrderFeedData>(
+          success: true,
+          data: OrderFeedData(
+            orders: orders,
+            pagination: PaginationData(
+              page: pagination?['page'] ?? 1,
+              limit: pagination?['limit'] ?? 20,
+              total: pagination?['total'] ?? orders.length,
+              totalPages: pagination?['totalPages'] ?? 1,
+            ),
+          ),
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<OrderFeedData>(
+          success: false,
+          data: OrderFeedData(
+            orders: [],
+            pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
+          ),
+          message: 'Ошибка загрузки заказов пользователя',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      print('❌ API: Get user orders error: $e');
+      return ApiResponse<OrderFeedData>(
+        success: false,
+        data: OrderFeedData(
+          orders: [],
+          pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
+        ),
+        message: 'Ошибка загрузки заказов: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  Future<ApiResponse<OrderFeedData>> searchOrders(String query) async {
+    try {
+      // ✅ ИСПОЛЬЗУЕМ РЕАЛЬНЫЙ ENDPOINT /search (как веб-фронтенд!)
+      final response = await _dio.get('/search', queryParameters: {
+        'q': query,
+        'type': 'order',
+      });
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> ordersJson = data['data']?['orders'] ?? data['orders'] ?? [];
+        final orders = ordersJson.map((json) => OrderModel.fromJson(json)).toList();
+        
+        print('🔍 API: Found ${orders.length} orders for query "$query"');
         
         return ApiResponse<OrderFeedData>(
           success: true,
@@ -802,76 +906,19 @@ class ApiService {
             orders: [],
             pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
           ),
-          message: 'Ошибка загрузки заказов пользователя',
-          timestamp: DateTime.now().toIso8601String(),
-        );
-      }
-    } catch (e) {
-      // Fallback для демо
-      return ApiResponse<OrderFeedData>(
-        success: true,
-        data: OrderFeedData(
-          orders: [],
-          pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
-        ),
-        message: null,
-        timestamp: DateTime.now().toIso8601String(),
-      );
-    }
-  }
-
-  Future<ApiResponse<OrderFeedData>> searchOrders(String query) async {
-    try {
-      // ИСПРАВЛЕНО: /search endpoint НЕ СУЩЕСТВУЕТ на реальном сервере
-      // Используем фильтрацию на клиенте из /orders/feed
-      final response = await _dio.get('/orders/feed');
-      
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final List<dynamic> ordersJson = data['data']['orders'] ?? [];
-        final allOrders = ordersJson.map((json) => OrderModel.fromJson(json)).toList();
-        
-        // Фильтруем заказы по запросу на клиенте
-        final filteredOrders = allOrders.where((order) =>
-          order.title.toLowerCase().contains(query.toLowerCase()) ||
-          order.description.toLowerCase().contains(query.toLowerCase()) ||
-          order.category.toLowerCase().contains(query.toLowerCase())
-        ).toList();
-        
-        return ApiResponse<OrderFeedData>(
-          success: true,
-          data: OrderFeedData(
-            orders: filteredOrders,
-            pagination: PaginationData(
-              page: 1,
-              limit: filteredOrders.length,
-              total: filteredOrders.length,
-              totalPages: 1,
-            ),
-          ),
-          message: null,
-          timestamp: DateTime.now().toIso8601String(),
-        );
-      } else {
-        return ApiResponse<OrderFeedData>(
-          success: false,
-          data: OrderFeedData(
-            orders: [],
-            pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
-          ),
           message: 'Ошибка поиска заказов',
           timestamp: DateTime.now().toIso8601String(),
         );
       }
     } catch (e) {
-      // Fallback для демо
+      print('❌ API: Search orders error: $e');
       return ApiResponse<OrderFeedData>(
-        success: true,
+        success: false,
         data: OrderFeedData(
           orders: [],
           pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
         ),
-        message: null,
+        message: 'Ошибка поиска заказов: ${e.toString()}',
         timestamp: DateTime.now().toIso8601String(),
       );
     }
