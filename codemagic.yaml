@@ -70,10 +70,11 @@ workflows:
           echo "🔧 Setting up iOS Code Signing"
           echo "========================================="
           
-          # Fetch signing files uploaded to Codemagic (certificates and profiles)
-          # This uses files you've uploaded in Codemagic UI under Code signing identities
+          # Fetch or create signing files via App Store Connect integration
+          # --create will automatically create certificates and profiles if they don't exist
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE
+            --type IOS_APP_STORE \
+            --create
           
           # Add certificates to keychain
           keychain add-certificates
@@ -119,9 +120,12 @@ workflows:
       - name: Build ipa for distribution
         script: |
           cd mebelplace_demo
+          
+          # Export options to ensure correct profile is used
           flutter build ipa --release \
             --build-name=1.0.0 \
-            --build-number=1
+            --build-number=1 \
+            --export-options-plist=$CM_BUILD_DIR/mebelplace_demo/export_options.plist
             
     artifacts:
       - mebelplace_demo/build/ios/ipa/*.ipa

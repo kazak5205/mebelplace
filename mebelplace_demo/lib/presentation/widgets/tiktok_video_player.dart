@@ -230,7 +230,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
           // Avatar
           GestureDetector(
             onTap: () {
-              // Navigate to user profile
+              Navigator.pushNamed(context, '/master-profile', arguments: video.authorId);
             },
             child: Container(
               width: 48.w,

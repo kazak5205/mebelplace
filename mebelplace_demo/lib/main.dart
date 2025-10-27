@@ -7,10 +7,23 @@ import 'data/models/user_model.dart';
 import 'presentation/pages/home_screen.dart';
 import 'presentation/pages/auth/login_screen.dart';
 import 'presentation/pages/auth/register_screen.dart';
+import 'presentation/pages/auth/sms_verification_page.dart';
+import 'presentation/pages/auth/forgot_password_page.dart';
 import 'presentation/pages/orders/orders_screen.dart';
 import 'presentation/pages/orders/create_order_screen.dart';
+import 'presentation/pages/orders/order_detail_page.dart';
+import 'presentation/pages/orders/order_responses_page.dart';
+import 'presentation/pages/orders/order_respond_page.dart';
+import 'presentation/pages/orders/user_orders_page.dart';
 import 'presentation/pages/messages/messages_screen.dart';
+import 'presentation/pages/messages/chat_page.dart';
 import 'presentation/pages/profile/profile_screen.dart';
+import 'presentation/pages/profile/master_channel_page.dart';
+import 'presentation/pages/search/search_results_page.dart';
+import 'presentation/pages/video/create_video_page.dart';
+import 'presentation/pages/support/support_page.dart';
+import 'presentation/pages/legal/terms_of_service_page.dart';
+import 'presentation/pages/legal/privacy_policy_page.dart';
 import 'presentation/providers/app_providers.dart';
 
 void main() {
@@ -35,6 +48,62 @@ class MebelPlaceApp extends ConsumerWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.system,
           home: const AppNavigator(),
+          routes: {
+            '/home': (context) => const AppNavigator(),
+            '/login': (context) => const AuthScreen(),
+            '/create-order': (context) => const CreateOrderScreen(),
+            '/user-orders': (context) => const UserOrdersPage(),
+            '/support': (context) => const SupportPage(),
+            '/terms': (context) => const TermsOfServicePage(),
+            '/privacy': (context) => const PrivacyPolicyPage(),
+            '/create-video': (context) => const CreateVideoPage(),
+          },
+          onGenerateRoute: (settings) {
+            // Динамические маршруты с параметрами
+            if (settings.name == '/order-detail') {
+              final orderId = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => OrderDetailPage(orderId: orderId),
+              );
+            }
+            if (settings.name == '/order-responses') {
+              final orderId = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => OrderResponsesPage(orderId: orderId),
+              );
+            }
+            if (settings.name == '/order-respond') {
+              final orderId = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => OrderRespondPage(orderId: orderId),
+              );
+            }
+            if (settings.name == '/chat') {
+              final chatId = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => ChatPage(chatId: chatId),
+              );
+            }
+            if (settings.name == '/search') {
+              final query = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => SearchResultsPage(query: query),
+              );
+            }
+            if (settings.name == '/master-profile') {
+              final masterId = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => MasterChannelPage(masterId: masterId),
+              );
+            }
+            if (settings.name == '/sms-verification') {
+              final phone = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => SmsVerificationPage(phoneNumber: phone),
+              );
+            }
+            return null;
+          },
         );
       },
     );
@@ -48,8 +117,12 @@ class AppNavigator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
-    // Всегда показываем главный экран с видео лентой
-    // Авторизация опциональна для дополнительных функций
+    // Показываем экран авторизации если пользователь не залогинен
+    if (authState.user == null) {
+      return const AuthScreen();
+    }
+
+    // После успешной авторизации показываем главный экран
     return MainNavigation(user: authState.user);
   }
 }

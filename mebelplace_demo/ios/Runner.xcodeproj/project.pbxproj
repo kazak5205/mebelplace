@@ -374,8 +374,7 @@
 			SWIFT_VERSION = 5.0;
 			VERSIONING_SYSTEM = "apple-generic";
 			DEVELOPMENT_TEAM = MZ64UQ254W;
-			CODE_SIGN_STYLE = Manual;
-			CODE_SIGN_IDENTITY = "Apple Distribution";
+			CODE_SIGN_STYLE = Automatic;
 		};
 		name = Profile;
 		};
@@ -580,8 +579,7 @@
 			SWIFT_VERSION = 5.0;
 			VERSIONING_SYSTEM = "apple-generic";
 			DEVELOPMENT_TEAM = MZ64UQ254W;
-			CODE_SIGN_STYLE = Manual;
-			CODE_SIGN_IDENTITY = "Apple Distribution";
+			CODE_SIGN_STYLE = Automatic;
 		};
 		name = Release;
 		};
