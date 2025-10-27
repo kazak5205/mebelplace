@@ -78,7 +78,7 @@ workflows:
           keychain initialize
           
           # Get the keychain path from the default keychain
-          KEYCHAIN_PATH=$(security default-keychain | tr -d '"')
+          KEYCHAIN_PATH=$(security default-keychain | tr -d '" ' | xargs)
           echo "Keychain path: $KEYCHAIN_PATH"
           
           # Import distribution certificate
