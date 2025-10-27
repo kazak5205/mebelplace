@@ -67,18 +67,60 @@ workflows:
       - name: Set up code signing
         script: |
           echo "========================================="
-          echo "🔧 Fetching signing files via App Store Connect API"
+          echo "🔧 Creating certificate from existing key"
           echo "========================================="
           
           # Initialize keychain
           keychain initialize
           
-          # Fetch signing files - this will create certificate and profile automatically
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
+          # Get keychain path
+          KEYCHAIN_PATH=$(security default-keychain | tr -d '" ' | xargs)
+          echo "Keychain: $KEYCHAIN_PATH"
           
-          echo "✅ Signing files fetched and installed"
+          # First, create NEW certificate using our CSR
+          echo "Creating new Distribution certificate..."
+          app-store-connect certificates create \
+            --certificate-type IOS_DISTRIBUTION \
+            --csr-file $CM_BUILD_DIR/mebelplace_demo/ios/mycsr.csr \
+            --save
+          
+          # This will download the new .cer file
+          # Now convert .cer + .key to .p12 ON MACOS
+          echo "Converting to .p12..."
+          cd $CM_BUILD_DIR/mebelplace_demo/ios
+          
+          # Convert .cer to .pem
+          openssl x509 -in *.cer -inform DER -out cert.pem -outform PEM
+          
+          # Create .p12 from .pem + .key
+          openssl pkcs12 -export \
+            -out distribution.p12 \
+            -inkey mykey.key \
+            -in cert.pem \
+            -passout pass:mebelplace123
+          
+          # Import to keychain
+          echo "Importing certificate..."
+          security import distribution.p12 \
+            -P mebelplace123 \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security \
+            -k "$KEYCHAIN_PATH"
+          
+          # Unlock and allow access
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN_PATH"
+          
+          # Verify
+          echo "Verifying certificate..."
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          
+          # Create provisioning profile
+          echo "Creating provisioning profile..."
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE
+          
+          echo "✅ Signing configured!"
             
           
       - name: Set up Flutter
