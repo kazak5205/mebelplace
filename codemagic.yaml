@@ -73,21 +73,40 @@ workflows:
           echo "🔧 Starting code signing setup"
           echo "========================================="
           
-          # Use app-store-connect to fetch signing files automatically
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
+          # Initialize keychain and capture the path
+          echo "📦 Initializing keychain..."
+          keychain initialize
+          
+          # Get the keychain path from the default keychain
+          KEYCHAIN_PATH=$(security default-keychain | tr -d '"')
+          echo "Keychain path: $KEYCHAIN_PATH"
+          
+          # Import distribution certificate
+          echo "📜 Importing distribution certificate..."
+          security import $CM_BUILD_DIR/mebelplace_demo/ios/distribution.p12 \
+            -P mebelplace123 \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security \
+            -k "$KEYCHAIN_PATH"
+          
+          # Unlock keychain
+          echo "🔓 Unlocking keychain..."
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          
+          # Allow codesign to access the certificate
+          echo "🔑 Allowing codesign access..."
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN_PATH"
           
           # Verify certificate was imported
           echo "========================================="
           echo "✅ Checking imported certificates..."
           echo "========================================="
-          keychain list-certificates
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
           
-          # Set up App Store Connect API key
-          echo "📱 Setting up App Store Connect API key..."
-          mkdir -p ~/private_keys
-          cp $CM_BUILD_DIR/mebelplace_demo/ios/AuthKey_7R2G5C786A.p8 ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+          # Install provisioning profile
+          echo "📋 Installing provisioning profile..."
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $CM_BUILD_DIR/mebelplace_demo/ios/MebelPlace_Distribution.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           
           echo "========================================="
           echo "✅ Code signing configured successfully!"
