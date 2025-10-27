@@ -66,11 +66,20 @@ workflows:
     scripts:
       - name: Set up code signing
         script: |
+          set -x  # Enable debug output
+          
+          echo "========================================="
+          echo "🔧 Starting code signing setup"
+          echo "========================================="
+          
           # Initialize keychain
+          echo "📦 Initializing keychain..."
           keychain initialize
           
+          echo "Keychain path: $CM_KEYCHAIN_PATH"
+          
           # Import distribution certificate
-          echo "Importing distribution certificate..."
+          echo "📜 Importing distribution certificate..."
           security import $CM_BUILD_DIR/mebelplace_demo/ios/distribution.p12 \
             -P mebelplace123 \
             -T /usr/bin/codesign \
@@ -78,30 +87,40 @@ workflows:
             -k $CM_KEYCHAIN_PATH
           
           # Set keychain as default and unlock it
+          echo "🔓 Setting up keychain..."
           security list-keychains -d user -s $CM_KEYCHAIN_PATH
           security default-keychain -s $CM_KEYCHAIN_PATH
           security unlock-keychain -p "" $CM_KEYCHAIN_PATH
           
           # Allow codesign to access the certificate
+          echo "🔑 Allowing codesign access..."
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" $CM_KEYCHAIN_PATH
           
           # Verify certificate was imported
-          echo "Checking imported certificates..."
+          echo "========================================="
+          echo "✅ Checking imported certificates..."
+          echo "========================================="
           security find-identity -v -p codesigning $CM_KEYCHAIN_PATH
           
           # Set up App Store Connect API key
+          echo "📱 Setting up App Store Connect API key..."
           mkdir -p ~/private_keys
           cp $CM_BUILD_DIR/mebelplace_demo/ios/AuthKey_7R2G5C786A.p8 ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
           
           # Install provisioning profile
+          echo "📋 Installing provisioning profile..."
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $CM_BUILD_DIR/mebelplace_demo/ios/MebelPlace_Distribution.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           
           # List installed profiles
-          echo "Installed provisioning profiles:"
+          echo "========================================="
+          echo "📋 Installed provisioning profiles:"
+          echo "========================================="
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
           
-          echo "✅ Code signing configured"
+          echo "========================================="
+          echo "✅ Code signing configured successfully!"
+          echo "========================================="
             
           
       - name: Set up Flutter
