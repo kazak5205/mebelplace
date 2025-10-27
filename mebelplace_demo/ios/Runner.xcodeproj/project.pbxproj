@@ -374,9 +374,8 @@
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				DEVELOPMENT_TEAM = MZ64UQ254W;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
-				PROVISIONING_PROFILE_SPECIFIER = "MebelPlace App Store Profile";
 			};
 			name = Profile;
 		};
@@ -558,9 +557,8 @@
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				DEVELOPMENT_TEAM = MZ64UQ254W;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
-				PROVISIONING_PROFILE_SPECIFIER = "MebelPlace App Store Profile";
 			};
 			name = Debug;
 		};
@@ -583,9 +581,8 @@
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				DEVELOPMENT_TEAM = MZ64UQ254W;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
-				PROVISIONING_PROFILE_SPECIFIER = "MebelPlace App Store Profile";
 			};
 			name = Release;
 		};

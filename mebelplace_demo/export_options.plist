@@ -24,8 +24,6 @@
     <string>Apple Distribution</string>
     <key>provisioningProfiles</key>
     <dict>
-        <key>com.mebelplace.mebelplaceDemo</key>
-        <string>MebelPlace App Store Profile</string>
     </dict>
 </dict>
 </plist>
