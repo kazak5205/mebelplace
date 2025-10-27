@@ -79,18 +79,20 @@ workflows:
           
           # First, create NEW certificate using our CSR
           echo "Creating new Distribution certificate..."
-          app-store-connect certificates create \
-            --certificate-type IOS_DISTRIBUTION \
-            --csr-file $CM_BUILD_DIR/mebelplace_demo/ios/mycsr.csr \
-            --save
-          
-          # This will download the new .cer file
-          # Now convert .cer + .key to .p12 ON MACOS
-          echo "Converting to .p12..."
           cd $CM_BUILD_DIR/mebelplace_demo/ios
           
+          app-store-connect certificates create \
+            IOS_DISTRIBUTION \
+            --csr mycsr.csr \
+            --save \
+            --certificate-output-dir .
+          
+          # This will download the new .cer file as ios_distribution.cer
+          # Now convert .cer + .key to .p12 ON MACOS
+          echo "Converting to .p12..."
+          
           # Convert .cer to .pem
-          openssl x509 -in *.cer -inform DER -out cert.pem -outform PEM
+          openssl x509 -in ios_distribution.cer -inform DER -out cert.pem -outform PEM
           
           # Create .p12 from .pem + .key
           openssl pkcs12 -export \
