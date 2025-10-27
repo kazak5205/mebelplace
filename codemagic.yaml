@@ -67,39 +67,24 @@ workflows:
       - name: Set up code signing
         script: |
           echo "========================================="
-          echo "🔧 Setting up iOS Code Signing"
+          echo "🔧 Setting up iOS Code Signing with Codemagic"
           echo "========================================="
           
-          # Initialize keychain
-          keychain initialize
-          KEYCHAIN_PATH=$(security default-keychain | tr -d '" ' | xargs)
+          # Use Codemagic's built-in code signing setup
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
           
-          cd $CM_BUILD_DIR/mebelplace_demo/ios
+          # Add certificates to keychain
+          keychain add-certificates
           
-          # Import the p12 file with certificate and private key
-          echo "Importing certificate and private key from p12..."
-          security import distribution.p12 \
-            -k "$KEYCHAIN_PATH" \
-            -P temp123456 \
-            -A
-          
-          # Unlock keychain and allow codesign access
-          security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN_PATH"
-          
-          # Install provisioning profile with correct UUID
-          echo "Installing provisioning profile..."
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          
-          # Extract UUID from provisioning profile and copy with UUID as filename
-          UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i MebelPlace_AppStore.mobileprovision))
-          echo "Profile UUID: $UUID"
-          cp MebelPlace_AppStore.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID.mobileprovision"
+          # Configure Xcode project to use the profiles
+          xcode-project use-profiles
           
           # Verify
           echo "========================================="
           echo "Available signing identities:"
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning
           echo "========================================="
           echo "Installed provisioning profiles:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
@@ -134,128 +119,9 @@ workflows:
       - name: Build ipa for distribution
         script: |
           cd mebelplace_demo
-          
-          echo "========================================="
-          echo "🏗️ Building IPA"
-          echo "========================================="
-          
-          # Debug: Check available signing identities and profiles
-          echo "Available signing identities:"
-          security find-identity -v -p codesigning
-          echo ""
-          echo "Installed provisioning profiles:"
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
-          echo ""
-          
-          # First, try standard flutter build ipa WITHOUT export options
-          # Let Flutter/Xcode handle export automatically
           flutter build ipa --release \
             --build-name=1.0.0 \
-            --build-number=1 \
-            --verbose
-          
-          BUILD_EXIT_CODE=$?
-          
-          echo "========================================="
-          echo "Build exit code: $BUILD_EXIT_CODE"
-          echo "========================================="
-          
-          # Check if IPA was created
-          IPA_FILE=$(find build/ios/ipa -name "*.ipa" 2>/dev/null | head -n 1)
-          
-          if [ -n "$IPA_FILE" ]; then
-            echo "✅ IPA created successfully: $IPA_FILE"
-            ls -lh "$IPA_FILE"
-          else
-            echo "⚠️ IPA not found in build/ios/ipa, trying manual export..."
-            
-            # Find the xcarchive
-            XCARCHIVE=$(find build/ios -name "*.xcarchive" -type d | head -n 1)
-            
-            if [ -z "$XCARCHIVE" ]; then
-              echo "❌ No xcarchive found!"
-              exit 1
-            fi
-            
-            echo "Found archive: $XCARCHIVE"
-            
-            # Manual export using xcodebuild with authentication
-            mkdir -p build/ios/ipa
-            
-            # Check for App Store Connect API key in multiple locations
-            API_KEY_PATH=""
-            
-            # Check Codemagic private keys directory
-            if [ -f "$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" ]; then
-              API_KEY_PATH="$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
-            elif [ -f "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" ]; then
-              API_KEY_PATH="$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
-            elif [ -f "$FCI_KEYSTORE_PATH" ]; then
-              API_KEY_PATH="$FCI_KEYSTORE_PATH"
-            fi
-            
-            # Use App Store Connect API authentication if available
-            if [ -n "$API_KEY_PATH" ] && [ -f "$API_KEY_PATH" ] && [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && [ -n "$APP_STORE_CONNECT_ISSUER_ID" ]; then
-              echo "Using App Store Connect API authentication"
-              echo "API Key Path: $API_KEY_PATH"
-              
-              xcodebuild -exportArchive \
-                -archivePath "$XCARCHIVE" \
-                -exportOptionsPlist $CM_BUILD_DIR/mebelplace_demo/export_options.plist \
-                -exportPath build/ios/ipa \
-                -allowProvisioningUpdates \
-                -authenticationKeyPath "$API_KEY_PATH" \
-                -authenticationKeyID $APP_STORE_CONNECT_KEY_IDENTIFIER \
-                -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID
-            else
-              echo "Using keychain authentication (no API key found)"
-              
-              xcodebuild -exportArchive \
-                -archivePath "$XCARCHIVE" \
-                -exportOptionsPlist $CM_BUILD_DIR/mebelplace_demo/export_options.plist \
-                -exportPath build/ios/ipa \
-                -allowProvisioningUpdates
-            fi
-            
-            if [ $? -eq 0 ]; then
-              echo "✅ Manual IPA export successful"
-              ls -la build/ios/ipa/
-            else
-              echo "❌ Manual export failed!"
-              exit 1
-            fi
-          fi
-          
-          echo "========================================="
-          echo "Final build output:"
-          ls -la build/ios/ || true
-          ls -la build/ios/ipa/ || true
-          find build/ios/ipa -name "*.ipa" -type f || true
-          echo "========================================="
-            
-      - name: Find IPA file
-        script: |
-          echo "========================================="
-          echo "🔍 Searching for IPA file"
-          echo "========================================="
-          cd $CM_BUILD_DIR/mebelplace_demo
-          find . -name "*.ipa" -type f
-          echo "========================================="
-          
-      - name: Upload to App Store Connect
-        script: |
-          cd $CM_BUILD_DIR/mebelplace_demo
-          IPA_PATH=$(find . -name "*.ipa" -type f | head -n 1)
-          echo "Found IPA: $IPA_PATH"
-          
-          if [ -z "$IPA_PATH" ]; then
-            echo "❌ No IPA file found!"
-            exit 1
-          fi
-          
-          app-store-connect publish \
-            --path "$IPA_PATH" \
-            --testflight
+            --build-number=1
             
     artifacts:
       - mebelplace_demo/build/ios/ipa/*.ipa
