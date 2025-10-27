@@ -8,7 +8,6 @@ import 'presentation/pages/home_screen.dart';
 import 'presentation/pages/auth/login_screen.dart';
 import 'presentation/pages/auth/register_screen.dart';
 import 'presentation/pages/auth/sms_verification_page.dart';
-import 'presentation/pages/auth/forgot_password_page.dart';
 import 'presentation/pages/orders/orders_screen.dart';
 import 'presentation/pages/orders/create_order_screen.dart';
 import 'presentation/pages/orders/order_detail_page.dart';
@@ -117,12 +116,8 @@ class AppNavigator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
-    // Показываем экран авторизации если пользователь не залогинен
-    if (authState.user == null) {
-      return const AuthScreen();
-    }
-
-    // После успешной авторизации показываем главный экран
+    // Всегда показываем главный экран
+    // Авторизация опциональна - для создания заказов, сообщений, профиля
     return MainNavigation(user: authState.user);
   }
 }
