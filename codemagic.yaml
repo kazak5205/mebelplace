@@ -68,19 +68,27 @@ workflows:
         script: |
           keychain initialize
           
-      - name: Fetch signing files
+      - name: Set up code signing
         script: |
-          # Автоматически получаем сертификаты и profiles через App Store Connect API
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE
-            
-      - name: Add certificates to keychain
-        script: |
-          keychain add-certificates
+          # Import certificate to keychain
+          security import $CM_BUILD_DIR/mebelplace_demo/ios/distribution.p12 \
+            -P mebelplace123 \
+            -T /usr/bin/codesign \
+            -k ~/Library/Keychains/codemagic.keychain-db
           
-      - name: Set up code signing in Xcode
-        script: |
-          xcode-project use-profiles
+          # Allow codesign to access the certificate
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/codemagic.keychain-db
+          
+          # Set up App Store Connect API key
+          mkdir -p ~/private_keys
+          cp $CM_BUILD_DIR/mebelplace_demo/ios/AuthKey_7R2G5C786A.p8 ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+          
+          # Install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $CM_BUILD_DIR/mebelplace_demo/ios/commebelplacemebelplaceDemo.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          
+          echo "✅ Code signing configured"
+            
           
       - name: Set up Flutter
         script: |
