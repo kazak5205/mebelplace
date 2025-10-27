@@ -67,14 +67,18 @@ workflows:
       - name: Set up code signing
         script: |
           echo "========================================="
-          echo "🔧 Setting up App Store Connect API key"
+          echo "🔧 Fetching signing files via App Store Connect API"
           echo "========================================="
           
-          # Set up App Store Connect API key
-          mkdir -p ~/private_keys
-          cp $CM_BUILD_DIR/mebelplace_demo/ios/AuthKey_7R2G5C786A.p8 ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+          # Initialize keychain
+          keychain initialize
           
-          echo "✅ API key configured - Xcode will use automatic signing"
+          # Fetch signing files - this will create certificate and profile automatically
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          
+          echo "✅ Signing files fetched and installed"
             
           
       - name: Set up Flutter
