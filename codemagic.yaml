@@ -85,7 +85,7 @@ workflows:
           
           # Install provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $CM_BUILD_DIR/mebelplace_demo/ios/commebelplacemebelplaceDemo.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp $CM_BUILD_DIR/mebelplace_demo/ios/MebelPlace_Distribution.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           
           echo "✅ Code signing configured"
             
