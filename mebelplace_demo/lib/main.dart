@@ -14,6 +14,7 @@ import 'presentation/pages/profile/profile_screen.dart';
 import 'presentation/providers/app_providers.dart';
 
 void main() {
+  print('🚀 MebelPlace App Starting...');
   runApp(const ProviderScope(child: MebelPlaceApp()));
 }
 
