@@ -139,11 +139,19 @@ workflows:
           echo "🏗️ Building IPA"
           echo "========================================="
           
-          # First, try standard flutter build ipa
+          # Debug: Check available signing identities and profiles
+          echo "Available signing identities:"
+          security find-identity -v -p codesigning
+          echo ""
+          echo "Installed provisioning profiles:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo ""
+          
+          # First, try standard flutter build ipa WITHOUT export options
+          # Let Flutter/Xcode handle export automatically
           flutter build ipa --release \
             --build-name=1.0.0 \
             --build-number=1 \
-            --export-options-plist=$CM_BUILD_DIR/mebelplace_demo/export_options.plist \
             --verbose
           
           BUILD_EXIT_CODE=$?
@@ -174,20 +182,33 @@ workflows:
             # Manual export using xcodebuild with authentication
             mkdir -p build/ios/ipa
             
+            # Check for App Store Connect API key in multiple locations
+            API_KEY_PATH=""
+            
+            # Check Codemagic private keys directory
+            if [ -f "$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" ]; then
+              API_KEY_PATH="$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+            elif [ -f "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" ]; then
+              API_KEY_PATH="$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+            elif [ -f "$FCI_KEYSTORE_PATH" ]; then
+              API_KEY_PATH="$FCI_KEYSTORE_PATH"
+            fi
+            
             # Use App Store Connect API authentication if available
-            if [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && [ -n "$APP_STORE_CONNECT_ISSUER_ID" ]; then
+            if [ -n "$API_KEY_PATH" ] && [ -f "$API_KEY_PATH" ] && [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && [ -n "$APP_STORE_CONNECT_ISSUER_ID" ]; then
               echo "Using App Store Connect API authentication"
+              echo "API Key Path: $API_KEY_PATH"
               
               xcodebuild -exportArchive \
                 -archivePath "$XCARCHIVE" \
                 -exportOptionsPlist $CM_BUILD_DIR/mebelplace_demo/export_options.plist \
                 -exportPath build/ios/ipa \
                 -allowProvisioningUpdates \
-                -authenticationKeyPath ~/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8 \
+                -authenticationKeyPath "$API_KEY_PATH" \
                 -authenticationKeyID $APP_STORE_CONNECT_KEY_IDENTIFIER \
                 -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID
             else
-              echo "Using keychain authentication"
+              echo "Using keychain authentication (no API key found)"
               
               xcodebuild -exportArchive \
                 -archivePath "$XCARCHIVE" \

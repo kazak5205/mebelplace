@@ -17,7 +17,7 @@
     <key>thinning</key>
     <string>&lt;none&gt;</string>
     <key>destination</key>
-    <string>upload</string>
+    <string>export</string>
     <key>signingStyle</key>
     <string>manual</string>
     <key>provisioningProfiles</key>
