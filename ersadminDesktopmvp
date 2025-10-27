@@ -1,0 +1,51 @@
+warning: in the working copy of 'codemagic.yaml', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/codemagic.yaml b/codemagic.yaml[m
+[1mindex 825cd72..f7a5d36 100644[m
+[1m--- a/codemagic.yaml[m
+[1m+++ b/codemagic.yaml[m
+[36m@@ -67,11 +67,10 @@[m [mworkflows:[m
+       - name: Set up code signing[m
+         script: |[m
+           echo "========================================="[m
+[31m-          echo "🔧 Setting up iOS Code Signing"[m
+[32m+[m[32m          echo "🔧 Setting up iOS Code Signing with Codemagic"[m
+           echo "========================================="[m
+           [m
+[31m-          # Fetch or create signing files via App Store Connect integration[m
+[31m-          # --create will automatically create certificates and profiles if they don't exist[m
+[32m+[m[32m          # Use Codemagic's built-in code signing setup[m
+           app-store-connect fetch-signing-files "$BUNDLE_ID" \[m
+             --type IOS_APP_STORE \[m
+             --create[m
+[36m@@ -79,14 +78,14 @@[m [mworkflows:[m
+           # Add certificates to keychain[m
+           keychain add-certificates[m
+           [m
+[31m-          # Configure Xcode project to use the fetched profiles[m
+[32m+[m[32m          # Configure Xcode project to use the profiles[m
+           xcode-project use-profiles[m
+           [m
+[31m-          # Verify setup[m
+[32m+[m[32m          # Verify[m
+           echo "========================================="[m
+           echo "Available signing identities:"[m
+           security find-identity -v -p codesigning[m
+[31m-          echo ""[m
+[32m+[m[32m          echo "========================================="[m
+           echo "Installed provisioning profiles:"[m
+           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/[m
+           echo "========================================="[m
+[36m@@ -120,12 +119,9 @@[m [mworkflows:[m
+       - name: Build ipa for distribution[m
+         script: |[m
+           cd mebelplace_demo[m
+[31m-          [m
+[31m-          # Export options to ensure correct profile is used[m
+           flutter build ipa --release \[m
+             --build-name=1.0.0 \[m
+[31m-            --build-number=1 \[m
+[31m-            --export-options-plist=$CM_BUILD_DIR/mebelplace_demo/export_options.plist[m
+[32m+[m[32m            --build-number=1[m
+             [m
+     artifacts:[m
+       - mebelplace_demo/build/ios/ipa/*.ipa[m
