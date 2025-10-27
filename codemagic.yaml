@@ -67,34 +67,24 @@ workflows:
       - name: Set up code signing
         script: |
           echo "========================================="
-          echo "🔧 Creating certificate from existing key"
+          echo "🔧 Creating p12 on macOS from existing cert"
           echo "========================================="
           
           # Initialize keychain
           keychain initialize
-          
-          # Get keychain path
           KEYCHAIN_PATH=$(security default-keychain | tr -d '" ' | xargs)
-          echo "Keychain: $KEYCHAIN_PATH"
           
-          # First, create NEW certificate using our CSR
-          echo "Creating new Distribution certificate..."
           cd $CM_BUILD_DIR/mebelplace_demo/ios
           
-          app-store-connect certificates create \
-            IOS_DISTRIBUTION \
-            --csr mycsr.csr \
-            --save \
-            --certificate-output-dir .
-          
-          # This will download the new .cer file as ios_distribution.cer
-          # Now convert .cer + .key to .p12 ON MACOS
-          echo "Converting to .p12..."
+          # We have distribution (2).cer - copy it as distribution.cer
+          cp "distribution (2).cer" distribution.cer || true
           
           # Convert .cer to .pem
-          openssl x509 -in ios_distribution.cer -inform DER -out cert.pem -outform PEM
+          echo "Converting certificate..."
+          openssl x509 -in distribution.cer -inform DER -out cert.pem -outform PEM
           
-          # Create .p12 from .pem + .key
+          # Create .p12 from .pem + .key ON MACOS
+          echo "Creating p12..."
           openssl pkcs12 -export \
             -out distribution.p12 \
             -inkey mykey.key \
@@ -102,7 +92,7 @@ workflows:
             -passout pass:mebelplace123
           
           # Import to keychain
-          echo "Importing certificate..."
+          echo "Importing to keychain..."
           security import distribution.p12 \
             -P mebelplace123 \
             -T /usr/bin/codesign \
@@ -114,15 +104,15 @@ workflows:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN_PATH"
           
           # Verify
-          echo "Verifying certificate..."
+          echo "Verifying..."
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
           
-          # Create provisioning profile
-          echo "Creating provisioning profile..."
+          # Now fetch provisioning profile
+          echo "Fetching provisioning profile..."
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE
           
-          echo "✅ Signing configured!"
+          echo "✅ Done!"
             
           
       - name: Set up Flutter
