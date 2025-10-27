@@ -104,10 +104,10 @@ workflows:
           echo "Verifying..."
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
           
-          # Now fetch provisioning profile
-          echo "Fetching provisioning profile..."
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE
+          # Install provisioning profile manually
+          echo "Installing provisioning profile..."
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $CM_BUILD_DIR/mebelplace_demo/ios/MebelPlace_AppStore.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           
           echo "✅ Done!"
             
