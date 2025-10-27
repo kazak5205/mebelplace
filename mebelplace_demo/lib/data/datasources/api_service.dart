@@ -30,87 +30,6 @@ class ApiService {
     ));
   }
 
-  // Mock data for demo
-  static final List<VideoModel> _mockVideos = [
-    VideoModel(
-      id: '1',
-      title: 'Красивая мебель для дома',
-      description: 'Показываю как выбрать идеальную мебель',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      thumbnailUrl: 'https://picsum.photos/400/600?random=1',
-      duration: 120,
-      fileSize: 1024000,
-      authorId: '1',
-      username: 'master_furniture',
-      firstName: 'Иван',
-      lastName: 'Петров',
-      avatar: 'https://picsum.photos/100/100?random=1',
-      category: 'Мебель',
-      tags: ['мебель', 'дом', 'дизайн'],
-      views: 1500,
-      likes: 45,
-      likesCount: 45,
-      commentsCount: 12,
-      isLiked: false,
-      isFeatured: true,
-      priorityOrder: 1,
-      isPublic: true,
-      isActive: true,
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    VideoModel(
-      id: '2',
-      title: 'Ремонт кухни своими руками',
-      description: 'Пошаговое руководство по ремонту кухни',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      thumbnailUrl: 'https://picsum.photos/400/600?random=2',
-      duration: 180,
-      fileSize: 2048000,
-      authorId: '2',
-      username: 'kitchen_master',
-      firstName: 'Мария',
-      lastName: 'Сидорова',
-      avatar: 'https://picsum.photos/100/100?random=2',
-      category: 'Ремонт',
-      tags: ['кухня', 'ремонт', 'своими руками'],
-      views: 2300,
-      likes: 78,
-      likesCount: 78,
-      commentsCount: 25,
-      isLiked: true,
-      isFeatured: false,
-      priorityOrder: null,
-      isPublic: true,
-      isActive: true,
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-    ),
-    VideoModel(
-      id: '3',
-      title: 'Современный дизайн интерьера',
-      description: 'Тренды в дизайне интерьера 2024',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      thumbnailUrl: 'https://picsum.photos/400/600?random=3',
-      duration: 90,
-      fileSize: 1536000,
-      authorId: '3',
-      username: 'design_pro',
-      firstName: 'Алексей',
-      lastName: 'Козлов',
-      avatar: 'https://picsum.photos/100/100?random=3',
-      category: 'Дизайн',
-      tags: ['дизайн', 'интерьер', 'тренды'],
-      views: 3200,
-      likes: 156,
-      likesCount: 156,
-      commentsCount: 43,
-      isLiked: false,
-      isFeatured: true,
-      priorityOrder: 2,
-      isPublic: true,
-      isActive: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-  ];
 
   // Auth endpoints
   Future<ApiResponse<AuthData>> login(LoginRequest request) async {
@@ -300,12 +219,41 @@ class ApiService {
   // Video endpoints
   Future<ApiResponse<VideoFeedData>> getVideoFeed(Map<String, dynamic> params) async {
     try {
+      print('🔍 API: Fetching videos from ${_dio.options.baseUrl}/videos/feed');
+      print('📝 API: Params: $params');
+      
       final response = await _dio.get('/videos/feed', queryParameters: params);
+      
+      print('✅ API: Response status ${response.statusCode}');
+      print('📦 API: Response data: ${response.data}');
       
       if (response.statusCode == 200) {
         final data = response.data;
         final List<dynamic> videosJson = data['data']['videos'] ?? [];
-        final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
+        
+        // Fix relative URLs by adding base URL
+        final fixedVideosJson = videosJson.map((json) {
+          final videoUrl = json['videoUrl'] as String?;
+          final thumbnailUrl = json['thumbnailUrl'] as String?;
+          final avatar = json['avatar'] as String?;
+          
+          final Map<String, dynamic> fixedJson = Map<String, dynamic>.from(json);
+          fixedJson['videoUrl'] = videoUrl?.startsWith('http') == true 
+              ? videoUrl 
+              : 'https://mebelplace.com.kz$videoUrl';
+          fixedJson['thumbnailUrl'] = thumbnailUrl?.startsWith('http') == true 
+              ? thumbnailUrl 
+              : (thumbnailUrl != null ? 'https://mebelplace.com.kz$thumbnailUrl' : null);
+          fixedJson['avatar'] = avatar?.startsWith('http') == true 
+              ? avatar 
+              : (avatar != null ? 'https://mebelplace.com.kz$avatar' : null);
+          
+          return fixedJson;
+        }).toList();
+        
+        final videos = fixedVideosJson.map((json) => VideoModel.fromJson(json)).toList();
+        
+        print('🎥 API: Loaded ${videos.length} videos from server');
         
         return ApiResponse<VideoFeedData>(
           success: true,
@@ -322,6 +270,7 @@ class ApiService {
           timestamp: DateTime.now().toIso8601String(),
         );
       } else {
+        print('❌ API: Bad status code ${response.statusCode}');
         return ApiResponse<VideoFeedData>(
           success: false,
           data: VideoFeedData(
@@ -333,69 +282,114 @@ class ApiService {
         );
       }
     } catch (e) {
-      // Fallback для демо
-    return ApiResponse<VideoFeedData>(
-      success: true,
-      data: VideoFeedData(
-        videos: _mockVideos,
-        pagination: PaginationData(
-          page: 1,
-          limit: 20,
-          total: _mockVideos.length,
-          totalPages: 1,
+      print('❌ API: Error fetching videos: $e');
+      
+      return ApiResponse<VideoFeedData>(
+        success: false,
+        data: VideoFeedData(
+          videos: [],
+          pagination: PaginationData(page: 1, limit: 20, total: 0, totalPages: 0),
         ),
-      ),
-      message: null,
-      timestamp: DateTime.now().toIso8601String(),
-    );
+        message: 'Ошибка загрузки видео: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
     }
   }
 
   Future<ApiResponse<VideoModel>> getVideo(String videoId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    final video = _mockVideos.firstWhere((v) => v.id == videoId);
-    
-    return ApiResponse<VideoModel>(
-      success: true,
-      data: video,
-      message: null,
-      timestamp: DateTime.now().toIso8601String(),
-    );
+    try {
+      final response = await _dio.get('/videos/$videoId');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final video = VideoModel.fromJson(data['data']);
+        
+        return ApiResponse<VideoModel>(
+          success: true,
+          data: video,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<VideoModel>(
+          success: false,
+          message: 'Видео не найдено',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      return ApiResponse<VideoModel>(
+        success: false,
+        message: 'Ошибка загрузки видео: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
   }
 
   Future<ApiResponse<LikeData>> likeVideo(String videoId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    
-    final video = _mockVideos.firstWhere((v) => v.id == videoId);
-    
-    return ApiResponse<LikeData>(
-      success: true,
-      data: LikeData(
-        videoId: videoId,
-        likes: video.likesCount + 1,
-        isLiked: true,
-      ),
-      message: null,
-      timestamp: DateTime.now().toIso8601String(),
-    );
+    try {
+      final response = await _dio.post('/videos/$videoId/like');
+      
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        
+        return ApiResponse<LikeData>(
+          success: true,
+          data: LikeData(
+            videoId: videoId,
+            likes: data['likes'] ?? 0,
+            isLiked: true,
+          ),
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<LikeData>(
+          success: false,
+          message: 'Ошибка лайка',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      return ApiResponse<LikeData>(
+        success: false,
+        message: 'Ошибка лайка: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
   }
 
   Future<ApiResponse<LikeData>> unlikeVideo(String videoId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    
-    final video = _mockVideos.firstWhere((v) => v.id == videoId);
-    
-    return ApiResponse<LikeData>(
-      success: true,
-      data: LikeData(
-        videoId: videoId,
-        likes: video.likesCount - 1,
-        isLiked: false,
-      ),
-      message: null,
-      timestamp: DateTime.now().toIso8601String(),
-    );
+    try {
+      final response = await _dio.delete('/videos/$videoId/like');
+      
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        
+        return ApiResponse<LikeData>(
+          success: true,
+          data: LikeData(
+            videoId: videoId,
+            likes: data['likes'] ?? 0,
+            isLiked: false,
+          ),
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<LikeData>(
+          success: false,
+          message: 'Ошибка убирания лайка',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      return ApiResponse<LikeData>(
+        success: false,
+        message: 'Ошибка убирания лайка: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
   }
 
   Future<ApiResponse<EmptyResponse>> recordView(String videoId, ViewData data) async {
@@ -734,17 +728,10 @@ class ApiService {
         );
       }
     } catch (e) {
-      // Fallback для демо
-      final filteredVideos = _mockVideos.where((video) =>
-        video.title.toLowerCase().contains(query.toLowerCase()) ||
-        (video.description?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-        video.tags.any((tag) => tag.toLowerCase().contains(query.toLowerCase()))
-      ).toList();
-      
       return ApiResponse<List<VideoModel>>(
-        success: true,
-        data: filteredVideos,
-        message: null,
+        success: false,
+        data: [],
+        message: 'Ошибка поиска видео: ${e.toString()}',
         timestamp: DateTime.now().toIso8601String(),
       );
     }
@@ -775,13 +762,10 @@ class ApiService {
         );
       }
     } catch (e) {
-      // Fallback для демо
-      final masterVideos = _mockVideos.where((video) => video.authorId == masterId).toList();
-      
       return ApiResponse<List<VideoModel>>(
-        success: true,
-        data: masterVideos,
-        message: null,
+        success: false,
+        data: [],
+        message: 'Ошибка загрузки видео мастера: ${e.toString()}',
         timestamp: DateTime.now().toIso8601String(),
       );
     }

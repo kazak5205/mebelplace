@@ -9,7 +9,7 @@ class VideoModel {
   final String? description;
   final String videoUrl;
   final String? thumbnailUrl;
-  final int duration;
+  final int? duration;
   final int fileSize;
   final String authorId;
   final String? username;
@@ -36,7 +36,7 @@ class VideoModel {
     this.description,
     required this.videoUrl,
     this.thumbnailUrl,
-    required this.duration,
+    this.duration,
     required this.fileSize,
     required this.authorId,
     this.username,
@@ -125,8 +125,9 @@ class VideoModel {
   }
 
   String get formattedDuration {
-    final minutes = duration ~/ 60;
-    final seconds = duration % 60;
+    if (duration == null) return '00:00';
+    final minutes = duration! ~/ 60;
+    final seconds = duration! % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 

@@ -229,19 +229,20 @@ router.get('/feed', async (req, res) => {
     }
 
     // Map snake_case to camelCase for frontend
+    const baseUrl = process.env.BASE_URL || 'https://mebelplace.com.kz';
     const mappedVideos = pageVideos.map(video => ({
       id: video.id,
       title: video.title,
       description: video.description,
-      videoUrl: video.video_url,
-      thumbnailUrl: video.thumbnail_url,
+      videoUrl: video.video_url?.startsWith('http') ? video.video_url : `${baseUrl}${video.video_url}`,
+      thumbnailUrl: video.thumbnail_url?.startsWith('http') ? video.thumbnail_url : (video.thumbnail_url ? `${baseUrl}${video.thumbnail_url}` : null),
       duration: video.duration,
       fileSize: video.file_size,
       authorId: video.author_id,
       username: video.username,
       firstName: video.first_name,
       lastName: video.last_name,
-      avatar: video.avatar,
+      avatar: video.avatar?.startsWith('http') ? video.avatar : (video.avatar ? `${baseUrl}${video.avatar}` : null),
       category: video.category,
       tags: video.tags,
       views: video.views,

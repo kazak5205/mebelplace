@@ -23,7 +23,7 @@
     <key>provisioningProfiles</key>
     <dict>
         <key>com.mebelplace.mebelplaceDemo</key>
-        <string>MebelPlace Distribution</string>
+        <string>MebelPlace AppStore</string>
     </dict>
 </dict>
 </plist>
