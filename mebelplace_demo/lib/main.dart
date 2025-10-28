@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'data/models/user_model.dart';
 import 'presentation/pages/home_screen.dart';
+import 'presentation/pages/auth/login_page.dart';
 import 'presentation/pages/auth/registration_type_selection_page.dart';
 import 'presentation/pages/auth/registration_flow_page.dart';
 import 'presentation/pages/auth/sms_verification_page.dart';
@@ -50,6 +51,7 @@ class MebelPlaceApp extends ConsumerWidget {
           home: const AppNavigator(),
           routes: {
             '/home': (context) => const AppNavigator(),
+            '/login': (context) => const LoginPage(),
             '/registration-type': (context) => const RegistrationTypeSelectionPage(),
             '/create-order': (context) => const CreateOrderPage(),
             '/user-orders': (context) => const UserOrdersPage(),

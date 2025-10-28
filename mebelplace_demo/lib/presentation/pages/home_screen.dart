@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/image_helper.dart';
 import '../../data/models/video_model.dart';
+import '../../data/models/comment_model.dart';
 import '../providers/video_provider.dart';
 import '../providers/app_providers.dart' hide videoProvider;
 import '../widgets/tiktok_video_player.dart';
@@ -297,9 +299,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               ),
               padding: EdgeInsets.all(3.w),
               child: ClipOval(
-                child: video.avatar != null
+                child: ImageHelper.hasValidImagePath(video.avatar)
                     ? CachedNetworkImage(
-                        imageUrl: video.avatar!,
+                        imageUrl: ImageHelper.getFullImageUrl(video.avatar),
                         fit: BoxFit.cover,
                       )
                     : Container(
@@ -481,10 +483,12 @@ class CommentsBottomSheet extends ConsumerWidget {
                                     CircleAvatar(
                                       radius: 16.r,
                                       backgroundColor: AppColors.primary,
-                                      backgroundImage: comment.avatar != null
-                                          ? NetworkImage(comment.avatar!)
+                                      backgroundImage: ImageHelper.hasValidImagePath(comment.avatar)
+                                          ? CachedNetworkImageProvider(
+                                              ImageHelper.getFullImageUrl(comment.avatar),
+                                            )
                                           : null,
-                                      child: comment.avatar == null
+                                      child: !ImageHelper.hasValidImagePath(comment.avatar)
                                           ? Icon(
                                               Icons.person,
                                               size: 16.sp,

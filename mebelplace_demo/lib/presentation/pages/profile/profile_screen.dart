@@ -95,7 +95,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 height: 56.h,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/registration-type');
+                    Navigator.pushNamed(context, '/login');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
