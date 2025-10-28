@@ -505,18 +505,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         } else {
           final order = items[index] as OrderModel;
           return Container(
-          decoration: BoxDecoration(
-            color: AppColors.darkSurface,
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-          child: Center(
-            child: Icon(
-              Icons.play_circle_outline_rounded,
-              color: Colors.white.withOpacity(0.7),
-              size: 40.sp,
+            decoration: BoxDecoration(
+              color: AppColors.darkSurface,
+              borderRadius: BorderRadius.circular(4.r),
             ),
-          ),
-        );
+            child: Center(
+              child: Icon(
+                Icons.play_circle_outline_rounded,
+                color: Colors.white.withOpacity(0.7),
+                size: 40.sp,
+              ),
+            ),
+          );
+        }
       },
     );
   }
