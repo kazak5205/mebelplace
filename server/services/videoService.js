@@ -86,8 +86,8 @@ class VideoService {
       const result = await client.query(`
         INSERT INTO videos (
           title, description, video_url, thumbnail_url, duration, file_size,
-          author_id, category, tags, views, likes, is_public, is_active
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          author_id, category, tags, views, likes, is_public, is_active, furniture_price
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *
       `, [
         videoData.title?.trim(),
@@ -102,7 +102,8 @@ class VideoService {
         0, // views
         0, // likes
         videoData.isPublic !== false, // default true
-        true  // is_active
+        true,  // is_active
+        videoData.furniturePrice || null // furniture_price
       ]);
 
       await client.query('COMMIT');

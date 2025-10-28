@@ -63,6 +63,8 @@ export interface Video {
   views?: number;
   isLiked?: boolean;
   tags: string[];
+  furniturePrice?: number;
+  furniture_price?: number;
   createdAt: string;
   updatedAt?: string;
   master?: User;

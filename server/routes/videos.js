@@ -51,7 +51,7 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
       });
     }
 
-    const { title, description, category, tags } = req.body;
+    const { title, description, category, tags, furniturePrice } = req.body;
     const videoData = {
       title,
       description,
@@ -61,7 +61,8 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
       fileSize: req.file.size,
       authorId: req.user.id,
       category: category || 'general',
-      tags: tags ? tags.split(',').map(tag => tag.trim()) : []
+      tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      furniturePrice: furniturePrice ? parseFloat(furniturePrice) : null
     };
 
     console.log('[VIDEO UPLOAD] Creating video with data:', videoData);

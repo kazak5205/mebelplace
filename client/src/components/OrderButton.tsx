@@ -23,6 +23,17 @@ const OrderButton: React.FC<OrderButtonProps> = ({ video, className = '' }) => {
     return null
   }
 
+  // Получаем цену из видео
+  const furniturePrice = (video as any).furniture_price || (video as any).furniturePrice
+  const formattedPrice = furniturePrice 
+    ? new Intl.NumberFormat('ru-KZ', { 
+        style: 'currency', 
+        currency: 'KZT',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(furniturePrice)
+    : null
+
   const handleOrder = async () => {
     try {
       setLoading(true)
@@ -89,7 +100,12 @@ const OrderButton: React.FC<OrderButtonProps> = ({ video, className = '' }) => {
         ) : (
           <>
             <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
-            <span>ЗАКАЗАТЬ ЭТУ МЕБЕЛЬ</span>
+            <div className="flex flex-col items-center">
+              <span>ЗАКАЗАТЬ ЭТУ МЕБЕЛЬ</span>
+              {formattedPrice && (
+                <span className="text-sm font-semibold opacity-90 mt-0.5">{formattedPrice}</span>
+              )}
+            </div>
           </>
         )}
       </motion.button>
