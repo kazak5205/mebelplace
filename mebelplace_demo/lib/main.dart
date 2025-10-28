@@ -258,6 +258,53 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     final isLoggedIn = widget.user != null;
     
+    // ✅ КАК В ВЕБ-ВЕРСИИ: Неавторизованные видят только Главная + Войти
+    if (!isLoggedIn) {
+      return Scaffold(
+        body: const HomeScreen(),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: AppColors.dark,
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
+          ),
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              if (index == 0) {
+                // Главная - уже на ней
+              } else if (index == 1) {
+                // Войти
+                Navigator.pushNamed(context, '/login');
+              }
+            },
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: Colors.white.withValues(alpha: 0.5),
+            selectedFontSize: 12.sp,
+            unselectedFontSize: 12.sp,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: 'Главная',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Войти',
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // ✅ АВТОРИЗОВАННЫЕ - полная навигация
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -276,31 +323,29 @@ class _MainNavigationState extends State<MainNavigation> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
-            // Если пользователь не авторизован и пытается зайти в профиль/заказы/сообщения
-            if (!isLoggedIn && (index == 1 || index == 2 || index == 3 || index == 4)) {
-              _showLoginDialog();
-              return;
-            }
             
             // Для мастеров и клиентов разные экраны
             if (isLoggedIn) {
               if (index == 1) {
                 // Заявки - разные экраны для мастеров и клиентов
                 if (widget.user?.role == 'master') {
-                  // Мастер видит все заявки
-                  // TODO: Navigate to master orders screen
+                  // Мастер видит все заявки (OrdersScreen)
+                  // Already handled by _getPage()
                 } else {
                   // Клиент видит свои заявки
-                  // TODO: Navigate to user orders screen
+                  Navigator.pushNamed(context, '/user-orders');
+                  return; // Не переключаем таб
                 }
               } else if (index == 2) {
                 // Создание - разные экраны для мастеров и клиентов
                 if (widget.user?.role == 'master') {
                   // Мастер создает видеорекламу
-                  // TODO: Navigate to create video ad screen
+                  Navigator.pushNamed(context, '/create-video');
+                  return; // Не переключаем таб
                 } else {
                   // Клиент создает заявку
-                  // TODO: Navigate to create order screen
+                  Navigator.pushNamed(context, '/create-order');
+                  return; // Не переключаем таб
                 }
               }
             }
@@ -363,57 +408,6 @@ class _MainNavigationState extends State<MainNavigation> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showLoginDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.dark,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Row(
-          children: [
-            const Icon(Icons.login, color: AppColors.primary),
-            SizedBox(width: 12.w),
-            const Text(
-              'Вход в аккаунт',
-              style: TextStyle(color: Colors.white),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Для доступа к этой функции необходимо войти в аккаунт',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Переходим на экран авторизации
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AuthScreen(),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-            ),
-            child: const Text('Войти'),
-          ),
-        ],
       ),
     );
   }

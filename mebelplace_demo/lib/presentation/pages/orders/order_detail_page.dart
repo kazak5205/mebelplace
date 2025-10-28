@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/order_model.dart';
 import '../../providers/app_providers.dart';
@@ -54,9 +55,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share, color: Colors.white),
-            onPressed: () {
-              // TODO: Поделиться заявкой
-            },
+            onPressed: () => _shareOrder(),
           ),
         ],
       ),
@@ -442,7 +441,6 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
-              // TODO: Откликнуться на заявку
               Navigator.pushNamed(context, '/order-respond', arguments: order.id);
             },
             icon: Icon(Icons.reply, size: 18.sp),
@@ -463,7 +461,6 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
-              // TODO: Написать сообщение
               Navigator.pushNamed(context, '/chat', arguments: order.customerId);
             },
             icon: Icon(Icons.message, size: 18.sp),
@@ -598,5 +595,16 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
 
   String _formatDate(DateTime dateTime) {
     return '${dateTime.day}.${dateTime.month}.${dateTime.year}';
+  }
+
+  void _shareOrder() {
+    final orderState = ref.read(orderProvider);
+    final order = orderState.currentOrder;
+    if (order != null) {
+      Share.share(
+        'Заявка: ${order.title}\n\n${order.description}\n\nБюджет: ${order.price} ₸\n\nhttps://mebelplace.com.kz/orders/${order.id}',
+        subject: 'Заявка на MebelPlace',
+      );
+    }
   }
 }

@@ -51,7 +51,36 @@ class OrderModel {
     this.responses,
   });
 
-  factory OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
+  factory OrderModel.fromJson(Map<String, dynamic> json) {
+    return OrderModel(
+      id: json['id'].toString(),
+      clientId: (json['clientId'] ?? json['client_id'] ?? '').toString(),
+      masterId: json['masterId']?.toString() ?? json['master_id']?.toString(),
+      customerId: json['customerId']?.toString() ?? json['customer_id']?.toString(),
+      customerName: json['customerName']?.toString() ?? json['customer_name']?.toString(),
+      customerPhone: json['customerPhone']?.toString() ?? json['customer_phone']?.toString(),
+      title: json['title'].toString(),
+      description: json['description'].toString(),
+      category: json['category'].toString(),
+      region: json['region']?.toString(),
+      status: json['status'].toString(),
+      price: double.tryParse((json['price'] ?? 0).toString()),
+      deadline: json['deadline'] != null ? DateTime.tryParse(json['deadline'].toString()) : null,
+      location: json['location']?.toString(),
+      images: (json['images'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      createdAt: DateTime.parse((json['createdAt'] ?? json['created_at']).toString()),
+      updatedAt: json['updatedAt'] != null || json['updated_at'] != null
+          ? DateTime.tryParse((json['updatedAt'] ?? json['updated_at']).toString())
+          : null,
+      client: json['client'] != null ? UserModel.fromJson(json['client'] as Map<String, dynamic>) : null,
+      responseCount: int.tryParse((json['responseCount'] ?? json['response_count'] ?? 0).toString()) ?? 0,
+      hasMyResponse: json['hasMyResponse'] ?? json['has_my_response'] ?? false,
+      responses: (json['responses'] as List<dynamic>?)
+          ?.map((e) => e as Map<String, dynamic>)
+          .toList(),
+    );
+  }
+  
   Map<String, dynamic> toJson() => _$OrderModelToJson(this);
 
   OrderModel copyWith({

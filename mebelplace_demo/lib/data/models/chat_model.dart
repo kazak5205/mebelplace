@@ -28,6 +28,22 @@ class ChatModel {
     this.updatedAt,
   });
 
-  factory ChatModel.fromJson(Map<String, dynamic> json) => _$ChatModelFromJson(json);
+  factory ChatModel.fromJson(Map<String, dynamic> json) {
+    return ChatModel(
+      id: json['id'].toString(),
+      type: (json['type'] ?? 'private').toString(),
+      name: json['name']?.toString(),
+      description: json['description']?.toString(),
+      createdAt: DateTime.parse((json['createdAt'] ?? json['created_at']).toString()),
+      senderId: (json['senderId'] ?? json['sender_id'])?.toString(),
+      senderName: (json['senderName'] ?? json['sender_name'])?.toString(),
+      senderAvatar: (json['senderAvatar'] ?? json['sender_avatar'])?.toString(),
+      message: json['message']?.toString(),
+      updatedAt: json['updatedAt'] != null || json['updated_at'] != null
+          ? DateTime.tryParse((json['updatedAt'] ?? json['updated_at']).toString())
+          : null,
+    );
+  }
+  
   Map<String, dynamic> toJson() => _$ChatModelToJson(this);
 }

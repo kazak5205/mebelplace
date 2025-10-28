@@ -149,26 +149,28 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTap: _toggleControls,
-        onDoubleTap: _onDoubleTap,
-        child: Stack(
-          children: [
-            PageView.builder(
-              controller: _pageController,
-              scrollDirection: Axis.vertical,
-              onPageChanged: _onPageChanged,
-              itemCount: widget.videos.length,
-              itemBuilder: (context, index) {
-                return _buildVideoItem(widget.videos[index]);
-              },
-            ),
-            if (_showControls) _buildControls(),
-            _buildRightActions(),
-            _buildBottomInfo(),
-            _buildProgressIndicator(),
-          ],
-        ),
+      body: Stack(
+        children: [
+          // Video PageView с GestureDetector для tap/double-tap
+          PageView.builder(
+            controller: _pageController,
+            scrollDirection: Axis.vertical,
+            onPageChanged: _onPageChanged,
+            itemCount: widget.videos.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: _toggleControls,
+                onDoubleTap: _onDoubleTap,
+                child: _buildVideoItem(widget.videos[index]),
+              );
+            },
+          ),
+          // Overlay элементы БЕЗ перехвата кликов
+          if (_showControls) _buildControls(),
+          _buildRightActions(),
+          _buildBottomInfo(),
+          _buildProgressIndicator(),
+        ],
       ),
     );
   }

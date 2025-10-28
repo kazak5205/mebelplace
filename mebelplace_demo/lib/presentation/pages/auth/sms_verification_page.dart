@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../providers/repository_providers.dart';
 
 class SmsVerificationPage extends ConsumerStatefulWidget {
   final String phoneNumber;
@@ -327,7 +328,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
     );
   }
 
-  void _verifyCode() {
+  Future<void> _verifyCode() async {
     final code = _controllers.map((controller) => controller.text).join();
     
     if (code.length != 4) {
@@ -344,52 +345,98 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
       _isVerifying = true;
     });
     
-    // TODO: Отправить код на сервер для проверки
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      // ✅ РЕАЛЬНАЯ ПРОВЕРКА ЧЕРЕЗ API
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.verifySmsCode(widget.phoneNumber, code);
+      
       if (mounted) {
+        if (response.success && response.data != null) {
+          // Токен уже сохранен в apiService
+          // ref.read(authProvider.notifier).setUser(response.data!.user);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Номер успешно подтвержден!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          // Переходим к следующему экрану
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Неверный код'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        
         setState(() {
           _isVerifying = false;
         });
-        
-        // Имитация успешной верификации
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Номер успешно подтвержден!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text('Ошибка верификации: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
-        
-        // Переходим к следующему экрану
-        Navigator.pushReplacementNamed(context, '/home');
+        setState(() {
+          _isVerifying = false;
+        });
       }
-    });
+    }
   }
 
-  void _resendCode() {
-    
-    // TODO: Отправить новый код на сервер
-    Future.delayed(const Duration(seconds: 1), () {
+  Future<void> _resendCode() async {
+    try {
+      // ✅ РЕАЛЬНАЯ ОТПРАВКА КОДА ЧЕРЕЗ API
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.sendSmsCode(widget.phoneNumber);
+      
       if (mounted) {
-        setState(() {
-          _resendCountdown = 60;
-        });
-        
-        // Очищаем поля
-        for (var controller in _controllers) {
-          controller.clear();
+        if (response.success) {
+          setState(() {
+            _resendCountdown = 60;
+          });
+          
+          // Очищаем поля
+          for (var controller in _controllers) {
+            controller.clear();
+          }
+          _focusNodes[0].requestFocus();
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Новый код отправлен!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          _startCountdown();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Ошибка отправки кода'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
-        _focusNodes[0].requestFocus();
-        
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Новый код отправлен!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text('Ошибка: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
-        
-        _startCountdown();
       }
-    });
+    }
   }
 
   void _startCountdown() {

@@ -163,6 +163,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _phoneController.text.trim(),
           _passwordController.text,
         );
+        
+        // ✅ ПЕРЕХОД НА ГЛАВНЫЙ ЭКРАН ПОСЛЕ ЛОГИНА
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

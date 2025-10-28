@@ -15,12 +15,18 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       lastName: json['lastName'] as String?,
       avatar: json['avatar'] as String?,
       role: json['role'] as String,
-      isActive: json['isActive'] as bool,
-      isVerified: json['isVerified'] as bool,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      isActive: json['isActive'] as bool?,
+      isVerified: json['isVerified'] as bool?,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
       updatedAt: json['updatedAt'] == null
           ? null
           : DateTime.parse(json['updatedAt'] as String),
+      rating: (json['rating'] as num?)?.toDouble(),
+      followersCount: (json['followersCount'] as num?)?.toInt(),
+      ordersCount: (json['ordersCount'] as num?)?.toInt(),
+      bio: json['bio'] as String?,
     );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -34,6 +40,10 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
       'role': instance.role,
       'isActive': instance.isActive,
       'isVerified': instance.isVerified,
-      'createdAt': instance.createdAt.toIso8601String(),
+      'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
+      'rating': instance.rating,
+      'followersCount': instance.followersCount,
+      'ordersCount': instance.ordersCount,
+      'bio': instance.bio,
     };

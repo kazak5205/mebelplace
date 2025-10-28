@@ -4,7 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/order_response_model.dart';
+import '../../../data/datasources/api_service.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/repository_providers.dart';
 import '../../widgets/loading_widget.dart';
 
 class OrderResponsesPage extends ConsumerStatefulWidget {
@@ -461,15 +463,47 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             child: Text('Отмена', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: Принять предложение
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Предложение принято!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              
+              // ✅ РЕАЛЬНОЕ ПРИНЯТИЕ ЧЕРЕЗ API
+              try {
+                final apiService = ref.read(apiServiceProvider);
+                final request = AcceptRequest(responseId: response.id);
+                final apiResponse = await apiService.acceptResponse(widget.orderId, request);
+                
+                if (apiResponse.success && apiResponse.data != null) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(apiResponse.message ?? 'Предложение принято!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    // Обновить заказ
+                    ref.read(orderProvider.notifier).loadUserOrders();
+                    Navigator.pop(context);
+                  }
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(apiResponse.message ?? 'Ошибка принятия'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Ошибка: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,

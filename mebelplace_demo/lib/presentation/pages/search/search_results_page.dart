@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/video_model.dart';
 import '../../../data/models/order_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/loading_widget.dart';
 
@@ -191,22 +192,25 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
   }
 
   Widget _buildMastersTab() {
-    // TODO: Получить список мастеров из API
-    final masters = _getMockMasters();
-    final filteredMasters = masters.where((master) =>
-      master['name'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-      master['description'].toLowerCase().contains(_searchQuery.toLowerCase())
-    ).toList();
+    final masterState = ref.watch(masterProvider);
     
-    if (filteredMasters.isEmpty) {
+    return masterState.isLoading
+        ? const Center(child: LoadingWidget())
+        : masterState.error != null
+            ? _buildErrorWidget(masterState.error!)
+            : _buildFilteredMasters(masterState.masters);
+  }
+
+  Widget _buildFilteredMasters(List<UserModel> masters) {
+    if (masters.isEmpty) {
       return _buildEmptyState('Мастера не найдены', Icons.person_outline);
     }
     
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
-      itemCount: filteredMasters.length,
+      itemCount: masters.length,
       itemBuilder: (context, index) {
-        return _buildMasterCard(filteredMasters[index], index);
+        return _buildMasterCardFromModel(masters[index], index);
       },
     );
   }
@@ -457,7 +461,10 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
     );
   }
 
-  Widget _buildMasterCard(Map<String, dynamic> master, int index) {
+  Widget _buildMasterCardFromModel(UserModel master, int index) {
+    final fullName = '${master.firstName ?? ''} ${master.lastName ?? ''}'.trim();
+    final displayName = fullName.isEmpty ? master.username : fullName;
+    
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
       padding: EdgeInsets.all(16.w),
@@ -475,10 +482,10 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           CircleAvatar(
             radius: 24.r,
             backgroundColor: AppColors.primary,
-            backgroundImage: master['avatar'] != null 
-              ? NetworkImage(master['avatar'])
+            backgroundImage: master.avatar != null 
+              ? NetworkImage(master.avatar!)
               : null,
-            child: master['avatar'] == null 
+            child: master.avatar == null 
               ? Icon(Icons.person, size: 24.sp, color: Colors.white)
               : null,
           ),
@@ -492,15 +499,18 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
               children: [
                 Row(
                   children: [
-                    Text(
-                      master['name'],
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Text(
+                        displayName,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (master['isVerified'] == true) ...[
+                    if (master.isVerified == true) ...[
                       SizedBox(width: 4.w),
                       Icon(
                         Icons.verified,
@@ -514,12 +524,12 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                 SizedBox(height: 4.h),
                 
                 Text(
-                  master['description'],
+                  '@${master.username}',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 12.sp,
                   ),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 
@@ -528,28 +538,13 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
                 Row(
                   children: [
                     Icon(
-                      Icons.star,
-                      color: Colors.amber,
-                      size: 14.sp,
-                    ),
-                    SizedBox(width: 4.w),
-                    Text(
-                      '${master['rating']}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Icon(
-                      Icons.work,
+                      Icons.person_outline,
                       color: Colors.white.withValues(alpha: 0.7),
                       size: 14.sp,
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      '${master['ordersCount']} заказов',
+                      master.role == 'master' ? 'Мастер' : 'Пользователь',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 12.sp,
@@ -564,7 +559,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           // Кнопка действия
           IconButton(
             onPressed: () {
-              Navigator.pushNamed(context, '/master-profile', arguments: master['id']);
+              Navigator.pushNamed(context, '/master-channel', arguments: master.id);
             },
             icon: Icon(
               Icons.arrow_forward_ios,
@@ -661,9 +656,9 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
   }
 
   void _performSearch() {
-    // TODO: Выполнить поиск через API
     ref.read(videoProvider.notifier).searchVideos(_searchQuery);
     ref.read(orderProvider.notifier).searchOrders(_searchQuery);
+    ref.read(masterProvider.notifier).searchMasters(_searchQuery);
   }
 
   String _formatDuration(int? seconds) {
@@ -703,35 +698,4 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
     }
   }
 
-  List<Map<String, dynamic>> _getMockMasters() {
-    return [
-      {
-        'id': 'master1',
-        'name': 'Алексей Мебельщик',
-        'description': 'Профессиональный мастер по изготовлению мебели',
-        'avatar': 'https://picsum.photos/100/100?random=1',
-        'rating': 4.8,
-        'ordersCount': 89,
-        'isVerified': true,
-      },
-      {
-        'id': 'master2',
-        'name': 'Мария Дизайнер',
-        'description': 'Дизайнер интерьеров с большим опытом',
-        'avatar': 'https://picsum.photos/100/100?random=2',
-        'rating': 4.9,
-        'ordersCount': 156,
-        'isVerified': true,
-      },
-      {
-        'id': 'master3',
-        'name': 'Дмитрий Мастер',
-        'description': 'Мастер по ремонту и реставрации мебели',
-        'avatar': 'https://picsum.photos/100/100?random=3',
-        'rating': 4.7,
-        'ordersCount': 67,
-        'isVerified': false,
-      },
-    ];
-  }
 }

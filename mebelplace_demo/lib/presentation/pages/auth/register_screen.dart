@@ -17,8 +17,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -30,8 +28,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _firstNameController.dispose();
-    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -54,13 +50,53 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             SizedBox(height: 32.h),
             
+            // Role Selection FIRST (like web)
+            DropdownButtonFormField<String>(
+              value: _selectedRole,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Тип аккаунта',
+                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                prefixIcon: const Icon(Icons.work, color: AppColors.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: const BorderSide(color: AppColors.primary),
+                ),
+              ),
+              dropdownColor: AppColors.darkSurface,
+              items: const [
+                DropdownMenuItem(
+                  value: 'user',
+                  child: Text('Клиент', style: TextStyle(color: Colors.white)),
+                ),
+                DropdownMenuItem(
+                  value: 'master',
+                  child: Text('Мастер', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedRole = value!;
+                });
+              },
+            ),
+            SizedBox(height: 16.h),
+            
             // Phone Field
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: 'Телефон',
+                labelText: 'Номер телефона',
                 labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                 prefixIcon: const Icon(Icons.phone, color: AppColors.primary),
                 border: OutlineInputBorder(
@@ -111,95 +147,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   return 'Введите имя пользователя';
                 }
                 return null;
-              },
-            ),
-            SizedBox(height: 16.h),
-            
-            // First Name Field
-            TextFormField(
-              controller: _firstNameController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Имя (необязательно)',
-                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                prefixIcon: const Icon(Icons.badge, color: AppColors.primary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            
-            // Last Name Field
-            TextFormField(
-              controller: _lastNameController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Фамилия (необязательно)',
-                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            
-            // Role Selection
-            // ignore: deprecated_member_use
-            DropdownButtonFormField<String>(
-              value: _selectedRole,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Роль',
-                labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                prefixIcon: const Icon(Icons.work, color: AppColors.primary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-              ),
-              dropdownColor: AppColors.darkSurface,
-              items: const [
-                DropdownMenuItem(
-                  value: 'user',
-                  child: Text('Клиент', style: TextStyle(color: Colors.white)),
-                ),
-                DropdownMenuItem(
-                  value: 'master',
-                  child: Text('Мастер', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedRole = value!;
-                });
               },
             ),
             SizedBox(height: 16.h),
@@ -340,6 +287,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           _usernameController.text.trim(),
           _passwordController.text,
         );
+        
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

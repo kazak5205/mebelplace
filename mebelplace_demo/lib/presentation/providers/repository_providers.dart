@@ -57,3 +57,9 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   final localStorage = ref.watch(localStorageProvider);
   return ChatRepository(apiService, localStorage);
 });
+
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  final localStorage = ref.watch(localStorageProvider);
+  return UserRepository(apiService, localStorage);
+});

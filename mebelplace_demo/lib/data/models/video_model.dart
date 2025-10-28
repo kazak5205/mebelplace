@@ -58,7 +58,49 @@ class VideoModel {
     this.updatedAt,
   });
 
-  factory VideoModel.fromJson(Map<String, dynamic> json) => _$VideoModelFromJson(json);
+  factory VideoModel.fromJson(Map<String, dynamic> json) {
+    // Обработка tags - бэк может вернуть строку вместо массива
+    List<String> parsedTags = [];
+    if (json['tags'] != null) {
+      if (json['tags'] is List) {
+        parsedTags = (json['tags'] as List).map((e) => e.toString()).toList();
+      } else if (json['tags'] is String) {
+        final tagsString = json['tags'] as String;
+        if (tagsString.isNotEmpty) {
+          parsedTags = tagsString.split(',').map((e) => e.trim()).toList();
+        }
+      }
+    }
+    
+    return VideoModel(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      videoUrl: json['videoUrl'] as String,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      duration: json['duration'] as int?,
+      fileSize: int.tryParse(json['fileSize']?.toString() ?? '0') ?? 0,
+      authorId: json['authorId'] as String,
+      username: json['username'] as String?,
+      firstName: json['firstName'] as String?,
+      lastName: json['lastName'] as String?,
+      avatar: json['avatar'] as String?,
+      category: json['category'] as String,
+      tags: parsedTags,
+      views: (json['views'] as num?)?.toInt() ?? 0,
+      likes: (json['likes'] as num?)?.toInt() ?? 0,
+      likesCount: (json['likesCount'] as num?)?.toInt() ?? 0,
+      commentsCount: (json['commentsCount'] as num?)?.toInt() ?? 0,
+      isLiked: json['isLiked'] as bool? ?? false,
+      isFeatured: json['isFeatured'] as bool? ?? false,
+      priorityOrder: json['priorityOrder'] as int?,
+      isPublic: json['isPublic'] as bool? ?? true,
+      isActive: json['isActive'] as bool? ?? true,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : null,
+    );
+  }
+  
   Map<String, dynamic> toJson() => _$VideoModelToJson(this);
 
   VideoModel copyWith({

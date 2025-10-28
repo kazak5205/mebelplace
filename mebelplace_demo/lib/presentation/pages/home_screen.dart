@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/video_model.dart';
+import '../../data/models/comment_model.dart';
 import '../providers/video_provider.dart';
+import '../providers/repository_providers.dart';
+import '../providers/app_providers.dart' hide videoProvider;
 import '../widgets/tiktok_video_player.dart';
 import '../widgets/loading_widget.dart';
 
@@ -235,114 +239,171 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          children: [
-            Text(
-              'Комментарии',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+      builder: (context) => CommentsBottomSheet(video: video),
+    );
+  }
+}
+
+// Отдельный виджет для комментариев с использованием Consumer
+class CommentsBottomSheet extends ConsumerWidget {
+  final VideoModel video;
+
+  const CommentsBottomSheet({super.key, required this.video});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final commentState = ref.watch(commentProvider(video.id));
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      padding: EdgeInsets.all(24.w),
+      child: Column(
+        children: [
+          Text(
+            'Комментарии',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
-            SizedBox(height: 24.h),
-            Expanded(
-              child: ListView.builder(
-                itemCount: 10, // Mock comments
-                itemBuilder: (context, index) {
-                  return Container(
-                    margin: EdgeInsets.only(bottom: 16.h),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 16.r,
-                          backgroundColor: AppColors.primary,
-                          child: Text(
-                            'U${index + 1}',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.white,
+          ),
+          SizedBox(height: 24.h),
+          Expanded(
+            child: commentState.isLoading
+                ? const Center(child: LoadingWidget())
+                : commentState.error != null
+                    ? Center(
+                        child: Text(
+                          commentState.error!,
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                      )
+                    : commentState.comments.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Нет комментариев',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: 14.sp,
+                              ),
                             ),
+                          )
+                        : ListView.builder(
+                            itemCount: commentState.comments.length,
+                            itemBuilder: (context, index) {
+                              final comment = commentState.comments[index];
+                              return Container(
+                                margin: EdgeInsets.only(bottom: 16.h),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 16.r,
+                                      backgroundColor: AppColors.primary,
+                                      backgroundImage: comment.avatar != null
+                                          ? NetworkImage(comment.avatar!)
+                                          : null,
+                                      child: comment.avatar == null
+                                          ? Icon(
+                                              Icons.person,
+                                              size: 16.sp,
+                                              color: Colors.white,
+                                            )
+                                          : null,
+                                    ),
+                                    SizedBox(width: 12.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            comment.username ?? 'Пользователь',
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4.h),
+                                          Text(
+                                            comment.content,
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: Colors.white.withValues(alpha: 0.8),
+                                            ),
+                                          ),
+                                          SizedBox(height: 4.h),
+                                          Text(
+                                            _formatCommentTime(comment.createdAt),
+                                            style: TextStyle(
+                                              fontSize: 12.sp,
+                                              color: Colors.white.withValues(alpha: 0.5),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.favorite_border,
+                                      color: Colors.white.withValues(alpha: 0.5),
+                                      size: 16.sp,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Пользователь ${index + 1}',
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                'Отличное видео! Очень понравилось качество работы.',
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                '2ч назад',
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.favorite_border,
-                          color: Colors.white.withValues(alpha: 0.5),
-                          size: 16.sp,
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20.r),
             ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Добавить комментарий...',
-                        hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                        border: InputBorder.none,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Добавить комментарий...',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
                       ),
+                      border: InputBorder.none,
                     ),
                   ),
-                  Icon(
-                    Icons.send,
-                    color: AppColors.primary,
-                    size: 20.sp,
-                  ),
-                ],
-              ),
+                ),
+                Icon(
+                  Icons.send,
+                  color: AppColors.primary,
+                  size: 20.sp,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _formatCommentTime(DateTime? time) {
+    if (time == null) return '';
+    
+    final now = DateTime.now();
+    final difference = now.difference(time);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays}д назад';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}ч назад';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}м назад';
+    } else {
+      return 'только что';
+    }
   }
 }

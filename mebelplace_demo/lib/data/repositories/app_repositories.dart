@@ -533,3 +533,56 @@ class ChatRepository {
     }
   }
 }
+
+// User Repository (for masters)
+class UserRepository {
+  final ApiService _apiService;
+  final LocalStorage _localStorage;
+
+  UserRepository(this._apiService, this._localStorage);
+
+  Future<List<UserModel>> searchMasters(String query) async {
+    try {
+      final response = await _apiService.searchMasters(query);
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to search masters');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<UserModel> getUser(String userId) async {
+    try {
+      final response = await _apiService.getUser(userId);
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to load user');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Exception _handleDioError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return Exception('Проблемы с подключением к интернету');
+      case DioExceptionType.badResponse:
+        final statusCode = e.response?.statusCode;
+        if (statusCode == 401) {
+          return Exception('Необходима авторизация');
+        } else if (statusCode == 404) {
+          return Exception('Пользователь не найден');
+        }
+        return Exception('Ошибка сервера: $statusCode');
+      default:
+        return Exception('Неизвестная ошибка');
+    }
+  }
+}

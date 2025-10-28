@@ -5,7 +5,9 @@ import '../../data/models/order_model.dart';
 import '../../data/models/chat_model.dart';
 import '../../data/models/message_model.dart';
 import '../../data/models/order_response_model.dart';
+import '../../data/models/comment_model.dart';
 import '../../data/repositories/app_repositories.dart';
+import '../../data/datasources/api_service.dart';
 import 'repository_providers.dart';
 
 // Video Provider
@@ -448,6 +450,160 @@ class ChatState {
     return ChatState(
       chats: chats ?? this.chats,
       messages: messages ?? this.messages,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
+}
+
+// Master Provider (for user search)
+final masterProvider = StateNotifierProvider<MasterNotifier, MasterState>((ref) {
+  final userRepository = ref.watch(userRepositoryProvider);
+  return MasterNotifier(userRepository);
+});
+
+class MasterNotifier extends StateNotifier<MasterState> {
+  final UserRepository _userRepository;
+
+  MasterNotifier(this._userRepository) : super(MasterState.initial());
+
+  Future<void> searchMasters(String query) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final masters = await _userRepository.searchMasters(query);
+      state = state.copyWith(
+        masters: masters,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadMaster(String userId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final master = await _userRepository.getUser(userId);
+      state = state.copyWith(
+        currentMaster: master,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+}
+
+class MasterState {
+  final List<UserModel> masters;
+  final UserModel? currentMaster;
+  final bool isLoading;
+  final String? error;
+
+  MasterState({
+    required this.masters,
+    this.currentMaster,
+    required this.isLoading,
+    this.error,
+  });
+
+  factory MasterState.initial() {
+    return MasterState(
+      masters: [],
+      currentMaster: null,
+      isLoading: false,
+      error: null,
+    );
+  }
+
+  MasterState copyWith({
+    List<UserModel>? masters,
+    UserModel? currentMaster,
+    bool? isLoading,
+    String? error,
+  }) {
+    return MasterState(
+      masters: masters ?? this.masters,
+      currentMaster: currentMaster ?? this.currentMaster,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
+}
+
+// Comment Provider
+final commentProvider = StateNotifierProvider.family<CommentNotifier, CommentState, String>((ref, videoId) {
+  final apiService = ref.watch(apiServiceProvider);
+  return CommentNotifier(apiService, videoId);
+});
+
+class CommentNotifier extends StateNotifier<CommentState> {
+  final ApiService _apiService;
+  final String _videoId;
+
+  CommentNotifier(this._apiService, this._videoId) : super(CommentState.initial()) {
+    loadComments();
+  }
+
+  Future<void> loadComments() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final response = await _apiService.getVideoComments(_videoId);
+      if (response.success && response.data != null) {
+        state = state.copyWith(
+          comments: response.data!,
+          isLoading: false,
+          error: null,
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: response.message ?? 'Failed to load comments',
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+}
+
+class CommentState {
+  final List<CommentModel> comments;
+  final bool isLoading;
+  final String? error;
+
+  CommentState({
+    required this.comments,
+    required this.isLoading,
+    this.error,
+  });
+
+  factory CommentState.initial() {
+    return CommentState(
+      comments: [],
+      isLoading: false,
+      error: null,
+    );
+  }
+
+  CommentState copyWith({
+    List<CommentModel>? comments,
+    bool? isLoading,
+    String? error,
+  }) {
+    return CommentState(
+      comments: comments ?? this.comments,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
     );

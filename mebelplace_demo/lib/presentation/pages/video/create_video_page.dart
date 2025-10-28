@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/theme/app_theme.dart';
+import '../../providers/app_providers.dart';
+import '../../providers/repository_providers.dart';
 
 class CreateVideoPage extends ConsumerStatefulWidget {
   const CreateVideoPage({super.key});
@@ -715,8 +717,18 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
     });
     
     try {
-      // TODO: Загрузить видео через API
-      await Future.delayed(const Duration(seconds: 3)); // Имитация загрузки
+      // Загружаем видео через реальный API
+      final videoRepository = ref.read(videoRepositoryProvider);
+      
+      await videoRepository.uploadVideo(
+        videoPath: _selectedVideo!.path,
+        title: _titleController.text,
+        description: _descriptionController.text.isNotEmpty 
+            ? _descriptionController.text 
+            : null,
+        category: _selectedCategory,
+        tags: [],
+      );
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -725,6 +737,9 @@ class _CreateVideoPageState extends ConsumerState<CreateVideoPage> {
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Перезагружаем список видео
+        ref.read(videoProvider.notifier).loadVideos();
         
         Navigator.pop(context);
       }

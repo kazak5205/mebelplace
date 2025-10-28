@@ -4,6 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/order_model.dart';
+import '../../../data/models/order_response_model.dart';
+import '../../../data/datasources/api_service.dart';
+import '../../providers/repository_providers.dart';
 
 class OrderRespondPage extends ConsumerStatefulWidget {
   final String orderId;
@@ -433,25 +436,17 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
 
   Future<void> _loadOrderDetails() async {
     try {
-      // TODO: Загрузить детали заявки через API
-      // Пока используем mock данные
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Загружаем детали заявки через API
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.getOrder(widget.orderId);
       
-      setState(() {
-        _order = OrderModel(
-          id: widget.orderId,
-          title: 'Изготовление кухонного гарнитура',
-          description: 'Нужно изготовить кухонный гарнитур из массива дуба. Размеры: длина 3м, высота 2.2м. Требуется качественная фурнитура.',
-          category: 'kitchen',
-          clientId: 'customer1',
-          price: 250000,
-          status: 'active',
-          createdAt: DateTime.now().subtract(const Duration(days: 2)),
-          images: [],
-          responseCount: 0,
-          hasMyResponse: false,
-        );
-      });
+      if (response.success && response.data != null) {
+        setState(() {
+          _order = response.data!;
+        });
+      } else {
+        throw Exception(response.message ?? 'Ошибка загрузки заказа');
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -474,8 +469,17 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
     });
     
     try {
-      // TODO: Отправить отклик через API
-      await Future.delayed(const Duration(seconds: 2)); // Имитация отправки
+      // Отправляем отклик через API
+      final apiService = ref.read(apiServiceProvider);
+      final request = OrderResponseRequest(
+        message: _proposalController.text,
+        price: double.parse(_priceController.text),
+      );
+      final response = await apiService.respondToOrder(widget.orderId, request);
+      
+      if (!response.success) {
+        throw Exception(response.message ?? 'Ошибка отправки отклика');
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -12,10 +12,14 @@ class UserModel {
   final String? lastName;
   final String? avatar;
   final String role;
-  final bool isActive;
-  final bool isVerified;
-  final DateTime createdAt;
+  final bool? isActive;    // NULLABLE - сервер не всегда присылает
+  final bool? isVerified;  // NULLABLE - сервер не всегда присылает
+  final DateTime? createdAt; // NULLABLE - может отсутствовать
   final DateTime? updatedAt;
+  final double? rating;     // Рейтинг мастера
+  final int? followersCount; // Количество подписчиков
+  final int? ordersCount;    // Количество выполненных заказов
+  final String? bio;         // Биография/описание
 
   const UserModel({
     required this.id,
@@ -26,10 +30,14 @@ class UserModel {
     this.lastName,
     this.avatar,
     required this.role,
-    required this.isActive,
-    required this.isVerified,
-    required this.createdAt,
+    this.isActive,    // опционально
+    this.isVerified,  // опционально
+    this.createdAt,   // опционально
     this.updatedAt,
+    this.rating,
+    this.followersCount,
+    this.ordersCount,
+    this.bio,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
@@ -48,6 +56,10 @@ class UserModel {
     bool? isVerified,
     DateTime? createdAt,
     DateTime? updatedAt,
+    double? rating,
+    int? followersCount,
+    int? ordersCount,
+    String? bio,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -62,6 +74,10 @@ class UserModel {
       isVerified: isVerified ?? this.isVerified,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      rating: rating ?? this.rating,
+      followersCount: followersCount ?? this.followersCount,
+      ordersCount: ordersCount ?? this.ordersCount,
+      bio: bio ?? this.bio,
     );
   }
 

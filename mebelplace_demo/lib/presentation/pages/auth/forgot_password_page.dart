@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../providers/repository_providers.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -431,13 +432,28 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     });
     
     try {
-      // TODO: Отправить запрос на восстановление пароля через API
-      await Future.delayed(const Duration(seconds: 2)); // Имитация отправки
+      // Отправляем запрос на восстановление пароля через API
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.forgotPassword(_emailController.text);
       
       setState(() {
         _isSending = false;
-        _isEmailSent = true;
       });
+      
+      if (response.success) {
+        setState(() {
+          _isEmailSent = true;
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Ошибка отправки кода'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
       
     } catch (e) {
       setState(() {

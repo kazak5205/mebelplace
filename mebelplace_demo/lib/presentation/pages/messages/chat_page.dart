@@ -143,7 +143,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }
 
   Widget _buildMessageBubble(MessageModel message, int index) {
-    final isMe = message.senderId == 'current_user'; // TODO: Получить ID текущего пользователя
+    final currentUser = ref.watch(authProvider).user;
+    final isMe = currentUser != null && message.senderId == currentUser.id;
     
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),

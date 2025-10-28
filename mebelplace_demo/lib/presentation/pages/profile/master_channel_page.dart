@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/video_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/repository_providers.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/tiktok_video_player.dart';
 
@@ -21,13 +24,63 @@ class MasterChannelPage extends ConsumerStatefulWidget {
 }
 
 class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
+  bool _isLoadingUser = true;
+  Map<String, dynamic>? _masterInfo;
+  String? _userError;
+
   @override
   void initState() {
     super.initState();
     // Загружаем информацию о мастере и его видео
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(videoProvider.notifier).loadMasterVideos(widget.masterId);
+      _loadMasterInfo();
     });
+  }
+
+  Future<void> _loadMasterInfo() async {
+    try {
+      setState(() {
+        _isLoadingUser = true;
+        _userError = null;
+      });
+
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.getUser(widget.masterId);
+
+      if (mounted && response.success && response.data != null) {
+        final user = response.data!;
+        setState(() {
+          _masterInfo = {
+            'id': user.id,
+            'name': user.displayName,
+            'description': user.bio ?? 'Мастер по изготовлению мебели',
+            'avatar': user.avatar,
+            'rating': user.rating ?? 0.0,
+            'reviewsCount': 0,
+            'isVerified': user.isVerified ?? false,
+            'videosCount': 0, // Будет подсчитано из videos
+            'followersCount': user.followersCount ?? 0,
+            'ordersCount': user.ordersCount ?? 0,
+          };
+          _isLoadingUser = false;
+        });
+      } else {
+        if (mounted) {
+          setState(() {
+            _userError = response.message ?? 'Ошибка загрузки профиля';
+            _isLoadingUser = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _userError = e.toString();
+          _isLoadingUser = false;
+        });
+      }
+    }
   }
 
   @override
@@ -55,17 +108,19 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share, color: Colors.white),
-            onPressed: () {
-              // TODO: Поделиться каналом
-            },
+            onPressed: () => _shareChannel(),
           ),
         ],
       ),
-      body: videoState.isLoading
+      body: _isLoadingUser || videoState.isLoading
           ? const Center(child: LoadingWidget())
-          : videoState.error != null
-              ? _buildErrorWidget(videoState.error!)
-              : _buildMasterChannel(_getMasterInfo(), videoState.videos.where((v) => v.authorId == widget.masterId).toList()),
+          : _userError != null
+              ? _buildErrorWidget(_userError!)
+              : videoState.error != null
+                  ? _buildErrorWidget(videoState.error!)
+                  : _masterInfo == null
+                      ? _buildErrorWidget('Не удалось загрузить профиль мастера')
+                      : _buildMasterChannel(_masterInfo!, videoState.videos.where((v) => v.authorId == widget.masterId).toList()),
     );
   }
 
@@ -332,23 +387,56 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           
           SizedBox(width: 12.w),
           
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () {
-                // TODO: Подписаться/отписаться
-              },
-              icon: Icon(Icons.person_add, size: 18.sp),
-              label: const Text('Подписаться'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
-                padding: EdgeInsets.symmetric(vertical: 16.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-            ),
-          ),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        // ✅ РЕАЛЬНАЯ ПОДПИСКА ЧЕРЕЗ API
+                        try {
+                          final apiService = ref.read(apiServiceProvider);
+                          final response = await apiService.subscribeToUser(widget.masterId);
+                          
+                          if (response.success) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(response.message ?? 'Вы подписались!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(response.message ?? 'Ошибка подписки'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Ошибка: ${e.toString()}'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: Icon(Icons.person_add, size: 18.sp),
+                      label: const Text('Подписаться'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                    ),
+                  ),
         ],
       ),
     ).animate().fadeIn(duration: 500.ms, delay: 400.ms).slideY(
@@ -630,26 +718,19 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
     );
   }
 
-  Map<String, dynamic> _getMasterInfo() {
-    // TODO: Получить реальную информацию о мастере из API
-    return {
-      'id': widget.masterId,
-      'name': 'Алексей Мебельщик',
-      'description': 'Профессиональный мастер по изготовлению мебели. Работаю с деревом уже 10 лет.',
-      'avatar': 'https://picsum.photos/200/200?random=${widget.masterId}',
-      'rating': 4.8,
-      'reviewsCount': 127,
-      'isVerified': true,
-      'videosCount': 15,
-      'followersCount': 2340,
-      'ordersCount': 89,
-    };
-  }
 
   String _formatDuration(int? seconds) {
     if (seconds == null) return '00:00';
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  void _shareChannel() {
+    final masterName = _masterInfo?['name'] ?? 'Мастер';
+    Share.share(
+      'Посмотрите канал мастера $masterName на MebelPlace!\nhttps://mebelplace.com.kz/master/${widget.masterId}',
+      subject: 'Канал мастера на MebelPlace',
+    );
   }
 }

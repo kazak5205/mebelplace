@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../providers/repository_providers.dart';
 
 class SupportPage extends ConsumerStatefulWidget {
   const SupportPage({super.key});
@@ -393,9 +395,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             icon: Icons.phone,
             title: 'Позвонить',
             subtitle: '+7 (777) 123-45-67',
-            onTap: () {
-              // TODO: Открыть телефон
-            },
+            onTap: () => _makePhoneCall('+77771234567'),
           ),
           
           SizedBox(height: 12.h),
@@ -404,9 +404,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             icon: Icons.email,
             title: 'Написать на email',
             subtitle: 'support@mebelplace.com.kz',
-            onTap: () {
-              // TODO: Открыть email
-            },
+            onTap: () => _sendEmail('support@mebelplace.com.kz'),
           ),
           
           SizedBox(height: 12.h),
@@ -415,9 +413,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             icon: Icons.chat,
             title: 'Онлайн чат',
             subtitle: 'Доступен с 9:00 до 18:00',
-            onTap: () {
-              // TODO: Открыть чат
-            },
+            onTap: () => _openChat(),
           ),
         ],
       ),
@@ -627,6 +623,74 @@ class _SupportPageState extends ConsumerState<SupportPage> {
     );
   }
 
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Не удалось открыть телефон'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendEmail(String email) async {
+    final Uri launchUri = Uri(
+      scheme: 'mailto',
+      path: email,
+      query: 'subject=Вопрос в службу поддержки MebelPlace',
+    );
+    
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Не удалось открыть email клиент'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _openChat() {
+    // Открываем страницу чата с поддержкой
+    Navigator.pushNamed(context, '/messages');
+  }
+
   Future<void> _sendMessage() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -637,24 +701,43 @@ class _SupportPageState extends ConsumerState<SupportPage> {
     });
     
     try {
-      // TODO: Отправить сообщение через API
-      await Future.delayed(const Duration(seconds: 2)); // Имитация отправки
+      // Отправка через реальный API
+      final apiService = ref.read(apiServiceProvider);
+      
+      // Формируем сообщение с контактной информацией
+      final fullMessage = 'Имя: ${_nameController.text}\n'
+          'Email: ${_emailController.text}\n\n'
+          '${_messageController.text}';
+      
+      final response = await apiService.sendSupportMessage(
+        subject: _selectedCategory,
+        message: fullMessage,
+      );
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Сообщение отправлено! Мы ответим вам в ближайшее время.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        // Очищаем форму
-        _nameController.clear();
-        _emailController.clear();
-        _messageController.clear();
-        setState(() {
-          _selectedCategory = 'Техническая поддержка';
-        });
+        if (response.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Сообщение отправлено! Мы ответим вам в ближайшее время.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          // Очищаем форму
+          _nameController.clear();
+          _emailController.clear();
+          _messageController.clear();
+          setState(() {
+            _selectedCategory = 'Техническая поддержка';
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Ошибка отправки сообщения'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
       
     } catch (e) {
