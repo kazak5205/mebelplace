@@ -240,11 +240,43 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
                 child: VideoPlayer(_videoController!),
               ),
             )
-          : const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-                strokeWidth: 3,
-              ),
+          : Stack(
+              children: [
+                // Thumbnail placeholder
+                if (video.thumbnailUrl != null)
+                  Positioned.fill(
+                    child: CachedNetworkImage(
+                      imageUrl: video.thumbnailUrl!,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                // Loading indicator
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 3,
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        'Загрузка видео...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black,
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
     );
   }

@@ -71,7 +71,7 @@ class CustomBottomNavigation extends StatelessWidget {
         
         // Центральная большая кнопка
         Positioned(
-          bottom: 30.h, // Поднята над навигацией
+          bottom: 24.h, // Опущена ниже на 20%
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

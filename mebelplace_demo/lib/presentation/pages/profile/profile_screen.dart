@@ -280,7 +280,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           icon: Icons.edit_outlined,
                           label: 'Редактировать',
                           onTap: () {
-                            // TODO: Edit profile
+                            _showEditProfileDialog(context, user);
                           },
                         ),
                       ),
@@ -459,6 +459,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEditProfileDialog(BuildContext context, UserModel user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.darkSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        title: Text(
+          'Редактировать профиль',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Функция редактирования профиля будет доступна в следующей версии',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: 14.sp,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Понятно',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

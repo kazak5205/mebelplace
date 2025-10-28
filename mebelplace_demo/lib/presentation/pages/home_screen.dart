@@ -112,34 +112,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   }
 
   Widget _buildErrorState(String error) {
+    // Проверяем, является ли это ошибкой 500 (нет видео на сервере)
+    final isNoVideos = error.contains('500') || error.contains('Server error') || error.contains('Failed to load videos');
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.error_outline,
+            isNoVideos ? Icons.video_library_outlined : Icons.error_outline,
             size: 80.sp,
-            color: Colors.red.withValues(alpha: 0.7),
+            color: isNoVideos 
+                ? Colors.white.withValues(alpha: 0.5) 
+                : Colors.red.withValues(alpha: 0.7),
           ),
           SizedBox(height: 24.h),
           Text(
-            'Ошибка загрузки',
+            isNoVideos ? 'Пока нет видео' : 'Ошибка загрузки',
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
           SizedBox(height: 8.h),
-          Text(
-            error,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.white.withValues(alpha: 0.5),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40.w),
+            child: Text(
+              isNoVideos 
+                  ? 'Станьте первым, кто загрузит мебельное видео!' 
+                  : error,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: 32.h),
           ElevatedButton(
             onPressed: () {
               ref.read(videoProvider.notifier).loadVideos();
@@ -147,8 +157,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
             ),
-            child: const Text('Попробовать снова'),
+            child: Text(
+              'Попробовать снова',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
