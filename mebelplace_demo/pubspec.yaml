@@ -2,7 +2,7 @@ name: mebelplace
 description: "MebelPlace - TikTok-style video platform for furniture masters"
 publish_to: 'none'
 
-version: 1.0.0+5
+version: 1.0.0+32
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -91,3 +91,6 @@ flutter_launcher_icons:
   image_path: "логотип.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "логотип.png"
+  # iOS требует непрозрачные иконки
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
