@@ -189,12 +189,10 @@ router.post('/login', authRateLimit, async (req, res) => {
     if (phone.startsWith('8')) {
       phone = '+7' + phone.substring(1);
     }
-    // Ensure phone starts with +7
+    // Ensure phone starts with +
     if (!phone.startsWith('+')) {
       phone = '+' + phone;
     }
-
-    console.log('🔐 [LOGIN] Normalized phone:', phone);
 
     // Get user from database by phone
     const result = await pool.query(
@@ -702,11 +700,11 @@ router.post('/forgot-password', async (req, res) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
 
     // Сохраняем код в Redis с TTL 10 минут (600 секунд)
-    await redisClient.set(`sms:password_reset:${phone}`, JSON.stringify({
+    await redisClient.setWithTTL(`sms:password_reset:${phone}`, {
       code,
       expiresAt: expiresAt.toISOString(),
       type: 'password_reset'
-    }), 'EX', 600);
+    }, 600);
 
     // Отправляем SMS
     try {
@@ -849,11 +847,11 @@ router.post('/send-sms-code', async (req, res) => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
     // Сохраняем код в Redis с временем истечения (10 минут = 600 секунд)
-    await redisClient.set(`sms:verification:${phone}`, JSON.stringify({
+    await redisClient.setWithTTL(`sms:verification:${phone}`, {
       code,
       expiresAt: Date.now() + 10 * 60 * 1000,
       attempts: 0
-    }), 'EX', 600);
+    }, 600);
 
     // Отправляем SMS через существующий сервис
     const smsStartTime = Date.now();
@@ -938,7 +936,7 @@ router.post('/verify-sms', async (req, res) => {
     if (storedData.code !== code) {
       storedData.attempts++;
       // Обновляем счетчик попыток в Redis
-      await redisClient.set(`sms:verification:${phone}`, JSON.stringify(storedData), 'EX', 300);
+      await redisClient.setWithTTL(`sms:verification:${phone}`, storedData, 300);
       return res.status(400).json({
         success: false,
         message: 'Invalid verification code',
@@ -960,6 +958,45 @@ router.post('/verify-sms', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to verify SMS code',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// DELETE /api/auth/profile - Delete user account
+router.delete('/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Soft delete: set is_active = false
+    const result = await pool.query(
+      'UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1 RETURNING id',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Clear user sessions
+    await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete account',
+      error: error.message,
       timestamp: new Date().toISOString()
     });
   }

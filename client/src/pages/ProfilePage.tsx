@@ -636,9 +636,15 @@ const ProfilePage: React.FC = () => {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => {
+                    onClick={async () => {
                       if (window.confirm('Вы уверены, что хотите удалить профиль? Это действие необратимо.')) {
-                        alert('Функция удаления профиля будет доступна в следующем обновлении.\n\nДля удаления профиля сейчас, пожалуйста, свяжитесь с поддержкой:\nsupport@mebelplace.com.kz')
+                        try {
+                          await userService.deleteAccount()
+                          logout()
+                          navigate('/register')
+                        } catch (error) {
+                          alert('Ошибка при удалении аккаунта. Попробуйте позже.')
+                        }
                       }
                     }}
                     className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl p-4 text-left transition-colors flex items-center gap-3"

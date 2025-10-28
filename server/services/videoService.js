@@ -26,7 +26,8 @@ const getCached = async (key) => {
 
 const setCache = async (key, data) => {
   try {
-    await redisClient.set(key, data, 'EX', CACHE_TTL);
+    // Используем setWithTTL для правильной работы с объектами
+    await redisClient.setWithTTL(key, data, CACHE_TTL);
   } catch (error) {
     console.error('Cache set error:', error);
   }

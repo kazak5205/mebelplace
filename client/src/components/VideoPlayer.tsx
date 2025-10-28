@@ -649,14 +649,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               className="flex flex-col items-center space-y-1"
             >
               <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                {currentVideo.avatar || currentVideo.master?.avatar ? (
+                {(currentVideo.avatar || currentVideo.master?.avatar) ? (
                   <img 
-                    src={currentVideo.avatar?.startsWith('http') ? currentVideo.avatar : `https://mebelplace.com.kz${currentVideo.avatar}` || 
-                           currentVideo.master?.avatar?.startsWith('http') ? currentVideo.master?.avatar : `https://mebelplace.com.kz${currentVideo.master?.avatar}`} 
+                    src={`${currentVideo.avatar?.startsWith('http') ? currentVideo.avatar : `https://mebelplace.com.kz${currentVideo.avatar || currentVideo.master?.avatar}`}?t=${Date.now()}`}
                     alt={currentVideo.username || currentVideo.master?.name || 'Avatar'}
                     className="w-full h-full object-cover"
+                    onLoad={() => console.log('✅ Feed avatar loaded:', currentVideo.avatar || currentVideo.master?.avatar)}
                     onError={(e) => {
-                      console.log('Avatar image failed to load:', e.currentTarget.src);
+                      console.error('❌ Feed avatar failed:', currentVideo.avatar || currentVideo.master?.avatar, e.currentTarget.src);
                       e.currentTarget.style.display = 'none'
                       if (e.currentTarget.nextSibling) {
                         (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
@@ -827,7 +827,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             {/* Заголовок */}
             <div className="px-4 pb-3 border-b border-white/10">
               <h3 className="text-white font-bold text-center">
-                {comments.length} {comments.length === 1 ? 'комментарий' : 'комментариев'}
+                {(() => {
+                  const totalCount = comments.reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0)
+                  return `${totalCount} ${totalCount === 1 ? 'комментарий' : totalCount < 5 ? 'комментария' : 'комментариев'}`
+                })()}
               </h3>
             </div>
 
@@ -843,8 +846,28 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 comments.map((comment) => (
                   <div key={comment.id} className="space-y-2">
                     <div className="flex space-x-3">
-                      <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                        {comment.username?.charAt(0).toUpperCase() || 'U'}
+                      <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                        {comment.avatar ? (
+                          <img 
+                            src={`${comment.avatar.startsWith('http') ? comment.avatar : `https://mebelplace.com.kz${comment.avatar}`}?t=${Date.now()}`} 
+                            alt={comment.username || 'Avatar'} 
+                            className="w-full h-full object-cover"
+                            onLoad={() => console.log('✅ Comment avatar loaded:', comment.avatar)}
+                            onError={(e) => {
+                              console.error('❌ Comment avatar load failed:', comment.avatar, e.currentTarget.src)
+                              e.currentTarget.style.display = 'none'
+                              if (e.currentTarget.nextSibling) {
+                                (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <span 
+                          className="text-white font-bold text-sm"
+                          style={{ display: comment.avatar ? 'none' : 'flex' }}
+                        >
+                          {comment.username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
@@ -919,8 +942,28 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                           <div className="mt-3 space-y-3 pl-4 border-l-2 border-white/10">
                             {comment.replies.map((reply: any) => (
                               <div key={reply.id} className="flex space-x-2">
-                                <div className="w-7 h-7 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                                  {reply.username?.charAt(0).toUpperCase() || 'U'}
+                                <div className="w-7 h-7 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 overflow-hidden">
+                                  {reply.avatar ? (
+                                    <img 
+                                      src={`${reply.avatar.startsWith('http') ? reply.avatar : `https://mebelplace.com.kz${reply.avatar}`}?t=${Date.now()}`}
+                                      alt={reply.username || 'Avatar'} 
+                                      className="w-full h-full object-cover"
+                                      onLoad={() => console.log('✅ Reply avatar loaded:', reply.avatar)}
+                                      onError={(e) => {
+                                        console.error('❌ Reply avatar load failed:', reply.avatar)
+                                        e.currentTarget.style.display = 'none'
+                                        if (e.currentTarget.nextSibling) {
+                                          (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex'
+                                        }
+                                      }}
+                                    />
+                                  ) : null}
+                                  <span 
+                                    className="text-white font-bold text-xs"
+                                    style={{ display: reply.avatar ? 'none' : 'flex' }}
+                                  >
+                                    {reply.username?.charAt(0).toUpperCase() || 'U'}
+                                  </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center space-x-2 mb-1">

@@ -204,7 +204,7 @@ const authRateLimit = async (req, res, next) => {
     }
 
     // IORedis syntax для установки TTL
-    await redisClient.set(key, (currentAttempts + 1).toString(), 'EX', windowSeconds);
+    await redisClient.redis.set(key, (currentAttempts + 1).toString(), 'EX', windowSeconds);
 
     next();
   } catch (error) {

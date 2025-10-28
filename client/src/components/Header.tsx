@@ -10,16 +10,24 @@ const Header: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
 
   const handleSearch = (query: string) => {
+    console.log('🔍 handleSearch called with:', query)
     if (query.trim().length >= 2) {
+      console.log('🔍 Navigating to search page with query:', query)
       // Сразу переходим на страницу поиска, данные загрузятся там
       navigate(`/search?q=${encodeURIComponent(query)}`)
+    } else {
+      console.log('⚠️ Query too short:', query.length)
     }
   }
 
   const handleSearchSubmit = (e: React.FormEvent) => {
+    console.log('🔍 handleSearchSubmit called')
     e.preventDefault()
+    console.log('🔍 searchQuery:', searchQuery)
     if (searchQuery.trim()) {
       handleSearch(searchQuery)
+    } else {
+      console.log('⚠️ Search query is empty')
     }
   }
 
@@ -43,9 +51,16 @@ const Header: React.FC = () => {
               placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 md:px-4 py-1.5 md:py-2 pl-8 md:pl-10 bg-gray-900/90 border border-gray-700 rounded-xl text-sm md:text-base text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 backdrop-blur-md"
+              className="w-full px-3 md:px-4 py-1.5 md:py-2 pl-8 md:pl-10 pr-8 md:pr-10 bg-gray-900/90 border border-gray-700 rounded-xl text-sm md:text-base text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 backdrop-blur-md"
             />
-            <Search className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-white/70" />
+            <Search className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-white/70 pointer-events-none" />
+            <button
+              type="submit"
+              className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 md:w-7 md:h-7 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg flex items-center justify-center transition-colors"
+              title="Искать"
+            >
+              <Search className="w-3 h-3 md:w-4 md:h-4 text-orange-400" />
+            </button>
           </form>
 
           <div className="flex items-center space-x-1.5 md:space-x-3 flex-shrink-0">

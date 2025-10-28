@@ -43,5 +43,10 @@ export const userService = {
   // Лайкнутые видео
   async getLikedVideos() {
     return apiService.get('/videos/liked')
+  },
+
+  // Удаление аккаунта
+  async deleteAccount() {
+    return apiService.delete('/auth/profile')
   }
 }

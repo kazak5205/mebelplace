@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Play, Heart, MessageCircle, Grid, Bookmark, Upload, X, Eye, MoreHorizontal, UserPlus, UserMinus } from 'lucide-react'
+import { ArrowLeft, Play, Heart, MessageCircle, Grid, Bookmark, Upload, X, Eye, UserPlus, UserMinus } from 'lucide-react'
 import { Video, User } from '../types'
 import { videoService } from '../services/videoService'
 import { userService } from '../services/userService'
@@ -239,13 +239,8 @@ const MasterChannelPage: React.FC = () => {
               @{master.username || displayName.toLowerCase().replace(/\s/g, '_')}
             </motion.h1>
             
-            <motion.button 
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
-            >
-              <MessageCircle className="w-5 h-5 text-white" />
-            </motion.button>
+            {/* Пустой элемент для симметрии */}
+            <div className="w-10 h-10" />
           </div>
         </motion.div>
 
@@ -407,41 +402,25 @@ const MasterChannelPage: React.FC = () => {
                     <span>Загрузить видео</span>
                   </motion.button>
                 ) : (
-                  <>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleSubscribe}
-                      className={`flex-1 ${isSubscribed ? 'bg-white/10 border border-white/20' : 'bg-pink-500 hover:bg-pink-600'} text-white font-semibold py-2.5 px-4 rounded-full flex items-center justify-center gap-2 transition-colors`}
-                    >
-                      {isSubscribed ? (
-                        <>
-                          <UserMinus className="w-4 h-4" />
-                          <span>Отписаться</span>
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4" />
-                          <span>Подписаться</span>
-                        </>
-                      )}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"
-                    >
-                      <MessageCircle className="w-5 h-5 text-white" />
-                    </motion.button>
-                  </>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleSubscribe}
+                    className={`flex-1 ${isSubscribed ? 'bg-white/10 border border-white/20' : 'bg-pink-500 hover:bg-pink-600'} text-white font-semibold py-2.5 px-4 rounded-full flex items-center justify-center gap-2 transition-colors`}
+                  >
+                    {isSubscribed ? (
+                      <>
+                        <UserMinus className="w-4 h-4" />
+                        <span>Отписаться</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4" />
+                        <span>Подписаться</span>
+                      </>
+                    )}
+                  </motion.button>
                 )}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center"
-                >
-                  <MoreHorizontal className="w-5 h-5 text-white" />
-                </motion.button>
               </motion.div>
             </div>
           </div>
