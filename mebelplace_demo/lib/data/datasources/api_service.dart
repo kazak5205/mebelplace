@@ -913,19 +913,12 @@ class ApiService {
   }
 
   // Chat endpoints
-  Future<ApiResponse<List<ChatModel>>> getChats() async {
+  Future<ApiResponse<List<ChatModel>>> getChats({int? currentUserId}) async {
     try {
-      // Получаем текущего пользователя для определения otherUser
-      final user = await _localStorage.getUser();
-      final currentUserId = user?.id;
-      
-      // ИСПРАВЛЕНО: реальный endpoint /chats/list (не /chat/list)
       final response = await _dio.get('/chats/list');
       
       if (response.statusCode == 200) {
         final data = response.data;
-        
-        // Проверяем структуру ответа (может быть data.chats или data напрямую)
         final List<dynamic> chatsJson = data['data']?['chats'] ?? data['data'] ?? [];
         
         print('📋 API: Parsing ${chatsJson.length} chats with currentUserId: $currentUserId');
