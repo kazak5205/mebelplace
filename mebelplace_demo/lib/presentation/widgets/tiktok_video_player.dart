@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/video_model.dart';
+import '../providers/app_providers.dart';
+import '../../utils/haptic_helper.dart';
 
-class TikTokVideoPlayer extends StatefulWidget {
+class TikTokVideoPlayer extends ConsumerStatefulWidget {
   final List<VideoModel> videos;
   final int initialIndex;
   final Function(VideoModel video)? onVideoChanged;
   final Function(VideoModel video)? onLike;
   final Function(VideoModel video)? onShare;
   final Function(VideoModel video)? onComment;
+  final Function(VideoModel video)? onOrder;
 
   const TikTokVideoPlayer({
     super.key,
@@ -21,51 +25,72 @@ class TikTokVideoPlayer extends StatefulWidget {
     this.onLike,
     this.onShare,
     this.onComment,
+    this.onOrder,
   });
 
   @override
-  State<TikTokVideoPlayer> createState() => _TikTokVideoPlayerState();
+  ConsumerState<TikTokVideoPlayer> createState() => _TikTokVideoPlayerState();
 }
 
-class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
-    with TickerProviderStateMixin {
+class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
-  late VideoPlayerController _videoController;
+  VideoPlayerController? _videoController;
   int _currentIndex = 0;
   bool _isPlaying = true;
   bool _isMuted = false;
   bool _showControls = false;
   late AnimationController _heartAnimationController;
   late AnimationController _controlsAnimationController;
+  late AnimationController _orderButtonAnimationController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
+    
     _heartAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
     _controlsAnimationController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
+    _orderButtonAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    
     _initializeVideo();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Пауза видео когда приложение в фоне
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _videoController?.pause();
+    } else if (state == AppLifecycleState.resumed && _isPlaying) {
+      _videoController?.play();
+    }
+  }
+
   void _initializeVideo() {
-    if (widget.videos.isNotEmpty) {
+    if (widget.videos.isNotEmpty && widget.videos.length > _currentIndex) {
+      _videoController?.dispose();
       _videoController = VideoPlayerController.networkUrl(
         Uri.parse(widget.videos[_currentIndex].videoUrl),
       );
-      _videoController.initialize().then((_) {
-        setState(() {});
-        if (_isPlaying) {
-          _videoController.play();
-        }
-        if (_isMuted) {
-          _videoController.setVolume(0);
+      _videoController!.initialize().then((_) {
+        if (mounted) {
+          setState(() {});
+          if (_isPlaying) {
+            _videoController!.play();
+          }
+          _videoController!.setVolume(_isMuted ? 0 : 1);
+          _videoController!.setLooping(true);
         }
       });
     }
@@ -73,41 +98,61 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
 
   @override
   void dispose() {
-    _videoController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _videoController?.dispose();
     _pageController.dispose();
     _heartAnimationController.dispose();
     _controlsAnimationController.dispose();
+    _orderButtonAnimationController.dispose();
     super.dispose();
+  }
+  
+  // Метод для паузы видео извне (когда уходим со страницы)
+  void pauseVideo() {
+    _videoController?.pause();
+    _isPlaying = false;
+  }
+  
+  // Метод для возобновления видео
+  void resumeVideo() {
+    if (_isPlaying) {
+      _videoController?.play();
+    }
   }
 
   void _onPageChanged(int index) {
     if (index != _currentIndex && index < widget.videos.length) {
-      _videoController.dispose();
-      _currentIndex = index;
+      _videoController?.dispose();
+      setState(() {
+        _currentIndex = index;
+      });
       _initializeVideo();
       widget.onVideoChanged?.call(widget.videos[_currentIndex]);
     }
   }
 
   void _togglePlayPause() {
+    HapticHelper.lightImpact(); // ✨ Вибрация
     setState(() {
       _isPlaying = !_isPlaying;
       if (_isPlaying) {
-        _videoController.play();
+        _videoController?.play();
       } else {
-        _videoController.pause();
+        _videoController?.pause();
       }
     });
   }
 
   void _toggleMute() {
+    HapticHelper.lightImpact(); // ✨ Вибрация
     setState(() {
       _isMuted = !_isMuted;
-      _videoController.setVolume(_isMuted ? 0 : 1);
+      _videoController?.setVolume(_isMuted ? 0 : 1);
     });
   }
 
   void _onLike() {
+    HapticHelper.like(); // ✨ Вибрация при лайке
     _heartAnimationController.forward().then((_) {
       _heartAnimationController.reverse();
     });
@@ -115,6 +160,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
   }
 
   void _onDoubleTap() {
+    HapticHelper.mediumImpact(); // ✨ Вибрация при double tap
     _onLike();
   }
 
@@ -128,9 +174,11 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) {
           _controlsAnimationController.reverse().then((_) {
-            setState(() {
-              _showControls = false;
-            });
+            if (mounted) {
+              setState(() {
+                _showControls = false;
+              });
+            }
           });
         }
       });
@@ -143,7 +191,10 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
   Widget build(BuildContext context) {
     if (widget.videos.isEmpty) {
       return const Center(
-        child: Text('Нет видео для воспроизведения'),
+        child: Text(
+          'Нет видео для воспроизведения',
+          style: TextStyle(color: Colors.white),
+        ),
       );
     }
 
@@ -151,7 +202,7 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Video PageView с GestureDetector для tap/double-tap
+          // Video PageView
           PageView.builder(
             controller: _pageController,
             scrollDirection: Axis.vertical,
@@ -165,11 +216,12 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
               );
             },
           ),
-          // Overlay элементы БЕЗ перехвата кликов
+          
+          // Overlay elements
           if (_showControls) _buildControls(),
           _buildRightActions(),
           _buildBottomInfo(),
-          _buildProgressIndicator(),
+          _buildOrderButton(), // Новая кнопка заказа
         ],
       ),
     );
@@ -179,14 +231,19 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
     return SizedBox(
       width: double.infinity,
       height: double.infinity,
-      child: _videoController.value.isInitialized
-          ? AspectRatio(
-              aspectRatio: _videoController.value.aspectRatio,
-              child: VideoPlayer(_videoController),
+      child: _videoController?.value.isInitialized == true
+          ? FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _videoController!.value.size.width,
+                height: _videoController!.value.size.height,
+                child: VideoPlayer(_videoController!),
+              ),
             )
           : const Center(
               child: CircularProgressIndicator(
                 color: AppColors.primary,
+                strokeWidth: 3,
               ),
             ),
     );
@@ -204,14 +261,14 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
               child: Container(
                 width: 80.w,
                 height: 80.w,
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  _isPlaying ? Icons.pause : Icons.play_arrow,
+                  _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   color: Colors.white,
-                  size: 40.sp,
+                  size: 48.sp,
                 ),
               ),
             ),
@@ -225,47 +282,74 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
     final video = widget.videos[_currentIndex];
     
     return Positioned(
-      right: 16.w,
-      bottom: 120.h,
+      right: 12.w,
+      bottom: 140.h,
       child: Column(
         children: [
-          // Avatar
-          GestureDetector(
+          // Avatar (круглый, как в TikTok)
+          _buildActionButton(
             onTap: () {
-              Navigator.pushNamed(context, '/master-profile', arguments: video.authorId);
+              HapticHelper.lightImpact(); // ✨ Вибрация
+              Navigator.pushNamed(
+                context,
+                '/master-profile',
+                arguments: video.authorId,
+              );
             },
-            child: Container(
-              width: 48.w,
-              height: 48.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: video.avatar != null
-                  ? ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl: video.avatar!,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                        ),
-                        errorWidget: (context, url, error) => const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                        ),
+            child: Hero(
+              tag: 'master_avatar_${video.authorId}', // ✨ Hero animation
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 52.w,
+                    height: 52.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primary, AppColors.secondary],
                       ),
-                    )
-                  : const Icon(
-                      Icons.person,
-                      color: Colors.white,
                     ),
+                  ),
+                  Container(
+                    width: 48.w,
+                    height: 48.w,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black,
+                    ),
+                    child: ClipOval(
+                      child: video.avatar != null
+                          ? CachedNetworkImage(
+                              imageUrl: video.avatar!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Icon(
+                                Icons.person_rounded,
+                                color: Colors.white,
+                                size: 24.sp,
+                              ),
+                              errorWidget: (context, url, error) => Icon(
+                                Icons.person_rounded,
+                                color: Colors.white,
+                                size: 24.sp,
+                              ),
+                            )
+                          : Icon(
+                              Icons.person_rounded,
+                              color: Colors.white,
+                              size: 24.sp,
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          SizedBox(height: 24.h),
+          
+          SizedBox(height: 20.h),
           
           // Like button
-          GestureDetector(
+          _buildActionButton(
             onTap: _onLike,
             child: Column(
               children: [
@@ -273,11 +357,18 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                   animation: _heartAnimationController,
                   builder: (context, child) {
                     return Transform.scale(
-                      scale: 1.0 + (_heartAnimationController.value * 0.3),
+                      scale: 1.0 + (_heartAnimationController.value * 0.4),
                       child: Icon(
-                        video.isLiked ? Icons.favorite : Icons.favorite_border,
+                        video.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                         color: video.isLiked ? Colors.red : Colors.white,
-                        size: 36.sp,
+                        size: 32.sp,
+                        shadows: const [
+                          Shadow(
+                            color: Colors.black,
+                            offset: Offset(0, 2),
+                            blurRadius: 4,
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -289,10 +380,10 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                     color: Colors.white,
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
-                    shadows: [
+                    shadows: const [
                       Shadow(
-                        color: Colors.black.withValues(alpha: 0.75),
-                        offset: const Offset(0, 1),
+                        color: Colors.black,
+                        offset: Offset(0, 1),
                         blurRadius: 3,
                       ),
                     ],
@@ -301,17 +392,25 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
               ],
             ),
           ),
-          SizedBox(height: 24.h),
+          
+          SizedBox(height: 20.h),
           
           // Comment button
-          GestureDetector(
+          _buildActionButton(
             onTap: () => widget.onComment?.call(video),
             child: Column(
               children: [
                 Icon(
-                  Icons.comment_outlined,
+                  Icons.chat_bubble_outline_rounded,
                   color: Colors.white,
-                  size: 34.sp,
+                  size: 30.sp,
+                  shadows: const [
+                    Shadow(
+                      color: Colors.black,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
                 SizedBox(height: 4.h),
                 Text(
@@ -320,10 +419,10 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                     color: Colors.white,
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
-                    shadows: [
+                    shadows: const [
                       Shadow(
-                        color: Colors.black.withValues(alpha: 0.75),
-                        offset: const Offset(0, 1),
+                        color: Colors.black,
+                        offset: Offset(0, 1),
                         blurRadius: 3,
                       ),
                     ],
@@ -332,57 +431,58 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
               ],
             ),
           ),
-          SizedBox(height: 24.h),
+          
+          SizedBox(height: 20.h),
           
           // Share button
-          GestureDetector(
+          _buildActionButton(
             onTap: () => widget.onShare?.call(video),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.send,
-                  color: Colors.white,
-                  size: 28.sp,
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  'Поделиться',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.75),
-                        offset: const Offset(0, 1),
-                        blurRadius: 3,
-                      ),
-                    ],
-                  ),
+            child: Icon(
+              Icons.share_outlined,
+              color: Colors.white,
+              size: 28.sp,
+              shadows: const [
+                Shadow(
+                  color: Colors.black,
+                  offset: Offset(0, 2),
+                  blurRadius: 4,
                 ),
               ],
             ),
           ),
-          SizedBox(height: 24.h),
           
-          // Bookmark button
-          Icon(
-            Icons.bookmark_border,
-            color: Colors.white,
-            size: 32.sp,
-          ),
-          SizedBox(height: 24.h),
+          SizedBox(height: 20.h),
           
           // Mute button
-          GestureDetector(
+          _buildActionButton(
             onTap: _toggleMute,
             child: Icon(
-              _isMuted ? Icons.volume_off : Icons.volume_up,
+              _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
               color: Colors.white,
               size: 28.sp,
+              shadows: const [
+                Shadow(
+                  color: Colors.black,
+                  offset: Offset(0, 2),
+                  blurRadius: 4,
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required Widget child,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(8.w),
+        child: child,
       ),
     );
   }
@@ -391,9 +491,9 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
     final video = widget.videos[_currentIndex];
     
     return Positioned(
-      left: 16.w,
-      right: 90.w,
-      bottom: 20.h,
+      left: 12.w,
+      right: 80.w,
+      bottom: 24.h,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -406,24 +506,33 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
                   color: Colors.white,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
-                  shadows: [
+                  shadows: const [
                     Shadow(
-                      color: Colors.black.withValues(alpha: 0.75),
-                      offset: const Offset(0, 1),
+                      color: Colors.black,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                video.timeAgo,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 13.sp,
+                  shadows: const [
+                    Shadow(
+                      color: Colors.black,
+                      offset: Offset(0, 1),
                       blurRadius: 3,
                     ),
                   ],
                 ),
               ),
-              Text(
-                ' • ${video.timeAgo}',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 14.sp,
-                ),
-              ),
             ],
           ),
+          
           SizedBox(height: 8.h),
           
           // Title
@@ -431,13 +540,13 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
             video.title,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 16.sp,
+              fontSize: 15.sp,
               fontWeight: FontWeight.w600,
-              shadows: [
+              shadows: const [
                 Shadow(
-                  color: Colors.black.withValues(alpha: 0.75),
-                  offset: const Offset(0, 1),
-                  blurRadius: 3,
+                  color: Colors.black,
+                  offset: Offset(0, 2),
+                  blurRadius: 4,
                 ),
               ],
             ),
@@ -446,17 +555,17 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
           ),
           
           // Description
-          if (video.description != null) ...[
-            SizedBox(height: 8.h),
+          if (video.description != null && video.description!.isNotEmpty) ...[
+            SizedBox(height: 6.h),
             Text(
               video.description!,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: Colors.white.withOpacity(0.9),
                 fontSize: 14.sp,
-                shadows: [
+                shadows: const [
                   Shadow(
-                    color: Colors.black.withValues(alpha: 0.75),
-                    offset: const Offset(0, 1),
+                    color: Colors.black,
+                    offset: Offset(0, 1),
                     blurRadius: 3,
                   ),
                 ],
@@ -468,20 +577,21 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
           
           // Tags
           if (video.tags.isNotEmpty) ...[
-            SizedBox(height: 12.h),
+            SizedBox(height: 8.h),
             Wrap(
-              spacing: 8.w,
+              spacing: 6.w,
+              runSpacing: 4.h,
               children: video.tags.take(3).map((tag) {
                 return Text(
                   '#$tag',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.primary,
                     fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                    shadows: [
+                    fontWeight: FontWeight.w600,
+                    shadows: const [
                       Shadow(
-                        color: Colors.black.withValues(alpha: 0.75),
-                        offset: const Offset(0, 1),
+                        color: Colors.black,
+                        offset: Offset(0, 1),
                         blurRadius: 3,
                       ),
                     ],
@@ -495,32 +605,71 @@ class _TikTokVideoPlayerState extends State<TikTokVideoPlayer>
     );
   }
 
-  Widget _buildProgressIndicator() {
+  Widget _buildOrderButton() {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    
+    // Показываем кнопку только авторизованным клиентам
+    if (user == null || user.role != 'user') {
+      return const SizedBox.shrink();
+    }
+    
     return Positioned(
-      top: 50.h,
-      left: 0,
-      right: 0,
-      child: Row(
-        children: widget.videos.asMap().entries.map((entry) {
-          final index = entry.key;
-          final isActive = index == _currentIndex;
-          final isCompleted = index < _currentIndex;
-          
-          return Expanded(
-            child: Container(
-              height: 2.h,
-              margin: EdgeInsets.symmetric(horizontal: 2.w),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? Colors.white
-                    : isCompleted
-                        ? Colors.white.withValues(alpha: 0.5)
-                        : Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(1.r),
+      left: 12.w,
+      right: 12.w,
+      top: 60.h,
+      child: AnimatedBuilder(
+        animation: _orderButtonAnimationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: 1.0 + (_orderButtonAnimationController.value * 0.05),
+            child: GestureDetector(
+              onTap: () {
+                final video = widget.videos[_currentIndex];
+                widget.onOrder?.call(video);
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 20.w,
+                  vertical: 12.h,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, AppColors.secondary],
+                  ),
+                  borderRadius: BorderRadius.circular(30.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.shopping_bag_outlined,
+                      color: Colors.white,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Заказать мебель',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
-        }).toList(),
+        },
       ),
     );
   }

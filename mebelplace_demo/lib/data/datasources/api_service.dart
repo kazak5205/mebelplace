@@ -22,19 +22,48 @@ class ApiService {
     // Добавляем интерцептор для JWT токенов
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
+        print('📤 API Request: ${options.method} ${options.path}');
+        if (options.queryParameters.isNotEmpty) {
+          print('   Query: ${options.queryParameters}');
+        }
+        if (options.data != null && options.data is! FormData) {
+          print('   Body: ${options.data}');
+        }
+        
         // Добавляем JWT токен если есть
         final token = await LocalStorage().getToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
+          print('   Auth: Bearer ${token.substring(0, 20)}...');
         }
         handler.next(options);
       },
       onResponse: (response, handler) {
+        print('📥 API Response: ${response.statusCode} ${response.requestOptions.path}');
+        
         // ✅ ТРАНСФОРМАЦИЯ snake_case → camelCase (как веб-фронтенд!)
         if (response.data != null) {
+          // Логируем структуру ПЕРЕД трансформацией
+          if (response.data is Map) {
+            print('   Keys (before transform): ${(response.data as Map).keys.take(10).join(", ")}');
+          }
+          
           response.data = snakeToCamel(response.data);
+          
+          // Логируем структуру ПОСЛЕ трансформации
+          if (response.data is Map) {
+            print('   Keys (after transform): ${(response.data as Map).keys.take(10).join(", ")}');
+          }
         }
         return handler.next(response);
+      },
+      onError: (error, handler) {
+        print('❌ API Error: ${error.response?.statusCode} ${error.requestOptions.path}');
+        if (error.response?.data != null) {
+          print('   Error data: ${error.response?.data}');
+        }
+        print('   Message: ${error.message}');
+        handler.next(error);
       },
     ));
   }
@@ -113,27 +142,14 @@ class ApiService {
       
       if (response.statusCode == 200) {
         final responseData = response.data;
-        final data = responseData['data'] ?? responseData;
-        final user = UserModel.fromJson(data['user']);
-        
-        final accessToken = data['accessToken'] ?? data['access_token'];
-        final refreshToken = data['refreshToken'] ?? data['refresh_token'];
-        
-        await LocalStorage().saveToken(accessToken);
-        if (refreshToken != null) {
-          await LocalStorage().saveRefreshToken(refreshToken);
-        }
         
         print('✅ API: SMS verified successfully');
         
+        // ✅ API просто подтверждает код, user создается позже при /auth/register
         return ApiResponse<AuthData>(
           success: true,
-          data: AuthData(
-            user: user,
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-          ),
-          message: responseData['message'] ?? 'Регистрация успешна',
+          data: null, // Нет данных, только подтверждение
+          message: responseData['message'] ?? 'Код подтвержден',
           timestamp: DateTime.now().toIso8601String(),
         );
       } else {
@@ -234,14 +250,8 @@ class ApiService {
 
   Future<ApiResponse<AuthData>> register(RegisterRequest request) async {
     try {
-      final response = await _dio.post('/auth/register', data: {
-        'phone': request.phone,
-        'username': request.username,
-        'password': request.password,
-        'firstName': request.firstName,
-        'lastName': request.lastName,
-        'role': request.role,
-      });
+      print('📡 API: POST /auth/register - ${request.role}');
+      final response = await _dio.post('/auth/register', data: request.toJson());
       
       if (response.statusCode == 201) {
         // ИСПРАВЛЕНО: правильная структура ответа
@@ -1482,6 +1492,9 @@ class RegisterRequest {
   final String? firstName;
   final String? lastName;
   final String role;
+  final String? companyName;
+  final String? companyAddress;
+  final String? companyDescription;
 
   RegisterRequest({
     required this.phone,
@@ -1490,7 +1503,25 @@ class RegisterRequest {
     this.firstName,
     this.lastName,
     this.role = 'user',
+    this.companyName,
+    this.companyAddress,
+    this.companyDescription,
   });
+  
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'phone': phone,
+      'username': username,
+      'password': password,
+      'role': role,
+    };
+    if (firstName != null) map['firstName'] = firstName!;
+    if (lastName != null) map['lastName'] = lastName!;
+    if (companyName != null) map['companyName'] = companyName!;
+    if (companyAddress != null) map['companyAddress'] = companyAddress!;
+    if (companyDescription != null) map['companyDescription'] = companyDescription!;
+    return map;
+  }
 }
 
 class LogoutRequest {

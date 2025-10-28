@@ -5,11 +5,12 @@ import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'data/models/user_model.dart';
 import 'presentation/pages/home_screen.dart';
-import 'presentation/pages/auth/login_screen.dart';
-import 'presentation/pages/auth/register_screen.dart';
+import 'presentation/pages/auth/registration_type_selection_page.dart';
+import 'presentation/pages/auth/registration_flow_page.dart';
 import 'presentation/pages/auth/sms_verification_page.dart';
+import 'presentation/widgets/custom_bottom_navigation.dart';
 import 'presentation/pages/orders/orders_screen.dart';
-import 'presentation/pages/orders/create_order_screen.dart';
+import 'presentation/pages/orders/create_order_page.dart';
 import 'presentation/pages/orders/order_detail_page.dart';
 import 'presentation/pages/orders/order_responses_page.dart';
 import 'presentation/pages/orders/order_respond_page.dart';
@@ -19,7 +20,7 @@ import 'presentation/pages/messages/chat_page.dart';
 import 'presentation/pages/profile/profile_screen.dart';
 import 'presentation/pages/profile/master_channel_page.dart';
 import 'presentation/pages/search/search_results_page.dart';
-import 'presentation/pages/video/create_video_page.dart';
+import 'presentation/pages/video/create_video_screen.dart';
 import 'presentation/pages/support/support_page.dart';
 import 'presentation/pages/legal/terms_of_service_page.dart';
 import 'presentation/pages/legal/privacy_policy_page.dart';
@@ -49,13 +50,13 @@ class MebelPlaceApp extends ConsumerWidget {
           home: const AppNavigator(),
           routes: {
             '/home': (context) => const AppNavigator(),
-            '/login': (context) => const AuthScreen(),
-            '/create-order': (context) => const CreateOrderScreen(),
+            '/registration-type': (context) => const RegistrationTypeSelectionPage(),
+            '/create-order': (context) => const CreateOrderPage(),
             '/user-orders': (context) => const UserOrdersPage(),
             '/support': (context) => const SupportPage(),
             '/terms': (context) => const TermsOfServicePage(),
             '/privacy': (context) => const PrivacyPolicyPage(),
-            '/create-video': (context) => const CreateVideoPage(),
+            '/create-video': (context) => const CreateVideoScreen(),
           },
           onGenerateRoute: (settings) {
             // Динамические маршруты с параметрами
@@ -101,6 +102,12 @@ class MebelPlaceApp extends ConsumerWidget {
                 builder: (context) => SmsVerificationPage(phoneNumber: phone),
               );
             }
+            if (settings.name == '/registration-flow') {
+              final args = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (context) => RegistrationFlowPage(role: args['role']),
+              );
+            }
             return null;
           },
         );
@@ -122,105 +129,7 @@ class AppNavigator extends ConsumerWidget {
   }
 }
 
-class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
-
-  @override
-  State<AuthScreen> createState() => _AuthScreenState();
-}
-
-class _AuthScreenState extends State<AuthScreen> {
-  bool _isLogin = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.dark,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(24.w),
-          child: Column(
-            children: [
-              SizedBox(height: 60.h),
-              Text(
-                'MebelPlace',
-                style: TextStyle(
-                  fontSize: 32.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                'Платформа для мастеров мебели',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.white70,
-                ),
-              ),
-              SizedBox(height: 60.h),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _isLogin = true),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 16.h),
-                          decoration: BoxDecoration(
-                            color: _isLogin ? AppColors.primary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Text(
-                            'Вход',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: _isLogin ? Colors.white : Colors.white70,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _isLogin = false),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 16.h),
-                          decoration: BoxDecoration(
-                            color: !_isLogin ? AppColors.primary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Text(
-                            'Регистрация',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: !_isLogin ? Colors.white : Colors.white70,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 32.h),
-              if (_isLogin)
-                const Expanded(child: LoginScreen())
-              else
-                const Expanded(child: RegisterScreen()),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// AuthScreen удален - теперь используем RegistrationTypeSelectionPage
 
 class MainNavigation extends StatefulWidget {
   final UserModel? user;
@@ -239,7 +148,7 @@ class _MainNavigationState extends State<MainNavigation> {
       return [
         const HomeScreen(),
         const OrdersScreen(), // Все заявки для мастера
-        const CreateOrderScreen(), // Создать видеорекламу для мастера
+        const CreateVideoScreen(), // Создать видеорекламу для мастера (placeholder)
         const MessagesScreen(),
         const ProfileScreen(),
       ];
@@ -247,167 +156,59 @@ class _MainNavigationState extends State<MainNavigation> {
       return [
         const HomeScreen(),
         const OrdersScreen(), // Мои заявки для клиента
-        const CreateOrderScreen(), // Заявка всем для клиента
+        const CreateOrderPage(), // Создать заказ для клиента (placeholder)
         const MessagesScreen(),
         const ProfileScreen(),
       ];
     }
   }
 
+  void _handleNavigation(int index) {
+    final isLoggedIn = widget.user != null;
+    final isMaster = widget.user?.role == 'master';
+
+    if (!isLoggedIn) {
+      if (index == 0) {
+        // Главная - уже на ней
+      } else if (index == 1) {
+        // Войти
+        Navigator.pushNamed(context, '/registration-type');
+      }
+      return;
+    }
+
+    // Для центральной кнопки (index 2) - модальное окно или навигация
+    if (index == 2) {
+      if (isMaster) {
+        Navigator.pushNamed(context, '/create-video');
+      } else {
+        Navigator.pushNamed(context, '/create-order');
+      }
+      return;
+    }
+
+    // Для остальных - обычная навигация
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isLoggedIn = widget.user != null;
     
-    // ✅ КАК В ВЕБ-ВЕРСИИ: Неавторизованные видят только Главная + Войти
-    if (!isLoggedIn) {
-      return Scaffold(
-        body: const HomeScreen(),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: AppColors.dark,
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 1,
-              ),
-            ),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) {
-              if (index == 0) {
-                // Главная - уже на ней
-              } else if (index == 1) {
-                // Войти
-                Navigator.pushNamed(context, '/login');
-              }
-            },
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppColors.primary,
-            unselectedItemColor: Colors.white.withValues(alpha: 0.5),
-            selectedFontSize: 12.sp,
-            unselectedFontSize: 12.sp,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'Главная',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: 'Войти',
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    
-    // ✅ АВТОРИЗОВАННЫЕ - полная навигация
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.dark,
-          border: Border(
-            top: BorderSide(
-              color: Colors.white.withValues(alpha: 0.1),
-              width: 1,
-            ),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            
-            // Для мастеров и клиентов разные экраны
-            if (isLoggedIn) {
-              if (index == 1) {
-                // Заявки - разные экраны для мастеров и клиентов
-                if (widget.user?.role == 'master') {
-                  // Мастер видит все заявки (OrdersScreen)
-                  // Already handled by _getPage()
-                } else {
-                  // Клиент видит свои заявки
-                  Navigator.pushNamed(context, '/user-orders');
-                  return; // Не переключаем таб
-                }
-              } else if (index == 2) {
-                // Создание - разные экраны для мастеров и клиентов
-                if (widget.user?.role == 'master') {
-                  // Мастер создает видеорекламу
-                  Navigator.pushNamed(context, '/create-video');
-                  return; // Не переключаем таб
-                } else {
-                  // Клиент создает заявку
-                  Navigator.pushNamed(context, '/create-order');
-                  return; // Не переключаем таб
-                }
-              }
-            }
-            
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: AppColors.dark,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: Colors.white.withValues(alpha: 0.6),
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(_currentIndex == 0 ? Icons.home : Icons.home_outlined),
-              label: 'Главная',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(_currentIndex == 1 
-                ? (isLoggedIn && widget.user?.role == 'master' ? Icons.check_box : Icons.description)
-                : (isLoggedIn && widget.user?.role == 'master' ? Icons.check_box_outlined : Icons.description_outlined)),
-              label: isLoggedIn && widget.user?.role == 'master' ? 'Все заявки' : 'Мои заявки',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                width: 56.w,
-                height: 56.w,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.secondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(28.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.add,
-                  color: Colors.white,
-                  size: 28.sp,
-                ),
-              ),
-              label: isLoggedIn && widget.user?.role == 'master' ? 'создать видеорекламу' : 'заявка всем',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(_currentIndex == 3 ? Icons.chat : Icons.chat_outlined),
-              label: 'Мессенджер',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(isLoggedIn 
-                ? (_currentIndex == 4 ? Icons.person : Icons.person_outline)
-                : Icons.login),
-              label: isLoggedIn ? 'Профиль' : 'Войти',
-            ),
-          ],
-        ),
+      extendBody: true, // Позволяет контенту идти под навигацию
+      body: isLoggedIn
+          ? IndexedStack(
+              index: _currentIndex,
+              children: _screens,
+            )
+          : const HomeScreen(),
+      bottomNavigationBar: CustomBottomNavigation(
+        currentIndex: _currentIndex,
+        onTap: _handleNavigation,
+        user: widget.user,
       ),
     );
   }

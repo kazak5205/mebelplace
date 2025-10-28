@@ -194,6 +194,8 @@ class AuthRepository {
     required String password,
     String? firstName,
     String? lastName,
+    String role = 'user',
+    String? companyName,
   }) async {
     try {
       final response = await _apiService.register(RegisterRequest(
@@ -202,6 +204,8 @@ class AuthRepository {
         password: password,
         firstName: firstName,
         lastName: lastName,
+        role: role,
+        companyName: companyName,
       ));
       
       if (response.success && response.data != null) {
@@ -258,6 +262,11 @@ class AuthRepository {
     } catch (e) {
       return null;
     }
+  }
+
+  Future<void> saveAuthData(UserModel user, String token) async {
+    await _localStorage.saveToken(token);
+    await _localStorage.saveUser(user);
   }
 
   Future<void> logout() async {

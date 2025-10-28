@@ -174,15 +174,18 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
           // Аватар мастера
           Stack(
             children: [
-              CircleAvatar(
-                radius: 50.r,
-                backgroundColor: AppColors.primary,
-                backgroundImage: master['avatar'] != null 
-                  ? NetworkImage(master['avatar'])
-                  : null,
-                child: master['avatar'] == null 
-                  ? Icon(Icons.person, size: 50.sp, color: Colors.white)
-                  : null,
+              Hero(
+                tag: 'master_avatar_${widget.masterId}', // ✨ Hero animation
+                child: CircleAvatar(
+                  radius: 50.r,
+                  backgroundColor: AppColors.primary,
+                  backgroundImage: master['avatar'] != null 
+                    ? NetworkImage(master['avatar'])
+                    : null,
+                  child: master['avatar'] == null 
+                    ? Icon(Icons.person, size: 50.sp, color: Colors.white)
+                    : null,
+                ),
               ),
               
               // Статус верификации

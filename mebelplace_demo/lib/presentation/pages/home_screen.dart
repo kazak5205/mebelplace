@@ -4,9 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/video_model.dart';
-import '../../data/models/comment_model.dart';
 import '../providers/video_provider.dart';
-import '../providers/repository_providers.dart';
 import '../providers/app_providers.dart' hide videoProvider;
 import '../widgets/tiktok_video_player.dart';
 import '../widgets/loading_widget.dart';
@@ -18,14 +16,31 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Load videos when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(videoProvider.notifier).loadVideos();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Управление видео и звуком при переключении приложения
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Пауза при сворачивании приложения
+    } else if (state == AppLifecycleState.resumed) {
+      // Возобновление при возврате
+    }
   }
 
   @override
@@ -54,6 +69,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       },
                       onComment: (video) {
                         _showCommentsDialog(video);
+                      },
+                      onOrder: (video) {
+                        _showOrderDialog(video);
                       },
                     ),
     );
@@ -240,6 +258,166 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       builder: (context) => CommentsBottomSheet(video: video),
+    );
+  }
+
+  void _showOrderDialog(VideoModel video) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.darkSurface,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 24.h),
+            
+            // Аватар мастера
+            Container(
+              width: 80.w,
+              height: 80.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, AppColors.secondary],
+                ),
+              ),
+              padding: EdgeInsets.all(3.w),
+              child: ClipOval(
+                child: video.avatar != null
+                    ? CachedNetworkImage(
+                        imageUrl: video.avatar!,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        color: AppColors.darkSurface,
+                        child: Icon(
+                          Icons.person,
+                          size: 40.sp,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+            ),
+            
+            SizedBox(height: 16.h),
+            
+            Text(
+              'Заказать у @${video.authorDisplayName}',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            
+            SizedBox(height: 8.h),
+            
+            Text(
+              video.title,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.white.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            
+            SizedBox(height: 32.h),
+            
+            // Кнопка создать заказ
+            SizedBox(
+              width: double.infinity,
+              height: 56.h,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/create-order');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                ),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, AppColors.secondary],
+                    ),
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Создать заказ',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            // Кнопка профиль мастера
+            SizedBox(
+              width: double.infinity,
+              height: 56.h,
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(
+                    context,
+                    '/master-profile',
+                    arguments: video.authorId,
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                ),
+                child: Text(
+                  'Перейти в профиль',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            
+            SizedBox(height: 24.h),
+          ],
+        ),
+      ),
     );
   }
 }

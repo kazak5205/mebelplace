@@ -161,13 +161,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> register(String phone, String username, String password) async {
+  Future<void> register(String phone, String username, String password, {String role = 'user', String? companyName}) async {
     state = state.copyWith(isLoading: true);
     try {
       final result = await _authRepository.register(
         phone: phone,
         username: username,
         password: password,
+        role: role,
+        companyName: companyName,
       );
       state = state.copyWith(
         user: result.user,
@@ -179,7 +181,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         error: e.toString(),
       );
+      rethrow;
     }
+  }
+  
+  // Метод для прямой установки пользователя после регистрации
+  Future<void> setAuthData(UserModel user, String token) async {
+    await _authRepository.saveAuthData(user, token);
+    state = state.copyWith(
+      user: user,
+      isLoading: false,
+      error: null,
+    );
   }
 
   Future<void> logout() async {
