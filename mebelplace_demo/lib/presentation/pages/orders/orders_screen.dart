@@ -8,6 +8,8 @@ import '../../widgets/skeleton_loading.dart';
 import '../../../utils/haptic_helper.dart';
 import '../../../data/models/order_model.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -19,6 +21,7 @@ class OrdersScreen extends ConsumerStatefulWidget {
 class _OrdersScreenState extends ConsumerState<OrdersScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _showWelcomeModal = false;
 
   @override
   void initState() {
@@ -30,10 +33,29 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
       if (user != null) {
         if (user.role == 'master') {
           ref.read(orderProvider.notifier).loadOrders(); // Все заказы для мастера
+          _checkWelcomeModal(); // Проверяем, нужно ли показать welcome модал
         } else {
           ref.read(orderProvider.notifier).loadUserOrders(); // Мои заказы для клиента
         }
       }
+    });
+  }
+
+  Future<void> _checkWelcomeModal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenWelcome = prefs.getBool('hasSeenOrdersWelcome') ?? false;
+    if (!hasSeenWelcome) {
+      setState(() {
+        _showWelcomeModal = true;
+      });
+    }
+  }
+
+  Future<void> _closeWelcomeModal() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasSeenOrdersWelcome', true);
+    setState(() {
+      _showWelcomeModal = false;
     });
   }
 
@@ -49,9 +71,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
     final user = authState.user;
     final isMaster = user?.role == 'master';
 
-    return Scaffold(
-      backgroundColor: AppColors.dark,
-      body: SafeArea(
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.dark,
+          body: SafeArea(
         child: Column(
           children: [
             // Header
@@ -173,6 +197,12 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
               },
             )
           : null,
+        ),
+        
+        // Welcome модал для мастеров
+        if (_showWelcomeModal && isMaster)
+          _buildWelcomeModal(),
+      ],
     );
   }
 
@@ -281,7 +311,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
       title: order.title,
       description: order.description ?? '',
       location: order.location ?? 'Не указано',
-      budget: '0', // TODO: Add budget field to OrderModel if available
+      budget: order.price != null ? '${order.price} ₸' : 'Не указан',
       time: _formatTime(order.createdAt),
       responseCount: 0, // TODO: Add responsesCount field to OrderModel if available
       orderId: order.id,
@@ -627,5 +657,295 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildWelcomeModal() {
+    return Container(
+      color: Colors.black.withOpacity(0.8),
+      child: Center(
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: 24.w),
+          padding: EdgeInsets.all(24.w),
+          decoration: BoxDecoration(
+            color: AppColors.dark,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.3),
+                blurRadius: 30,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Кнопка закрытия
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: _closeWelcomeModal,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ),
+              
+              // Иконка
+              Container(
+                width: 80.w,
+                height: 80.w,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, AppColors.secondary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.video_library_rounded,
+                  color: Colors.white,
+                  size: 40.sp,
+                ),
+              ),
+              
+              SizedBox(height: 16.h),
+              
+              // Заголовок
+              Text(
+                'Добро пожаловать на MebelPlace! 👋',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              SizedBox(height: 8.h),
+              
+              Text(
+                'Вы можете начать получать заказы прямо сейчас',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.white.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              SizedBox(height: 24.h),
+              
+              // Карточка 1: Отвечайте на заявки
+              Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: Colors.blue.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.blue.shade400,
+                      size: 24.sp,
+                    ),
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Отвечайте на заявки',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'Вы можете отвечать на заявки клиентов и получать заказы уже сейчас!',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.white.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              SizedBox(height: 12.h),
+              
+              // Карточка 2: Важно - Загрузите видеорекламу
+              Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Colors.yellow.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: Colors.yellow.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.video_library,
+                      color: Colors.yellow.shade400,
+                      size: 24.sp,
+                    ),
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '⚠️ Важно: Загрузите видеорекламу',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          RichText(
+                            text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: Colors.white.withOpacity(0.7),
+                              ),
+                              children: [
+                                const TextSpan(
+                                  text: 'Пока вы не загрузите хотя бы одно видео с вашими работами, ',
+                                ),
+                                TextSpan(
+                                  text: 'клиенты не смогут найти ваш профиль в поиске',
+                                  style: TextStyle(
+                                    color: Colors.yellow.shade300,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: '.',
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'Видео помогает клиентам увидеть качество вашей работы и принять решение о заказе.',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.white.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              SizedBox(height: 24.h),
+              
+              // Кнопки
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _closeWelcomeModal();
+                        Navigator.pushNamed(context, '/create-video');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, AppColors.secondary],
+                          ),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.video_library, color: Colors.white),
+                            SizedBox(width: 8.w),
+                            Text(
+                              'Создать видеорекламу',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _closeWelcomeModal,
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        side: BorderSide(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                      child: Text(
+                        'Позже',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              SizedBox(height: 16.h),
+              
+              // Подсказка
+              Text(
+                'Вы всегда можете создать видео через кнопку "Создать видеорекламу" в профиле',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
+        ),
+      ),
+    ).animate().fadeIn(duration: 200.ms);
   }
 }

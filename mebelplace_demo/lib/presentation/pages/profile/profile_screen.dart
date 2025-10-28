@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/image_helper.dart';
 import '../../providers/app_providers.dart';
 import '../../../data/models/user_model.dart';
+import '../../../data/models/video_model.dart';
+import '../../../data/models/order_model.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -21,6 +25,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // Загружаем данные при открытии профиля
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(authProvider).user;
+      if (user != null) {
+        if (user.role == 'master') {
+          ref.read(videoProvider.notifier).loadMasterVideos(user.id);
+        }
+        ref.read(orderProvider.notifier).loadOrders();
+      }
+    });
   }
 
   @override
@@ -136,6 +151,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   Widget _buildProfileContent(UserModel user) {
     final isMaster = user.role == 'master';
     
+    // Для клиента - отдельный интерфейс
+    if (!isMaster) {
+      return _buildClientProfile(user);
+    }
+    
+    // Для мастера - текущий интерфейс
     return NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) {
         return [
@@ -143,18 +164,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             expandedHeight: 0,
             pinned: true,
             backgroundColor: AppColors.dark,
-            actions: [
-              IconButton(
-                icon: Icon(
-                  Icons.settings_outlined,
-                  color: Colors.white,
-                  size: 24.sp,
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/settings');
-                },
-              ),
-            ],
           ),
         ];
       },
@@ -180,11 +189,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     ),
                     padding: EdgeInsets.all(3.w),
                     child: ClipOval(
-                      child: user.avatar != null
+                      child: ImageHelper.hasValidImagePath(user.avatar)
                           ? CachedNetworkImage(
-                              imageUrl: user.avatar!,
+                              imageUrl: ImageHelper.getFullImageUrl(user.avatar),
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Container(
+                                color: AppColors.darkSurface,
+                                child: Icon(
+                                  Icons.person,
+                                  size: 50.sp,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
                                 color: AppColors.darkSurface,
                                 child: Icon(
                                   Icons.person,
@@ -251,19 +268,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   children: [
                     _buildStatItem(
                       label: isMaster ? 'Видео' : 'Заказы',
-                      value: '0',
+                      value: isMaster 
+                          ? (ref.watch(videoProvider).videos.where((v) => v.authorId == user.id).length.toString())
+                          : (ref.watch(orderProvider).orders.where((o) => o.clientId == user.id).length.toString()),
                     ),
                     _buildStatItem(
                       label: 'Подписчики',
-                      value: '0',
+                      value: (user.followersCount ?? 0).toString(),
                     ),
                     _buildStatItem(
                       label: 'Подписки',
-                      value: '0',
+                      value: '0', // TODO: Добавить в UserModel subscriptionsCount
                     ),
                     _buildStatItem(
                       label: 'Лайки',
-                      value: '0',
+                      value: '0', // TODO: Подсчитать лайки пользователя
                     ),
                   ],
                 ),
@@ -289,9 +308,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         child: _buildActionButton(
                           icon: Icons.share_outlined,
                           label: 'Поделиться',
-                          onTap: () {
-                            // TODO: Share profile
-                          },
+                          onTap: () => _shareProfile(user),
                         ),
                       ),
                     ],
@@ -410,6 +427,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Widget _buildVideosGrid(bool isMaster) {
+    final user = ref.watch(authProvider).user;
+    if (user == null) return const SizedBox.shrink();
+    
     return GridView.builder(
       padding: EdgeInsets.all(2.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -418,9 +438,73 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         crossAxisSpacing: 2.w,
         childAspectRatio: 9 / 16,
       ),
-      itemCount: 0, // TODO: Load from provider
+      itemCount: isMaster 
+          ? ref.watch(videoProvider).videos.where((v) => v.authorId == user.id).length
+          : ref.watch(orderProvider).orders.where((o) => o.clientId == user.id).length,
       itemBuilder: (context, index) {
-        return Container(
+        final items = isMaster 
+            ? ref.watch(videoProvider).videos.where((v) => v.authorId == user.id).toList()
+            : ref.watch(orderProvider).orders.where((o) => o.clientId == user.id).toList();
+        
+        if (isMaster) {
+          final video = items[index] as VideoModel;
+          return GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                '/video-detail',
+                arguments: video.id,
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.darkSurface,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (video.thumbnailUrl != null)
+                    CachedNetworkImage(
+                      imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
+                      fit: BoxFit.cover,
+                    ),
+                  Positioned(
+                    bottom: 4,
+                    left: 4,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.play_arrow,
+                            color: Colors.white,
+                            size: 12.sp,
+                          ),
+                          Text(
+                            video.views.toString(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          final order = items[index] as OrderModel;
+          return Container(
           decoration: BoxDecoration(
             color: AppColors.darkSurface,
             borderRadius: BorderRadius.circular(4.r),
@@ -500,6 +584,188 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildClientProfile(UserModel user) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          SizedBox(height: 60.h),
+          
+          // Avatar
+          Hero(
+            tag: 'profile_avatar_${user.id}',
+            child: Container(
+              width: 100.w,
+              height: 100.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                ),
+              ),
+              padding: EdgeInsets.all(3.w),
+              child: ClipOval(
+                child: ImageHelper.hasValidImagePath(user.avatar)
+                    ? CachedNetworkImage(
+                        imageUrl: ImageHelper.getFullImageUrl(user.avatar),
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.darkSurface,
+                          child: Icon(Icons.person, size: 50.sp, color: Colors.white),
+                        ),
+                      )
+                    : Container(
+                        color: AppColors.darkSurface,
+                        child: Icon(Icons.person, size: 50.sp, color: Colors.white),
+                      ),
+              ),
+            ),
+          ),
+          
+          SizedBox(height: 16.h),
+          
+          // Username
+          Text(
+            '@${user.username}',
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          
+          SizedBox(height: 24.h),
+          
+          // Action buttons
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.edit_outlined,
+                    label: 'Редактировать',
+                    onTap: () => _showEditProfileDialog(context, user),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.share_outlined,
+                    label: 'Поделиться',
+                    onTap: () => _shareProfile(user),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          SizedBox(height: 32.h),
+          
+          // Мои мастера
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.people_outline, color: AppColors.primary, size: 24.sp),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Мои мастера',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                // TODO: Загрузить список мастеров с API
+                Container(
+                  padding: EdgeInsets.all(20.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'У вас пока нет подписок на мастеров',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 14.sp,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          SizedBox(height: 32.h),
+          
+          // Избранное
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.favorite_border, color: AppColors.primary, size: 24.sp),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Избранное',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                Container(
+                  padding: EdgeInsets.all(20.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'У вас пока нет избранных видео',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 14.sp,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          SizedBox(height: 40.h),
+        ],
+      ),
+    );
+  }
+
+  void _shareProfile(UserModel user) {
+    final profileUrl = 'https://mebelplace.com.kz/profile/${user.username}';
+    final text = user.role == 'master'
+        ? 'Посмотрите профиль мастера ${user.displayName} на MebelPlace!\n$profileUrl'
+        : 'Посмотрите профиль ${user.displayName} на MebelPlace!\n$profileUrl';
+    
+    Share.share(
+      text,
+      subject: 'Профиль на MebelPlace',
     );
   }
 }

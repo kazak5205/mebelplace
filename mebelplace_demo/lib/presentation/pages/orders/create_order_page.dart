@@ -20,7 +20,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _budgetController = TextEditingController();
   final _addressController = TextEditingController();
   final _pageController = PageController();
   
@@ -71,7 +70,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _budgetController.dispose();
     _addressController.dispose();
     _pageController.dispose();
     _fadeAnimationController.dispose();
@@ -314,23 +312,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
                 }
                 if (value.length < 20) {
                   return 'Минимум 20 символов';
-                }
-                return null;
-              },
-            ),
-            
-            SizedBox(height: 24.h),
-            
-            // Budget
-            _buildTextField(
-              controller: _budgetController,
-              label: 'Бюджет (₸)',
-              hint: 'Примерная сумма',
-              icon: Icons.attach_money_rounded,
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Укажите бюджет';
                 }
                 return null;
               },
@@ -783,25 +764,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
                 
                 SizedBox(height: 12.h),
                 
-                Row(
-                  children: [
-                    Icon(
-                      Icons.attach_money_rounded,
-                      color: AppColors.primary,
-                      size: 18.sp,
-                    ),
-                    SizedBox(width: 8.w),
-                    Text(
-                      '${_budgetController.text} ₸',
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                
                 if (_selectedImages.isNotEmpty) ...[
                   SizedBox(height: 16.h),
                   Divider(color: Colors.white.withOpacity(0.2)),
@@ -993,7 +955,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
         description: _descriptionController.text.trim(),
         category: _selectedCategory,
         location: _addressController.text.trim(),
-        budget: double.tryParse(_budgetController.text.trim()) ?? 0,
+        // budget: removed - не используется на веб-версии
         // urgency: _selectedUrgency, // TODO: Add to API if needed
         images: _selectedImages.isNotEmpty ? _selectedImages.map((f) => f.path).toList() : null,
       );

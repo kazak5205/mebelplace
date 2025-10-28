@@ -95,10 +95,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           
           SizedBox(height: 24.h),
           
-          // Цена
-          _buildPrice(order),
+          // Цена (убрано - не показывается на веб-версии)
+          // _buildPrice(order),
           
-          SizedBox(height: 24.h),
+          // SizedBox(height: 24.h),
           
           // Изображения
           if (order.images.isNotEmpty) ...[
@@ -602,7 +602,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     final order = orderState.currentOrder;
     if (order != null) {
       Share.share(
-        'Заявка: ${order.title}\n\n${order.description}\n\nБюджет: ${order.price} ₸\n\nhttps://mebelplace.com.kz/orders/${order.id}',
+        'Заявка: ${order.title}\n\n${order.description}\n\nhttps://mebelplace.com.kz/orders/${order.id}',
         subject: 'Заявка на MebelPlace',
       );
     }

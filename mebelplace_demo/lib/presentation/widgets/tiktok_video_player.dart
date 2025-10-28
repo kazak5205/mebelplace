@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/image_helper.dart';
 import '../../data/models/video_model.dart';
 import '../providers/app_providers.dart';
 import '../../utils/haptic_helper.dart';
@@ -36,6 +37,7 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
   VideoPlayerController? _videoController;
+  VideoPlayerController? _preloadController; // Предзагрузка следующего видео
   int _currentIndex = 0;
   bool _isPlaying = true;
   bool _isMuted = false;
@@ -80,9 +82,17 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
   void _initializeVideo() {
     if (widget.videos.isNotEmpty && widget.videos.length > _currentIndex) {
       _videoController?.dispose();
+      
+      // Создаем новый контроллер
       _videoController = VideoPlayerController.networkUrl(
         Uri.parse(widget.videos[_currentIndex].videoUrl),
+        videoPlayerOptions: VideoPlayerOptions(
+          mixWithOthers: false, // Не миксовать с другими видео
+          allowBackgroundPlayback: false,
+        ),
       );
+      
+      // Инициализация с оптимизацией
       _videoController!.initialize().then((_) {
         if (mounted) {
           setState(() {});
@@ -91,7 +101,30 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
           }
           _videoController!.setVolume(_isMuted ? 0 : 1);
           _videoController!.setLooping(true);
+          
+          // Предзагружаем следующее видео
+          _preloadNextVideo();
         }
+      }).catchError((error) {
+        print('❌ Video init error: $error');
+      });
+    }
+  }
+  
+  void _preloadNextVideo() {
+    final nextIndex = _currentIndex + 1;
+    if (nextIndex < widget.videos.length) {
+      _preloadController?.dispose();
+      _preloadController = VideoPlayerController.networkUrl(
+        Uri.parse(widget.videos[nextIndex].videoUrl),
+        videoPlayerOptions: VideoPlayerOptions(
+          mixWithOthers: false,
+          allowBackgroundPlayback: false,
+        ),
+      );
+      // Только инициализация, не воспроизведение
+      _preloadController!.initialize().catchError((error) {
+        print('❌ Preload error: $error');
       });
     }
   }
@@ -100,6 +133,7 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _videoController?.dispose();
+    _preloadController?.dispose(); // Очищаем предзагруженный контроллер
     _pageController.dispose();
     _heartAnimationController.dispose();
     _controlsAnimationController.dispose();
@@ -122,11 +156,36 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
 
   void _onPageChanged(int index) {
     if (index != _currentIndex && index < widget.videos.length) {
-      _videoController?.dispose();
+      final oldController = _videoController;
+      
       setState(() {
         _currentIndex = index;
+        
+        // Если следующее видео уже предзагружено, используем его
+        if (_preloadController != null && index == _currentIndex) {
+          _videoController = _preloadController;
+          _preloadController = null;
+          
+          // Сразу воспроизводим
+          if (_isPlaying && _videoController!.value.isInitialized) {
+            _videoController!.play();
+            _videoController!.setVolume(_isMuted ? 0 : 1);
+            _videoController!.setLooping(true);
+          }
+          
+          // Предзагружаем следующее
+          _preloadNextVideo();
+        } else {
+          // Если не предзагружено, инициализируем обычным способом
+          _initializeVideo();
+        }
       });
-      _initializeVideo();
+      
+      // Удаляем старый контроллер асинхронно
+      Future.delayed(const Duration(milliseconds: 500), () {
+        oldController?.dispose();
+      });
+      
       widget.onVideoChanged?.call(widget.videos[_currentIndex]);
     }
   }
@@ -243,11 +302,17 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
           : Stack(
               children: [
                 // Thumbnail placeholder
-                if (video.thumbnailUrl != null)
+                if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
                   Positioned.fill(
                     child: CachedNetworkImage(
-                      imageUrl: video.thumbnailUrl!,
+                      imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.black87,
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 // Loading indicator
@@ -351,9 +416,9 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
                       color: Colors.black,
                     ),
                     child: ClipOval(
-                      child: video.avatar != null
+                      child: ImageHelper.hasValidImagePath(video.avatar)
                           ? CachedNetworkImage(
-                              imageUrl: video.avatar!,
+                              imageUrl: ImageHelper.getFullImageUrl(video.avatar),
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Icon(
                                 Icons.person_rounded,

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../widgets/typing_indicator.dart';
 import '../../widgets/skeleton_loading.dart';
 import '../../../utils/haptic_helper.dart';
+import '../../../core/utils/image_helper.dart';
 import '../../providers/app_providers.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
@@ -181,16 +183,21 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   }
 
   Widget _buildChatItemFromModel(dynamic chat, int index) {
-    // TODO: Update when ChatModel is properly defined
-    final hasUnread = chat.unreadCount != null && chat.unreadCount > 0;
-    final unreadCount = chat.unreadCount ?? 0;
+    // Используем обновлённую структуру ChatModel
+    final hasUnread = chat.unreadCount > 0;
+    final unreadCount = chat.unreadCount;
     final isTyping = false; // TODO: Get from real-time updates
-    final chatId = chat.id ?? 'chat_$index';
-    final otherUserName = chat.otherUser?.username ?? 'Пользователь';
-    final otherUserAvatar = chat.otherUser?.avatar;
+    final chatId = chat.id;
+    
+    // Получаем другого участника (не текущего пользователя)
+    final otherUser = chat.otherUser;
+    final otherUserName = otherUser?.displayName ?? 'Пользователь';
+    final otherUserAvatar = otherUser?.avatar;
+    final isOnline = otherUser?.isActive ?? false;
+    
+    // Последнее сообщение и время
     final lastMessage = chat.lastMessage ?? 'Нет сообщений';
     final lastMessageTime = chat.lastMessageTime ?? DateTime.now();
-    final isOnline = chat.otherUser?.isOnline ?? false;
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 300 + (index * 50)),
@@ -242,10 +249,19 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                           padding: EdgeInsets.all(2.w),
                           child: ClipOval(
                             child: otherUserAvatar != null
-                                ? Image.network(
-                                    otherUserAvatar,
+                                ? CachedNetworkImage(
+                                    imageUrl: ImageHelper.getFullImageUrl(otherUserAvatar),
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
+                                    placeholder: (context, url) => Container(
+                                      color: AppColors.darkSurface,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (context, url, error) {
                                       return Container(
                                         color: AppColors.darkSurface,
                                         child: Icon(

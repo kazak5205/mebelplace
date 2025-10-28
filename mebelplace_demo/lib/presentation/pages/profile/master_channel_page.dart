@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/image_helper.dart';
 import '../../../data/models/video_model.dart';
-import '../../../data/models/user_model.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../widgets/loading_widget.dart';
@@ -23,19 +22,34 @@ class MasterChannelPage extends ConsumerStatefulWidget {
   ConsumerState<MasterChannelPage> createState() => _MasterChannelPageState();
 }
 
-class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
+class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   bool _isLoadingUser = true;
-  Map<String, dynamic>? _masterInfo;
+  String? _masterName;
+  String? _masterAvatar;
+  String? _masterBio;
+  int _videosCount = 0;
+  int _followersCount = 0;
+  bool _isFollowing = false;
   String? _userError;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    
     // Загружаем информацию о мастере и его видео
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(videoProvider.notifier).loadMasterVideos(widget.masterId);
       _loadMasterInfo();
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMasterInfo() async {
@@ -51,18 +65,10 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
       if (mounted && response.success && response.data != null) {
         final user = response.data!;
         setState(() {
-          _masterInfo = {
-            'id': user.id,
-            'name': user.displayName,
-            'description': user.bio ?? 'Мастер по изготовлению мебели',
-            'avatar': user.avatar,
-            'rating': user.rating ?? 0.0,
-            'reviewsCount': 0,
-            'isVerified': user.isVerified ?? false,
-            'videosCount': 0, // Будет подсчитано из videos
-            'followersCount': user.followersCount ?? 0,
-            'ordersCount': user.ordersCount ?? 0,
-          };
+          _masterName = user.displayName;
+          _masterAvatar = user.avatar;
+          _masterBio = user.bio;
+          _followersCount = user.followersCount ?? 0;
           _isLoadingUser = false;
         });
       } else {
@@ -86,544 +92,368 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
   @override
   Widget build(BuildContext context) {
     final videoState = ref.watch(videoProvider);
+    final videos = videoState.videos.where((v) => v.authorId == widget.masterId).toList();
+    
+    // Обновляем количество видео
+    if (_videosCount != videos.length) {
+      Future.microtask(() {
+        if (mounted) {
+          setState(() {
+            _videosCount = videos.length;
+          });
+        }
+      });
+    }
     
     return Scaffold(
-      backgroundColor: AppColors.dark,
-      appBar: AppBar(
-        backgroundColor: AppColors.dark,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Канал мастера',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: Colors.white),
-            onPressed: () => _shareChannel(),
-          ),
-        ],
-      ),
-      body: _isLoadingUser || videoState.isLoading
+      backgroundColor: Colors.black,
+      body: _isLoadingUser
           ? const Center(child: LoadingWidget())
           : _userError != null
               ? _buildErrorWidget(_userError!)
-              : videoState.error != null
-                  ? _buildErrorWidget(videoState.error!)
-                  : _masterInfo == null
-                      ? _buildErrorWidget('Не удалось загрузить профиль мастера')
-                      : _buildMasterChannel(_masterInfo!, videoState.videos.where((v) => v.authorId == widget.masterId).toList()),
+              : CustomScrollView(
+                  slivers: [
+                    // TikTok-style header
+                    _buildSliverAppBar(),
+                    
+                    // Profile info
+                    SliverToBoxAdapter(
+                      child: _buildProfileInfo(),
+                    ),
+                    
+                    // Tab bar
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _SliverTabBarDelegate(
+                        TabBar(
+                          controller: _tabController,
+                          indicatorColor: AppColors.primary,
+                          indicatorWeight: 2,
+                          labelColor: Colors.white,
+                          unselectedLabelColor: Colors.white.withOpacity(0.5),
+                          tabs: const [
+                            Tab(icon: Icon(Icons.video_library_rounded)),
+                            Tab(icon: Icon(Icons.favorite_rounded)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    // Videos grid
+                    videoState.isLoading
+                        ? const SliverToBoxAdapter(
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(40),
+                                child: LoadingWidget(),
+                              ),
+                            ),
+                          )
+                        : videos.isEmpty
+                            ? SliverToBoxAdapter(
+                                child: _buildEmptyVideos(),
+                              )
+                            : SliverGrid(
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  childAspectRatio: 9 / 16,
+                                  crossAxisSpacing: 2,
+                                  mainAxisSpacing: 2,
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    return _buildVideoThumbnail(videos[index], index);
+                                  },
+                                  childCount: videos.length,
+                                ),
+                              ),
+                  ],
+                ),
     );
   }
 
-  Widget _buildMasterChannel(Map<String, dynamic> master, List<VideoModel> videos) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Информация о мастере
-          _buildMasterInfo(master),
-          
-          SizedBox(height: 24.h),
-          
-          // Статистика
-          _buildStats(master),
-          
-          SizedBox(height: 24.h),
-          
-          // Действия
-          _buildActions(master),
-          
-          SizedBox(height: 24.h),
-          
-          // Видео мастера
-          _buildVideosSection(videos),
-        ],
+  Widget _buildSliverAppBar() {
+    return SliverAppBar(
+      expandedHeight: 0,
+      pinned: true,
+      backgroundColor: Colors.black,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.pop(context),
       ),
+      title: Text(
+        _masterName ?? 'Канал мастера',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.more_vert, color: Colors.white),
+          onPressed: () {},
+        ),
+      ],
     );
   }
 
-  Widget _buildMasterInfo(Map<String, dynamic> master) {
+  Widget _buildProfileInfo() {
     return Container(
-      margin: EdgeInsets.all(16.w),
-      padding: EdgeInsets.all(24.w),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withValues(alpha: 0.1),
-            AppColors.secondary.withValues(alpha: 0.1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
+      color: Colors.black,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
       child: Column(
         children: [
-          // Аватар мастера
-          Stack(
-            children: [
-              Hero(
-                tag: 'master_avatar_${widget.masterId}', // ✨ Hero animation
-                child: CircleAvatar(
-                  radius: 50.r,
-                  backgroundColor: AppColors.primary,
-                  backgroundImage: master['avatar'] != null 
-                    ? NetworkImage(master['avatar'])
-                    : null,
-                  child: master['avatar'] == null 
-                    ? Icon(Icons.person, size: 50.sp, color: Colors.white)
-                    : null,
+          // Avatar
+          Hero(
+            tag: 'master_avatar_${widget.masterId}',
+            child: Container(
+              width: 100.w,
+              height: 100.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, AppColors.secondary],
                 ),
               ),
-              
-              // Статус верификации
-              if (master['isVerified'] == true)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 24.w,
-                    height: 24.w,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.dark, width: 2),
-                    ),
-                    child: Icon(
-                      Icons.verified,
-                      color: Colors.white,
-                      size: 14.sp,
-                    ),
-                  ),
-                ),
-            ],
+              padding: EdgeInsets.all(3.w),
+              child: ClipOval(
+                child: ImageHelper.hasValidImagePath(_masterAvatar)
+                    ? CachedNetworkImage(
+                        imageUrl: ImageHelper.getFullImageUrl(_masterAvatar),
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.darkSurface,
+                          child: Icon(
+                            Icons.person,
+                            size: 50.sp,
+                            color: Colors.white.withOpacity(0.5),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.darkSurface,
+                          child: Icon(
+                            Icons.person,
+                            size: 50.sp,
+                            color: Colors.white.withOpacity(0.5),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: AppColors.darkSurface,
+                        child: Icon(
+                          Icons.person,
+                          size: 50.sp,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                      ),
+              ),
+            ),
           ),
           
           SizedBox(height: 16.h),
           
-          // Имя мастера
+          // Name
           Text(
-            master['name'],
+            '@${_masterName ?? 'master'}',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 24.sp,
+              fontSize: 18.sp,
               fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
           
           SizedBox(height: 8.h),
           
-          // Описание
-          Text(
-            master['description'],
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 14.sp,
-              height: 1.4,
+          // Bio
+          if (_masterBio != null && _masterBio!.isNotEmpty)
+            Text(
+              _masterBio!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.white.withOpacity(0.7),
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
           
-          SizedBox(height: 12.h),
+          SizedBox(height: 20.h),
           
-          // Рейтинг
+          // Stats
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.star,
-                color: Colors.amber,
-                size: 20.sp,
+              _buildStat('Подписчики', _followersCount.toString()),
+              SizedBox(width: 40.w),
+              _buildStat('Видео', _videosCount.toString()),
+            ],
+          ),
+          
+          SizedBox(height: 20.h),
+          
+          // Follow button
+          SizedBox(
+            width: double.infinity,
+            height: 44.h,
+            child: ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isFollowing = !_isFollowing;
+                  if (_isFollowing) {
+                    _followersCount++;
+                  } else {
+                    _followersCount--;
+                  }
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isFollowing 
+                    ? Colors.white.withOpacity(0.2)
+                    : AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4.r),
+                  side: _isFollowing
+                      ? BorderSide(color: Colors.white.withOpacity(0.3))
+                      : BorderSide.none,
+                ),
               ),
-              SizedBox(width: 4.w),
-              Text(
-                '${master['rating']}',
+              child: Text(
+                _isFollowing ? 'Подписан' : 'Подписаться',
                 style: TextStyle(
-                  color: Colors.white,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(width: 8.w),
-              Text(
-                '(${master['reviewsCount']} отзывов)',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 12.sp,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 500.ms).slideY(
-      begin: 0.3,
-      end: 0,
-      curve: Curves.easeOut,
-    );
-  }
-
-  Widget _buildStats(Map<String, dynamic> master) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatItem(
-              'Видео',
-              '${master['videosCount']}',
-              Icons.video_library,
-              AppColors.primary,
-            ),
-          ),
-          
-          Container(
-            width: 1,
-            height: 40.h,
-            color: Colors.white.withValues(alpha: 0.1),
-          ),
-          
-          Expanded(
-            child: _buildStatItem(
-              'Подписчики',
-              '${master['followersCount']}',
-              Icons.people,
-              Colors.blue,
-            ),
-          ),
-          
-          Container(
-            width: 1,
-            height: 40.h,
-            color: Colors.white.withValues(alpha: 0.1),
-          ),
-          
-          Expanded(
-            child: _buildStatItem(
-              'Заказы',
-              '${master['ordersCount']}',
-              Icons.work,
-              Colors.green,
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(
-      begin: 0.3,
-      end: 0,
-      curve: Curves.easeOut,
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStat(String label, String value) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: color,
-          size: 24.sp,
-        ),
-        SizedBox(height: 8.h),
         Text(
           value,
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
+            fontSize: 20.sp,
             fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
         SizedBox(height: 4.h),
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
             fontSize: 12.sp,
+            color: Colors.white.withOpacity(0.6),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildActions(Map<String, dynamic> master) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Row(
-        children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, '/chat', arguments: widget.masterId);
+  Widget _buildVideoThumbnail(VideoModel video, int index) {
+    return GestureDetector(
+      onTap: () {
+        // Открываем видео-плеер с этого видео
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TikTokVideoPlayer(
+              videos: ref.read(videoProvider).videos.where((v) => v.authorId == widget.masterId).toList(),
+              initialIndex: index,
+              onLike: (video) {
+                ref.read(videoProvider.notifier).likeVideo(video.id);
               },
-              icon: Icon(Icons.message, size: 18.sp),
-              label: const Text('Написать'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 16.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
+            ),
+          ),
+        );
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Thumbnail
+          if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
+            CachedNetworkImage(
+              imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                color: Colors.grey[900],
+              ),
+              errorWidget: (context, url, error) => Container(
+                color: Colors.grey[900],
+                child: const Icon(
+                  Icons.play_circle_outline,
+                  color: Colors.white,
+                  size: 40,
                 ),
               ),
-            ),
-          ),
-          
-          SizedBox(width: 12.w),
-          
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        // ✅ РЕАЛЬНАЯ ПОДПИСКА ЧЕРЕЗ API
-                        try {
-                          final apiService = ref.read(apiServiceProvider);
-                          final response = await apiService.subscribeToUser(widget.masterId);
-                          
-                          if (response.success) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(response.message ?? 'Вы подписались!'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                            }
-                          } else {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(response.message ?? 'Ошибка подписки'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Ошибка: ${e.toString()}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      icon: Icon(Icons.person_add, size: 18.sp),
-                      label: const Text('Подписаться'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                    ),
-                  ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 500.ms, delay: 400.ms).slideY(
-      begin: 0.3,
-      end: 0,
-      curve: Curves.easeOut,
-    );
-  }
-
-  Widget _buildVideosSection(List<VideoModel> videos) {
-    if (videos.isEmpty) {
-      return _buildEmptyVideos();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Text(
-            'Видео мастера',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        
-        SizedBox(height: 16.h),
-        
-        SizedBox(
-          height: 200.h,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            itemCount: videos.length,
-            itemBuilder: (context, index) {
-              return _buildVideoCard(videos[index], index);
-            },
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 500.ms, delay: 600.ms).slideY(
-      begin: 0.3,
-      end: 0,
-      curve: Curves.easeOut,
-    );
-  }
-
-  Widget _buildVideoCard(VideoModel video, int index) {
-    return Container(
-      width: 160.w,
-      margin: EdgeInsets.only(right: 12.w),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TikTokVideoPlayer(
-                videos: [video],
-                initialIndex: 0,
-              ),
-            ),
-          );
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Превью видео
+            )
+          else
             Container(
-              height: 120.h,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12.r),
-                image: DecorationImage(
-                  image: NetworkImage(video.thumbnailUrl ?? ''),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Градиент для лучшей видимости
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12.r),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.7),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  // Длительность видео
-                  Positioned(
-                    bottom: 8.h,
-                    right: 8.w,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                      child: Text(
-                        _formatDuration(video.duration),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // Иконка воспроизведения
-                  Center(
-                    child: Container(
-                      width: 40.w,
-                      height: 40.w,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.play_arrow,
-                        color: AppColors.primary,
-                        size: 24.sp,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            SizedBox(height: 8.h),
-            
-            // Название видео
-            Text(
-              video.title,
-              style: TextStyle(
+              color: Colors.grey[900],
+              child: const Icon(
+                Icons.play_circle_outline,
                 color: Colors.white,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
+                size: 40,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
-            
-            SizedBox(height: 4.h),
-            
-            // Статистика
-            Row(
+          
+          // Views count
+          Positioned(
+            bottom: 4,
+            left: 4,
+            child: Row(
               children: [
-                Icon(
-                  Icons.visibility,
-                  color: Colors.white.withValues(alpha: 0.7),
-                  size: 12.sp,
+                const Icon(
+                  Icons.play_arrow,
+                  color: Colors.white,
+                  size: 14,
                 ),
-                SizedBox(width: 4.w),
+                const SizedBox(width: 2),
                 Text(
-                  '${video.views}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 10.sp,
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Icon(
-                  Icons.favorite,
-                  color: Colors.white.withValues(alpha: 0.7),
-                  size: 12.sp,
-                ),
-                SizedBox(width: 4.w),
-                Text(
-                  '${video.likesCount}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 10.sp,
+                  _formatViews(video.views),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black,
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyVideos() {
+    return Container(
+      padding: EdgeInsets.all(40.w),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.video_library_outlined,
+              size: 80.sp,
+              color: Colors.white.withOpacity(0.3),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Пока нет видео',
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: Colors.white.withOpacity(0.5),
+              ),
             ),
           ],
         ),
@@ -631,109 +461,85 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage> {
     );
   }
 
-  Widget _buildEmptyVideos() {
-    return Container(
-      margin: EdgeInsets.all(16.w),
-      padding: EdgeInsets.all(40.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.video_library_outlined,
-            size: 64.sp,
-            color: Colors.white.withValues(alpha: 0.3),
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'Пока нет видео',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            'Мастер еще не загрузил видео',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14.sp,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildErrorWidget(String error) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64.sp,
-            color: Colors.red.withValues(alpha: 0.7),
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'Ошибка загрузки канала',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
+      child: Padding(
+        padding: EdgeInsets.all(40.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 80.sp,
+              color: Colors.red.withOpacity(0.7),
             ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            error,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14.sp,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () {
-              ref.read(videoProvider.notifier).loadMasterVideos(widget.masterId);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
+            SizedBox(height: 24.h),
+            Text(
+              'Ошибка загрузки',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
-            child: const Text(
-              'Повторить',
-              style: TextStyle(color: Colors.white),
+            SizedBox(height: 8.h),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.white.withOpacity(0.6),
+              ),
             ),
-          ),
-        ],
+            SizedBox(height: 32.h),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
+              ),
+              child: const Text('Назад'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  String _formatViews(int views) {
+    if (views >= 1000000) {
+      return '${(views / 1000000).toStringAsFixed(1)}M';
+    } else if (views >= 1000) {
+      return '${(views / 1000).toStringAsFixed(1)}K';
+    }
+    return views.toString();
+  }
+}
 
-  String _formatDuration(int? seconds) {
-    if (seconds == null) return '00:00';
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar _tabBar;
+
+  _SliverTabBarDelegate(this._tabBar);
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: Colors.black,
+      child: _tabBar,
+    );
   }
 
-  void _shareChannel() {
-    final masterName = _masterInfo?['name'] ?? 'Мастер';
-    Share.share(
-      'Посмотрите канал мастера $masterName на MebelPlace!\nhttps://mebelplace.com.kz/master/${widget.masterId}',
-      subject: 'Канал мастера на MebelPlace',
-    );
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return false;
   }
 }

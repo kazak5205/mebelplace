@@ -144,6 +144,7 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  int _previousIndex = 0;
 
   List<Widget> get _screens {
     if (widget.user?.role == 'master') {
@@ -191,6 +192,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
     // Для остальных - обычная навигация
     setState(() {
+      _previousIndex = _currentIndex;
       _currentIndex = index;
     });
   }
