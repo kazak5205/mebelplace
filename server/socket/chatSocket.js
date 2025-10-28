@@ -51,8 +51,10 @@ class ChatSocket {
       socket.on('join_chat', async (data) => {
         try {
           const { chatId } = data;
+          console.log(`[CHAT SOCKET] User ${socket.userName} (${socket.userId}) joining chat ${chatId}`);
           socket.join(chatId);
           socket.emit('joined_chat', { chatId });
+          console.log(`[CHAT SOCKET] User ${socket.userName} successfully joined chat ${chatId}`);
           
           // Уведомляем других участников
           socket.to(chatId).emit('user_joined', {
@@ -60,6 +62,7 @@ class ChatSocket {
             userName: socket.userName
           });
         } catch (error) {
+          console.error('[CHAT SOCKET] Error joining chat:', error);
           socket.emit('error', { message: error.message });
         }
       });
@@ -68,6 +71,7 @@ class ChatSocket {
       socket.on('send_message', async (data) => {
         try {
           const { chatId, content, type = 'text', replyTo } = data;
+          console.log(`[CHAT SOCKET] User ${socket.userName} sending message to chat ${chatId}:`, content.substring(0, 50));
           
           const message = await chatService.sendMessage({
             chatId,
@@ -76,6 +80,7 @@ class ChatSocket {
             type,
             replyTo
           });
+          console.log(`[CHAT SOCKET] Message saved to DB, ID: ${message.id}`);
 
           // Отправляем сообщение всем участникам чата (синхронизировано с client/mobile)
           this.io.to(chatId).emit('new_message', {
@@ -88,6 +93,7 @@ class ChatSocket {
               }
             }
           });
+          console.log(`[CHAT SOCKET] Message broadcasted to chat ${chatId}`);
 
           // Обновляем статус сообщения
           setTimeout(async () => {
@@ -99,6 +105,7 @@ class ChatSocket {
           }, 1000);
 
         } catch (error) {
+          console.error('[CHAT SOCKET] Error sending message:', error);
           socket.emit('error', { message: error.message });
         }
       });
