@@ -17,17 +17,31 @@ class ChatSocket {
   setupMiddleware() {
     this.io.use(async (socket, next) => {
       try {
-        const token = socket.handshake.auth.token;
-        if (!token) {
-          return next(new Error('Authentication error'));
+        // Читаем токен из cookies (httpOnly)
+        const cookies = socket.handshake.headers.cookie;
+        if (!cookies) {
+          console.log('[SOCKET AUTH] No cookies found');
+          return next(new Error('Authentication error: No cookies'));
         }
 
+        const accessTokenMatch = cookies.match(/accessToken=([^;]+)/);
+        if (!accessTokenMatch) {
+          console.log('[SOCKET AUTH] No accessToken in cookies');
+          return next(new Error('Authentication error: No access token'));
+        }
+
+        const token = accessTokenMatch[1];
+        console.log('[SOCKET AUTH] Token found, verifying...');
+        
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        socket.userId = decoded.id;
-        socket.userName = decoded.name;
+        socket.userId = decoded.userId || decoded.id;
+        socket.userName = decoded.username || decoded.name;
+        
+        console.log(`[SOCKET AUTH] ✅ User authenticated: ${socket.userName} (${socket.userId})`);
         next();
       } catch (err) {
-        next(new Error('Authentication error'));
+        console.error('[SOCKET AUTH] ❌ Authentication error:', err.message);
+        next(new Error('Authentication error: ' + err.message));
       }
     });
   }
