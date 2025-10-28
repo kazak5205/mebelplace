@@ -109,15 +109,6 @@ class ChatSocket {
           });
           console.log(`[CHAT SOCKET] Message broadcasted to chat ${chatId}`);
 
-          // Обновляем статус сообщения
-          setTimeout(async () => {
-            await chatService.updateMessageStatus(message.id, 'delivered');
-            this.io.to(chatId).emit('message_status', {
-              messageId: message.id,
-              status: 'delivered'
-            });
-          }, 1000);
-
         } catch (error) {
           console.error('[CHAT SOCKET] Error sending message:', error);
           socket.emit('error', { message: error.message });
