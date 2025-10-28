@@ -20,7 +20,7 @@ const ChatPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [showMenu, setShowMenu] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { socket, on, off } = useSocket()
+  const { socket, on, off, emit } = useSocket()
 
   // Helper: получить ДРУГОГО участника (не себя)
   const getOtherParticipant = () => {
@@ -52,6 +52,10 @@ const ChatPage: React.FC = () => {
     if (!socket || !id) return
 
     console.log(`[ChatPage] Setting up WebSocket listener for chat ${id}`)
+
+    // ✅ Присоединяемся к комнате чата (КРИТИЧНО для real-time!)
+    emit('join_chat', { chatId: id })
+    console.log('[ChatPage] Sent join_chat event for chatId:', id)
 
     const handleNewMessage = (data: any) => {
       console.log('[ChatPage] Received new_message event:', data)
@@ -108,11 +112,11 @@ const ChatPage: React.FC = () => {
 
     // Отписываемся при размонтировании
     return () => {
-      console.log('[ChatPage] Unsubscribing from events')
+      console.log('[ChatPage] Unsubscribing from events and leaving chat room')
       off('new_message', handleNewMessage)
       off('user_status_changed' as any, handleUserStatusChange)
     }
-  }, [socket, id, on, off])
+  }, [socket, id, on, off, emit])
 
   useEffect(() => {
     scrollToBottom()
@@ -149,8 +153,18 @@ const ChatPage: React.FC = () => {
 
     try {
       setError(null)
+      // ✅ Отправляем через Socket.IO для real-time
+      emit('send_message', {
+        chatId: id,
+        content: newMessage.trim(),
+        type: 'text'
+      })
+      console.log('[ChatPage] Sent send_message via Socket.IO')
+      
+      // Также отправляем через HTTP API для сохранения в БД (fallback)
       const message = await chatService.sendMessage(id, newMessage.trim())
-      setMessages(prev => [...prev, message])
+      console.log('[ChatPage] Message saved to DB:', message)
+      
       setNewMessage('')
     } catch (err: any) {
       console.error('Failed to send message:', err)
