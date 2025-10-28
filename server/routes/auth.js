@@ -91,7 +91,7 @@ router.post('/register', authRateLimit, async (req, res) => {
     const user = result.rows[0];
 
     // Generate tokens
-    const accessToken = generateToken(user.id);
+    const accessToken = generateToken(user.id, user.username);
     const refreshToken = generateRefreshToken(user.id);
 
     // Store refresh token in database
@@ -344,7 +344,7 @@ router.post('/refresh', async (req, res) => {
     const user = userResult.rows[0];
 
     // Generate new access token
-    const newAccessToken = generateToken(user.id);
+    const newAccessToken = generateToken(user.id, user.username);
 
     // ✅ Токен в httpOnly cookie
     const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.secure;

@@ -215,9 +215,13 @@ const authRateLimit = async (req, res, next) => {
 };
 
 // Generate JWT token
-const generateToken = (userId, expiresIn = '24h') => {
+const generateToken = (userId, username = null, expiresIn = '24h') => {
+  const payload = { userId };
+  if (username) {
+    payload.username = username;
+  }
   return jwt.sign(
-    { userId },
+    payload,
     process.env.JWT_SECRET || 'your-secret-key',
     { expiresIn }
   );
