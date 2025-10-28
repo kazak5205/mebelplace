@@ -402,24 +402,35 @@ const MasterChannelPage: React.FC = () => {
                     <span>Загрузить видео</span>
                   </motion.button>
                 ) : (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleSubscribe}
-                    className={`flex-1 ${isSubscribed ? 'bg-white/10 border border-white/20' : 'bg-pink-500 hover:bg-pink-600'} text-white font-semibold py-2.5 px-4 rounded-full flex items-center justify-center gap-2 transition-colors`}
-                  >
-                    {isSubscribed ? (
-                      <>
-                        <UserMinus className="w-4 h-4" />
-                        <span>Отписаться</span>
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4" />
-                        <span>Подписаться</span>
-                      </>
-                    )}
-                  </motion.button>
+                  <>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleSubscribe}
+                      className={`flex-1 ${isSubscribed ? 'bg-white/10 border border-white/20' : 'bg-pink-500 hover:bg-pink-600'} text-white font-semibold py-2.5 px-4 rounded-full flex items-center justify-center gap-2 transition-colors`}
+                    >
+                      {isSubscribed ? (
+                        <>
+                          <UserMinus className="w-4 h-4" />
+                          <span>Отписаться</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4" />
+                          <span>Подписаться</span>
+                        </>
+                      )}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => navigate(`/chat?userId=${master.id}`)}
+                      className="bg-white/10 border border-white/20 hover:bg-white/20 text-white font-semibold py-2.5 px-4 rounded-full flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Написать</span>
+                    </motion.button>
+                  </>
                 )}
               </motion.div>
             </div>
