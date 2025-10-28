@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const { pool } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 
 class ChatService {
@@ -28,7 +28,7 @@ class ChatService {
 
   // Получение чатов пользователя
   async getUserChats(userId) {
-    const result = await db.query(`
+    const result = await pool.query(`
       SELECT c.*, 
              COUNT(m.id) as unread_count,
              MAX(m.created_at) as last_message_at
@@ -47,7 +47,7 @@ class ChatService {
   async getChatMessages(chatId, userId, { page, limit }) {
     const offset = (page - 1) * limit;
 
-    const result = await db.query(`
+    const result = await pool.query(`
       SELECT m.*, u.name as sender_name, u.avatar as sender_avatar
       FROM messages m
       LEFT JOIN users u ON m.sender_id = u.id
@@ -63,7 +63,7 @@ class ChatService {
   async sendMessage({ chatId, senderId, content, type, replyTo }) {
     const messageId = uuidv4();
     
-    const result = await db.query(`
+    const result = await pool.query(`
       INSERT INTO messages (id, chat_id, sender_id, content, type, reply_to, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, NOW())
       RETURNING *
@@ -76,7 +76,7 @@ class ChatService {
   async sendFile({ chatId, senderId, file, type }) {
     const messageId = uuidv4();
     
-    const result = await db.query(`
+    const result = await pool.query(`
       INSERT INTO messages (id, chat_id, sender_id, content, type, file_path, file_name, file_size, created_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
       RETURNING *
@@ -96,7 +96,7 @@ class ChatService {
 
   // Обновление статуса сообщения
   async updateMessageStatus(messageId, status) {
-    const result = await db.query(`
+    const result = await pool.query(`
       UPDATE messages 
       SET status = $1, updated_at = NOW()
       WHERE id = $2
@@ -108,7 +108,7 @@ class ChatService {
 
   // Получение участников чата
   async getChatParticipants(chatId) {
-    const result = await db.query(`
+    const result = await pool.query(`
       SELECT u.id, u.name, u.avatar, cp.joined_at
       FROM chat_participants cp
       LEFT JOIN users u ON cp.user_id = u.id
