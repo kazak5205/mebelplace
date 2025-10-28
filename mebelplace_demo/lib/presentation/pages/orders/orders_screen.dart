@@ -311,7 +311,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
       title: order.title,
       description: order.description ?? '',
       location: order.location ?? 'Не указано',
-      budget: order.price != null ? '${order.price} ₸' : 'Не указан',
       time: _formatTime(order.createdAt),
       responseCount: 0, // TODO: Add responsesCount field to OrderModel if available
       orderId: order.id,
@@ -374,7 +373,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
     required String title,
     required String description,
     required String location,
-    required String budget,
     required String time,
     required int responseCount,
     required String orderId,
@@ -507,21 +505,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Icon(
-                        Icons.attach_money_rounded,
-                        size: 16.sp,
-                        color: AppColors.primary,
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        '$budget ₸',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
                         ),
                       ),
                       const Spacer(),
