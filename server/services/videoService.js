@@ -3,49 +3,44 @@ const fs = require('fs').promises;
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const { promisify } = require('util');
+const redisClient = require('../config/redis');
 
 // Promisify ffmpeg.ffprobe
 const ffprobe = promisify(ffmpeg.ffprobe);
 
-// Simple in-memory cache for frequently accessed data
-const cache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// Redis cache с TTL 5 минут
+const CACHE_TTL = 5 * 60; // 300 секунд
 
-// Cache helper functions
-const getCacheKey = (prefix, ...params) => `${prefix}:${params.join(':')}`;
+// Cache helper functions (Redis)
+const getCacheKey = (prefix, ...params) => `video:cache:${prefix}:${params.join(':')}`;
 
-const getCached = (key) => {
-  const item = cache.get(key);
-  if (item && Date.now() - item.timestamp < CACHE_TTL) {
-    return item.data;
+const getCached = async (key) => {
+  try {
+    const data = await redisClient.get(key);
+    return data; // redisClient.get уже парсит JSON
+  } catch (error) {
+    console.error('Cache get error:', error);
+    return null;
   }
-  cache.delete(key);
-  return null;
 };
 
-const setCache = (key, data) => {
-  cache.set(key, {
-    data,
-    timestamp: Date.now()
-  });
+const setCache = async (key, data) => {
+  try {
+    await redisClient.set(key, data, 'EX', CACHE_TTL);
+  } catch (error) {
+    console.error('Cache set error:', error);
+  }
 };
 
-// Clear cache periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, item] of cache.entries()) {
-    if (now - item.timestamp > CACHE_TTL) {
-      cache.delete(key);
+// Clear specific cache entries (Redis)
+const clearCachePattern = async (pattern) => {
+  try {
+    const keys = await redisClient.keys(`video:cache:*${pattern}*`);
+    if (keys.length > 0) {
+      await redisClient.del(...keys);
     }
-  }
-}, CACHE_TTL);
-
-// Clear specific cache entries
-const clearCachePattern = (pattern) => {
-  for (const key of cache.keys()) {
-    if (key.includes(pattern)) {
-      cache.delete(key);
-    }
+  } catch (error) {
+    console.error('Cache clear error:', error);
   }
 };
 
@@ -811,7 +806,7 @@ class VideoService {
   async getCategories() {
     try {
       const cacheKey = getCacheKey('categories');
-      const cached = getCached(cacheKey);
+      const cached = await getCached(cacheKey);
       
       if (cached) {
         return cached;
@@ -825,7 +820,7 @@ class VideoService {
         ORDER BY video_count DESC
       `);
 
-      setCache(cacheKey, result.rows);
+      await setCache(cacheKey, result.rows);
       return result.rows;
     } catch (error) {
       console.error('Error getting categories:', error);
@@ -841,7 +836,7 @@ class VideoService {
       }
 
       const cacheKey = getCacheKey('trending', limit);
-      const cached = getCached(cacheKey);
+      const cached = await getCached(cacheKey);
       
       if (cached) {
         return cached;
@@ -887,7 +882,7 @@ class VideoService {
         LIMIT $1
       `, [limit]);
 
-      setCache(cacheKey, result.rows);
+      await setCache(cacheKey, result.rows);
       return result.rows;
     } catch (error) {
       console.error('Error getting trending videos:', error);

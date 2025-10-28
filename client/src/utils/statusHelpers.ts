@@ -127,15 +127,14 @@ export const formatOrderDate = (dateString: string): string => {
   }
 }
 
+import { pluralizeResponses } from './pluralize'
+
 /**
  * Получить статус заказа по количеству откликов
  */
 export const getOrderStatusByResponses = (responsesCount: number, hasAcceptedResponse: boolean): string => {
   if (hasAcceptedResponse) {
     return 'Принят'
-  } else if (responsesCount > 0) {
-    return `${responsesCount} откликов`
-  } else {
-    return '0 откликов'
   }
+  return pluralizeResponses(responsesCount || 0)
 }

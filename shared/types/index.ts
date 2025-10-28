@@ -4,8 +4,12 @@ export interface User {
   id: string;
   email: string;
   username: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
+  // Поля для мебельных компаний (role='master')
+  companyName?: string;
+  companyAddress?: string;
+  companyDescription?: string;
   avatar?: string;
   phone?: string;
   role: 'guest' | 'user' | 'master' | 'admin';

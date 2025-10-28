@@ -33,9 +33,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   useEffect(() => {
     if (user) {
       const newSocket = io('https://mebelplace.com.kz', {
-        auth: {
-          token: localStorage.getItem('accessToken')
-        },
+        // ✅ Токен в httpOnly cookie, Socket.IO автоматически отправит его
+        withCredentials: true,
         transports: ['polling', 'websocket'],
         reconnection: true,
         reconnectionDelay: 1000,

@@ -5,6 +5,7 @@ import { ArrowLeft, Check, Star, Clock, MessageCircle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
 import { chatService } from '../services/chatService'
+import { pluralizeResponses } from '../utils/pluralize'
 
 const OrderResponsesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -144,7 +145,7 @@ const OrderResponsesPage: React.FC = () => {
               </div>
               <div className="flex items-center space-x-2 text-white/70">
                 <MessageCircle className="w-5 h-5" />
-                <span>{responses.length} откликов</span>
+                <span>{pluralizeResponses(responses.length)}</span>
               </div>
             </div>
 

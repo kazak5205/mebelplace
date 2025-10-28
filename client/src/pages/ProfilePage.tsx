@@ -246,13 +246,10 @@ const ProfilePage: React.FC = () => {
       const formData = new FormData()
       formData.append('avatar', file)
       
-      const token = localStorage.getItem('accessToken')
-
+      // ✅ Токен в httpOnly cookie, автоматически отправится
       const response = await fetch('https://mebelplace.com.kz/api/auth/profile', {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include', // ✅ Важно для отправки cookies
         body: formData
       })
 

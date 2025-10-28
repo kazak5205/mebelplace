@@ -96,7 +96,7 @@ const AdminPage: React.FC<AdminPageProps> = () => {
               </span>
               <button
                 onClick={() => {
-                  localStorage.removeItem('token');
+                  // ✅ Токены в httpOnly cookies, очищаются через /api/auth/logout
                   window.location.href = '/';
                 }}
                 className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"

@@ -3,8 +3,7 @@ import { User } from '../types'
 
 interface LoginResponse {
   user: User
-  accessToken: string
-  refreshToken: string
+  // ✅ Токены теперь в httpOnly cookies, не возвращаются в JSON
 }
 
 interface RegisterData {
@@ -19,45 +18,24 @@ interface RegisterData {
 export const authService = {
   async login(phone: string, password: string): Promise<LoginResponse> {
     const response = await apiService.post<any>('/auth/login', { phone, password })
-    console.log('[AUTH] Login response:', response)
-    // apiService.post возвращает response.data.data, который уже содержит { user, accessToken, refreshToken }
-    // Сохраняем токены
-    if (response.accessToken) {
-      console.log('[AUTH] Saving accessToken')
-      localStorage.setItem('accessToken', response.accessToken)
-    }
-    if (response.refreshToken) {
-      console.log('[AUTH] Saving refreshToken')
-      localStorage.setItem('refreshToken', response.refreshToken)
-    }
+    // ✅ Токены в httpOnly cookies, не нужен localStorage
     return response
   },
 
   async register(userData: RegisterData): Promise<LoginResponse> {
     const response = await apiService.post<any>('/auth/register', userData)
-    console.log('[AUTH] Register response:', response)
-    // apiService.post возвращает response.data.data, который уже содержит { user, accessToken, refreshToken }
-    // Сохраняем токены
-    if (response.accessToken) {
-      console.log('[AUTH] Saving accessToken')
-      localStorage.setItem('accessToken', response.accessToken)
-    }
-    if (response.refreshToken) {
-      console.log('[AUTH] Saving refreshToken')
-      localStorage.setItem('refreshToken', response.refreshToken)
-    }
+    // ✅ Токены в httpOnly cookies, не нужен localStorage
     return response
   },
 
-  async refreshToken(refreshToken: string): Promise<{ accessToken: string; user: User }> {
-    return apiService.post('/auth/refresh', { refreshToken })
+  async refreshToken(): Promise<{ user: User }> {
+    // ✅ RefreshToken в httpOnly cookie, не передаём в body
+    return apiService.post('/auth/refresh', {})
   },
 
   async logout(): Promise<void> {
-    const refreshToken = localStorage.getItem('refreshToken')
-    await apiService.post<void>('/auth/logout', { refreshToken })
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
+    // ✅ Cookies очищаются на backend
+    await apiService.post<void>('/auth/logout', {})
   },
 
   async sendSmsCode(phone: string): Promise<{ code?: string }> {

@@ -640,6 +640,60 @@ router.get('/bookmarked', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/videos/liked - Get user's liked videos
+router.get('/liked', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT 
+        v.*,
+        u.username,
+        u.avatar,
+        u.first_name,
+        u.last_name,
+        vl.created_at as liked_at
+      FROM video_likes vl
+      INNER JOIN videos v ON vl.video_id = v.id
+      LEFT JOIN users u ON v.author_id = u.id
+      WHERE vl.user_id = $1 AND v.is_active = true
+      ORDER BY vl.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    // Get total count
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM video_likes vl INNER JOIN videos v ON vl.video_id = v.id WHERE vl.user_id = $1 AND v.is_active = true',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        videos: result.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: parseInt(countResult.rows[0].count)
+        }
+      },
+      message: 'Liked videos retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Liked videos error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve liked videos',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // GET /api/videos/:id - Get single video
 router.get('/:id', optionalAuth, async (req, res) => {
   try {

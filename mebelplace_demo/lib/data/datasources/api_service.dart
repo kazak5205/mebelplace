@@ -257,14 +257,24 @@ class ApiService {
         // ИСПРАВЛЕНО: правильная структура ответа
         final responseData = response.data['data'] ?? response.data;
         final user = UserModel.fromJson(responseData['user']);
-        final token = responseData['accessToken'] ?? responseData['token'];
+        final accessToken = responseData['accessToken'] ?? responseData['token'];
+        final refreshToken = responseData['refreshToken'] ?? responseData['refresh_token'];
         
-        // Сохраняем токен
-        await LocalStorage().saveToken(token);
+        // Сохраняем токены
+        await LocalStorage().saveToken(accessToken);
+        if (refreshToken != null) {
+          await LocalStorage().saveRefreshToken(refreshToken);
+        }
+        
+        print('✅ API: Registration successful, tokens saved');
         
         return ApiResponse<AuthData>(
           success: true,
-          data: AuthData(user: user, token: token),
+          data: AuthData(
+            user: user, 
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          ),
           message: response.data['message'] ?? 'Регистрация успешна',
           timestamp: DateTime.now().toIso8601String(),
         );

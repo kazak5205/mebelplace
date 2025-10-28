@@ -14,6 +14,10 @@ export interface User {
   name?: string;
   firstName?: string;
   lastName?: string;
+  // Поля для мебельных компаний (role='master')
+  companyName?: string;
+  companyAddress?: string;
+  companyDescription?: string;
   avatar?: string;
   role: 'user' | 'master' | 'admin'; // 'user' это обычный клиент
   isOnline?: boolean;

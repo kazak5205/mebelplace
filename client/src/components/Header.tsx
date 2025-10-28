@@ -9,8 +9,6 @@ const Header: React.FC = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
-  
-  console.log('Header user:', user)
 
   const handleSearch = async (query: string) => {
     if (query.trim().length >= 2) {

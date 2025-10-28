@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const cookie = require('cookie'); // ✅ Для парсинга cookies
 const { pool } = require('./database');
 const OrderSocketHandler = require('../socket/orderSocket');
 const ChatSocket = require('../socket/chatSocket');
@@ -14,7 +15,20 @@ const setupSocket = (io) => {
   // Authentication middleware for socket
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token;
+      // ✅ Читаем токен из httpOnly cookie
+      let token = null;
+      
+      // Пытаемся прочитать из cookies (приоритет)
+      if (socket.handshake.headers.cookie) {
+        const cookies = cookie.parse(socket.handshake.headers.cookie);
+        token = cookies.accessToken;
+      }
+      
+      // Fallback на auth.token для мобилки
+      if (!token && socket.handshake.auth.token) {
+        token = socket.handshake.auth.token;
+      }
+      
       if (!token) {
         return next(new Error('Authentication error'));
       }

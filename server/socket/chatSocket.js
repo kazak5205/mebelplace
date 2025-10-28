@@ -1,12 +1,14 @@
 const jwt = require('jsonwebtoken');
 const chatService = require('../services/chatService');
 const { pool } = require('../config/database');
+const redisClient = require('../config/redis');
 
 class ChatSocket {
   constructor(io) {
     this.io = io;
-    this.typingUsers = new Map();
-    this.onlineUsers = new Map(); // Отслеживание онлайн пользователей
+    // Заменено Map на Redis для масштабируемости и синхронизации между серверами
+    // this.typingUsers = new Map();  // Старый подход
+    // this.onlineUsers = new Map();  // Старый подход
     this.setupMiddleware();
     this.setupEventHandlers();
   }
@@ -35,9 +37,9 @@ class ChatSocket {
     this.io.on('connection', async (socket) => {
       console.log(`User ${socket.userName} connected to chat`);
       
-      // Устанавливаем пользователя как онлайн
+      // Устанавливаем пользователя как онлайн (Redis)
       await this.setUserOnline(socket.userId, true);
-      this.onlineUsers.set(socket.userId, socket.id);
+      await redisClient.hset('online_users', socket.userId, socket.id);
       
       // Транслируем всем, что пользователь онлайн
       this.io.emit('user_status_changed', {
@@ -147,10 +149,11 @@ class ChatSocket {
         }
       });
 
-      // Индикатор печати
-      socket.on('typing_start', (data) => {
+      // Индикатор печати (Redis)
+      socket.on('typing_start', async (data) => {
         const { chatId } = data;
-        this.typingUsers.set(socket.userId, { chatId, userName: socket.userName });
+        await redisClient.hset('typing_users', socket.userId, JSON.stringify({ chatId, userName: socket.userName }));
+        await redisClient.expire('typing_users', 300); // TTL 5 минут
         
         socket.to(chatId).emit('typing_start', {
           userId: socket.userId,
@@ -158,9 +161,9 @@ class ChatSocket {
         });
       });
 
-      socket.on('typing_stop', (data) => {
+      socket.on('typing_stop', async (data) => {
         const { chatId } = data;
-        this.typingUsers.delete(socket.userId);
+        await redisClient.hdel('typing_users', socket.userId);
         
         socket.to(chatId).emit('typing_stop', {
           userId: socket.userId,
@@ -203,9 +206,9 @@ class ChatSocket {
       socket.on('disconnect', async () => {
         console.log(`User ${socket.userName} disconnected from chat`);
         
-        // Устанавливаем пользователя как оффлайн
+        // Устанавливаем пользователя как оффлайн (Redis)
         await this.setUserOnline(socket.userId, false);
-        this.onlineUsers.delete(socket.userId);
+        await redisClient.hdel('online_users', socket.userId);
         
         // Транслируем всем, что пользователь оффлайн
         this.io.emit('user_status_changed', {
@@ -213,10 +216,11 @@ class ChatSocket {
           isActive: false
         });
         
-        // Удаляем из списка печатающих
-        if (this.typingUsers.has(socket.userId)) {
-          const { chatId, userName } = this.typingUsers.get(socket.userId);
-          this.typingUsers.delete(socket.userId);
+        // Удаляем из списка печатающих (Redis)
+        const typingData = await redisClient.hget('typing_users', socket.userId);
+        if (typingData) {
+          const { chatId, userName } = JSON.parse(typingData);
+          await redisClient.hdel('typing_users', socket.userId);
           
           socket.to(chatId).emit('typing_stop', {
             userId: socket.userId,

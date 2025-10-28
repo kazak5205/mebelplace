@@ -1,11 +1,13 @@
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
+const redisClient = require('../config/redis');
 
 // Middleware для проверки JWT токена
 const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // ✅ Читаем токен из httpOnly cookie (приоритет) или header (для мобилки)
+    const token = req.cookies?.accessToken || 
+                  (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);
 
     if (!token) {
       return res.status(401).json({
@@ -182,35 +184,34 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
-// Rate limiting for auth endpoints
-const authRateLimit = (req, res, next) => {
-  const key = req.ip + ':' + req.path;
-  const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxAttempts = 50; // Increased for testing
+// ✅ ИСПРАВЛЕНО: Rate limiting для auth endpoints через Redis
+const authRateLimit = async (req, res, next) => {
+  try {
+    const key = `auth_rl:${req.ip}:${req.path}`;
+    const windowSeconds = 15 * 60; // 15 minutes in seconds
+    const maxAttempts = 50;
 
-  if (!req.rateLimit) {
-    req.rateLimit = {};
+    // Получаем текущее количество попыток из Redis
+    const attempts = await redisClient.get(key);
+    const currentAttempts = attempts ? parseInt(attempts) : 0;
+
+    if (currentAttempts >= maxAttempts) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many authentication attempts. Please try again later.',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // IORedis syntax для установки TTL
+    await redisClient.set(key, (currentAttempts + 1).toString(), 'EX', windowSeconds);
+
+    next();
+  } catch (error) {
+    console.error('Auth rate limit error:', error);
+    // В случае ошибки Redis пропускаем запрос
+    next();
   }
-
-  if (!req.rateLimit[key]) {
-    req.rateLimit[key] = { attempts: 0, resetTime: now + windowMs };
-  }
-
-  if (now > req.rateLimit[key].resetTime) {
-    req.rateLimit[key] = { attempts: 0, resetTime: now + windowMs };
-  }
-
-  if (req.rateLimit[key].attempts >= maxAttempts) {
-    return res.status(429).json({
-      success: false,
-      message: 'Too many authentication attempts. Please try again later.',
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  req.rateLimit[key].attempts++;
-  next();
 };
 
 // Generate JWT token

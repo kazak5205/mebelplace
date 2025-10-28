@@ -10,17 +10,19 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /app
 
 # Copy package files
-COPY current-server/package*.json ./
+COPY server/package*.json ./
 RUN npm install --production
 
 # Copy application code
-COPY current-server/ ./
+COPY server/ ./
+COPY shared/ ./shared/
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads and logs directories
+RUN mkdir -p uploads logs && \
+    chown -R node:node uploads logs
 
 # Expose port
 EXPOSE 3001
 
-# Start the application
+# Start the application with PM2
 CMD ["npm", "start"]

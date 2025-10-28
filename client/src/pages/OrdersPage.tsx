@@ -8,6 +8,7 @@ import { orderService } from '../services/orderService'
 import { videoService } from '../services/videoService'
 import { useAuth } from '../contexts/AuthContext'
 import { useSocket } from '../contexts/SocketContext'
+import { pluralizeResponses } from '../utils/pluralize'
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([])
@@ -353,7 +354,7 @@ const OrdersPage: React.FC = () => {
                     {((order.responseCount && order.responseCount > 0) || (order as any).response_count > 0) && (
                       <div className="text-right">
                         <p className="text-sm font-medium text-white">
-                          {order.responseCount || (order as any).response_count} откликов
+                          {pluralizeResponses(order.responseCount || (order as any).response_count || 0)}
                         </p>
                       </div>
                     )}

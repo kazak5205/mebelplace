@@ -1,10 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
+
+// Redis client для кэширования и real-time данных
+const redisClient = require('./config/redis');
 
 const authRoutes = require('./routes/auth');
 const videoRoutes = require('./routes/videos');
@@ -57,12 +61,51 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000 // limit each IP to 1000 requests per windowMs (увеличено для разработки)
-});
-app.use(limiter);
+// ✅ ИСПРАВЛЕНО: Cookie parser для httpOnly cookies
+app.use(cookieParser());
+
+// ✅ ИСПРАВЛЕНО: Redis rate limiting (кастомная реализация для ioredis)
+const redisRateLimiter = async (req, res, next) => {
+  try {
+    const ip = req.ip || req.connection.remoteAddress;
+    const key = `rate_limit:${ip}`;
+    const windowMs = 15 * 60 * 1000; // 15 minutes
+    const maxRequests = 1000;
+
+    // Инкрементируем счётчик
+    const current = await redisClient.incr(key);
+    
+    // Устанавливаем TTL только для первого запроса
+    if (current === 1) {
+      await redisClient.expire(key, Math.ceil(windowMs / 1000)); // Конвертируем мс в секунды
+    }
+
+    // Получаем TTL для заголовка
+    const ttl = await redisClient.ttl(key) * 1000; // ttl в секундах, конвертируем в мс
+    const resetTime = Date.now() + ttl;
+
+    // Устанавливаем заголовки
+    res.setHeader('RateLimit-Limit', maxRequests);
+    res.setHeader('RateLimit-Remaining', Math.max(0, maxRequests - current));
+    res.setHeader('RateLimit-Reset', new Date(resetTime).toISOString());
+
+    if (current > maxRequests) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many requests, please try again later.',
+        retryAfter: Math.ceil(ttl / 1000)
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Rate limiter error:', error);
+    // В случае ошибки пропускаем запрос
+    next();
+  }
+};
+
+app.use(redisRateLimiter);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, charset: 'utf-8' }));

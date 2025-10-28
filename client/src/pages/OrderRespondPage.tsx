@@ -5,6 +5,7 @@ import { ArrowLeft, Send, MessageSquare } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { orderService } from '../services/orderService'
 import { useAuth } from '../contexts/AuthContext'
+import { pluralizeResponses } from '../utils/pluralize'
 
 const OrderRespondPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -171,7 +172,7 @@ const OrderRespondPage: React.FC = () => {
             
             <div className="flex items-center space-x-2 text-white/70">
               <MessageSquare className="w-5 h-5" />
-              <span>{order.responses?.length || 0} откликов</span>
+              <span>{pluralizeResponses(order.responses?.length || 0)}</span>
             </div>
           </div>
         </GlassCard>

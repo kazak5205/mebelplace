@@ -78,6 +78,7 @@ function App() {
               <Route path="/master/profile" element={<ProfilePage />} />
               
               {/* Video */}
+              <Route path="/video/:id" element={<HomePage />} />
               <Route path="/create-video-ad" element={<CreateVideoPage />} />
               
               {/* Admin */}

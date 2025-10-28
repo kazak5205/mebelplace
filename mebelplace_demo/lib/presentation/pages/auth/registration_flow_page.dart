@@ -793,16 +793,18 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
       print('   Success: ${response.success}');
       print('   Message: ${response.message}');
       print('   Has data: ${response.data != null}');
-      print('   Has token: ${response.data?.token != null}');
+      print('   Has accessToken: ${response.data?.accessToken != null}');
+      print('   Has refreshToken: ${response.data?.refreshToken != null}');
       
       if (mounted) {
-        if (response.success && response.data != null && response.data!.token != null) {
+        final token = response.data?.accessToken ?? response.data?.token;
+        if (response.success && response.data != null && token != null) {
           print('✅ Registration successful! Saving auth data...');
           
           // Сохраняем токен и пользователя
           await ref.read(authProvider.notifier).setAuthData(
             response.data!.user,
-            response.data!.token!,
+            token,
           );
           
           print('✅ Auth data saved! Navigating to home...');

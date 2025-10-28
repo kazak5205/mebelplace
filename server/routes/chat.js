@@ -117,6 +117,64 @@ router.post('/create', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/chat/my-chats - Alias для /list (для совместимости)
+router.get('/my-chats', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT DISTINCT
+        c.*,
+        cp.role as user_role,
+        cp.last_read_at,
+        (
+          SELECT m.content
+          FROM messages m
+          WHERE m.chat_id = c.id
+          ORDER BY m.created_at DESC
+          LIMIT 1
+        ) as last_message,
+        (
+          SELECT m.created_at
+          FROM messages m
+          WHERE m.chat_id = c.id
+          ORDER BY m.created_at DESC
+          LIMIT 1
+        ) as last_message_time
+      FROM chats c
+      INNER JOIN chat_participants cp ON cp.chat_id = c.id
+      WHERE cp.user_id = $1 AND c.is_active = true
+      ORDER BY (
+        SELECT m.created_at
+        FROM messages m
+        WHERE m.chat_id = c.id
+        ORDER BY m.created_at DESC
+        LIMIT 1
+      ) DESC NULLS LAST, c.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    res.json({
+      success: true,
+      chats: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: result.rowCount
+      }
+    });
+  } catch (error) {
+    console.error('[CHAT MY-CHATS] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch chats',
+      error: error.message
+    });
+  }
+});
+
 // GET /api/chat/list - Список чатов пользователя
 router.get('/list', authenticateToken, async (req, res) => {
   try {

@@ -3,8 +3,15 @@ const { pool } = require('../config/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { imageUpload } = require('../middleware/upload');
 const notificationService = require('../services/notificationService');
-const { KZ_REGIONS } = require('../../shared/utils/regions');
+const { KZ_REGIONS } = require('../utils/regions');
 const router = express.Router();
+
+// GET /api/orders - Получить заявки (alias для /feed)
+router.get('/', authenticateToken, async (req, res) => {
+  // Просто перенаправляем на /feed
+  req.url = '/feed' + (req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '');
+  return res.redirect(307, '/api/orders/feed' + (Object.keys(req.query).length > 0 ? '?' + new URLSearchParams(req.query).toString() : ''));
+});
 
 // POST /api/orders/create - Создание заявки
 router.post('/create', authenticateToken, imageUpload.array('images', 5), async (req, res) => {

@@ -38,26 +38,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const accessToken = localStorage.getItem('accessToken')
-        const refreshToken = localStorage.getItem('refreshToken')
-        
-        if (accessToken && refreshToken) {
-          // Получаем данные текущего пользователя
-          // Если accessToken истек, api.ts автоматически обновит через refreshToken
-          try {
-            const userData = await authService.getCurrentUser()
-            setUser(userData)
-          } catch (error) {
-            console.error('Failed to get current user:', error)
-            // Если не получилось - очищаем токены
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
-          }
+        // ✅ Токены в httpOnly cookies, просто проверяем текущего юзера
+        try {
+          const userData = await authService.getCurrentUser()
+          setUser(userData)
+        } catch (error) {
+          // Не залогинен или токен истёк
+          console.log('Not authenticated')
         }
       } catch (error) {
         console.error('Auth initialization failed:', error)
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
       } finally {
         setIsLoading(false)
       }
@@ -105,12 +95,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       await authService.logout()
-      // Токены уже удалены в logoutService
+      // ✅ Cookies очищаются на backend
     } catch (error) {
       console.error('Logout error:', error)
-      // Всё равно очищаем токены локально
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
+      // ✅ Cookies очищаются на backend
     } finally {
       setUser(null)
     }

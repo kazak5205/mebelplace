@@ -7,18 +7,19 @@ class SMSService {
   }
 
   // Отправка SMS сообщения
-  async sendSMS(phone, message, sender = 'MebelPlace') {
+  async sendSMS(phone, message, sender = null) {
     try {
       // Форматируем номер телефона (убираем + и добавляем код страны если нужно)
       const formattedPhone = this.formatPhoneNumber(phone);
       
-      console.log(`📱 Sending SMS to: ${formattedPhone}, from: ${sender}`);
+      console.log(`📱 Sending SMS to: ${formattedPhone}${sender ? ', from: ' + sender : ' (default sender)'}`);
       
       // Mobizon API использует POST запросы
       const params = new URLSearchParams();
       params.append('apiKey', this.apiKey);
       params.append('recipient', formattedPhone);
       params.append('text', message);
+      // НЕ указываем sender - используем дефолтный shortcode для быстрой доставки
       
       const response = await axios.post(
         `${this.baseUrl}/message/sendsmsmessage`,
@@ -57,7 +58,7 @@ class SMSService {
 
   // Отправка SMS с кодом подтверждения
   async sendVerificationCode(phone, code) {
-    const message = `MebelPlace: Ваш код подтверждения: ${code}. Не передавайте его никому.`;
+    const message = `[MebelPlace]\nКод подтверждения: ${code}\nДействителен 10 минут.\nНе передавайте его никому.`;
     return await this.sendSMS(phone, message);
   }
 

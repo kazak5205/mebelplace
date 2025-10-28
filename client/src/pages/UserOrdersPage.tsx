@@ -5,6 +5,7 @@ import { Plus, Search, Filter, Clock, Eye, Trash2, Pin } from 'lucide-react'
 import { Order } from '../types'
 import { orderService } from '../services/orderService'
 import { useSocket } from '../contexts/SocketContext'
+import { pluralizeResponses } from '../utils/pluralize'
 
 const UserOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([])
@@ -30,9 +31,6 @@ const UserOrdersPage: React.FC = () => {
     try {
       setLoading(true)
       const response = await orderService.getOrders({})
-      console.log('🔍 UserOrdersPage - Loaded orders:', response)
-      console.log('🔍 UserOrdersPage - First order:', (response as any).orders?.[0])
-      console.log('🔍 UserOrdersPage - First order responseCount:', (response as any).orders?.[0]?.responseCount)
       setOrders((response as any).orders || [])
     } catch (error) {
       console.error('Failed to load orders:', error)
@@ -240,9 +238,9 @@ const UserOrdersPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-400">
                     {(order as any).responseCount > 0 ? (
-                      <span>{(order as any).responseCount} откликов</span>
+                      <span>{pluralizeResponses((order as any).responseCount)}</span>
                     ) : (
-                      <span>0 откликов</span>
+                      <span>{pluralizeResponses(0)}</span>
                     )}
                   </div>
                   {(order as any).responseCount > 0 && (

@@ -29,6 +29,7 @@
     "health": "curl -f https://mebelplace.com.kz/api/health || echo 'Server not responding'"
   },
   "devDependencies": {
+    "axios": "^1.13.0",
     "concurrently": "^8.2.2",
     "nodemon": "^3.0.2"
   },

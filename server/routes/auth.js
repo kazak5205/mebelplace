@@ -9,15 +9,21 @@ const {
 } = require('../middleware/auth');
 const smsService = require('../services/smsService');
 const { avatarUpload, imageUpload, handleUploadError } = require('../middleware/upload');
+const redisClient = require('../config/redis');
 const router = express.Router();
 
-// Хранилище SMS кодов (в продакшене использовать Redis)
-const smsVerificationCodes = new Map();
+// SMS коды теперь хранятся в Redis для масштабируемости
+// const smsVerificationCodes = new Map(); // Старый подход
 
 // POST /api/auth/register - User registration
 router.post('/register', authRateLimit, async (req, res) => {
   try {
-    const { phone, username, password, firstName, lastName, role = 'user' } = req.body;
+    const { 
+      phone, username, password, 
+      firstName, lastName, // для клиентов (role='user')
+      companyName, companyAddress, companyDescription, // для мастеров (role='master')
+      role = 'user' 
+    } = req.body;
 
     // Validation
     if (!phone || !username || !password) {
@@ -32,6 +38,15 @@ router.post('/register', authRateLimit, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters long',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Дополнительная валидация для мастеров
+    if (role === 'master' && !companyName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Company name is required for masters',
         timestamp: new Date().toISOString()
       });
     }
@@ -55,11 +70,22 @@ router.post('/register', authRateLimit, async (req, res) => {
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Create user
-    const result = await pool.query(`
-      INSERT INTO users (phone, username, password_hash, first_name, last_name, role)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, phone, username, first_name, last_name, role, created_at
-    `, [phone, username, passwordHash, firstName, lastName, role]);
+    let result;
+    if (role === 'master') {
+      // Регистрация мастера с данными компании
+      result = await pool.query(`
+        INSERT INTO users (phone, username, password_hash, company_name, company_address, company_description, role)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, phone, username, company_name, company_address, company_description, role, created_at
+      `, [phone, username, passwordHash, companyName, companyAddress, companyDescription, role]);
+    } else {
+      // Регистрация клиента с именем/фамилией
+      result = await pool.query(`
+        INSERT INTO users (phone, username, password_hash, first_name, last_name, role)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, phone, username, first_name, last_name, role, created_at
+      `, [phone, username, passwordHash, firstName, lastName, role]);
+    }
 
     const user = result.rows[0];
 
@@ -73,21 +99,64 @@ router.post('/register', authRateLimit, async (req, res) => {
       [user.id, refreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]
     );
 
+    // Формируем ответ в зависимости от роли
+    const userData = {
+      id: user.id,
+      phone: user.phone,
+      username: user.username,
+      role: user.role,
+      createdAt: user.created_at
+    };
+
+    if (role === 'master') {
+      userData.companyName = user.company_name;
+      userData.companyAddress = user.company_address;
+      userData.companyDescription = user.company_description;
+    } else {
+      userData.firstName = user.first_name;
+      userData.lastName = user.last_name;
+    }
+
+    // ✅ Определяем тип клиента (мобильный или веб)
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobileClient = userAgent.includes('Dart') || 
+                          req.headers['x-client-type'] === 'mobile';
+    const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.secure;
+    
+    console.log('🔍 [REGISTER] User-Agent:', userAgent);
+    console.log('🔍 [REGISTER] isMobileClient:', isMobileClient);
+    console.log('🔍 [REGISTER] Will return tokens in:', isMobileClient ? 'JSON' : 'Cookies');
+    
+    // Для веб-клиента токены в httpOnly cookies (безопасно от XSS)
+    if (!isMobileClient) {
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 15 * 60 * 1000 // 15 минут
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 дней
+      });
+    }
+
+    // Для мобильного клиента токены в JSON
+    const responseData = {
+      user: userData
+    };
+    
+    if (isMobileClient) {
+      responseData.accessToken = accessToken;
+      responseData.refreshToken = refreshToken;
+    }
+
     res.status(201).json({
       success: true,
-      data: {
-        user: {
-          id: user.id,
-          phone: user.phone,
-          username: user.username,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-          createdAt: user.created_at
-        },
-        accessToken,
-        refreshToken
-      },
+      data: responseData,
       message: 'User registered successfully',
       timestamp: new Date().toISOString()
     });
@@ -171,21 +240,49 @@ router.post('/login', authRateLimit, async (req, res) => {
       [user.id, refreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]
     );
 
+    // ✅ Определяем тип клиента (мобильный или веб)
+    const isMobileClient = req.headers['user-agent']?.includes('Dart') || 
+                          req.headers['x-client-type'] === 'mobile';
+    const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.secure;
+    
+    // Для веб-клиента токены в httpOnly cookies (безопасно от XSS)
+    if (!isMobileClient) {
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 15 * 60 * 1000
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+    }
+
+    const userData = {
+      id: user.id,
+      phone: user.phone,
+      username: user.username,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.role,
+      isVerified: user.is_verified
+    };
+
+    // Для мобильного клиента токены в JSON
+    const responseData = { user: userData };
+    
+    if (isMobileClient) {
+      responseData.accessToken = accessToken;
+      responseData.refreshToken = refreshToken;
+    }
+
     res.json({
       success: true,
-      data: {
-        user: {
-          id: user.id,
-          phone: user.phone,
-          username: user.username,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-          isVerified: user.is_verified
-        },
-        accessToken,
-        refreshToken
-      },
+      data: responseData,
       message: 'Login successful',
       timestamp: new Date().toISOString()
     });
@@ -203,7 +300,8 @@ router.post('/login', authRateLimit, async (req, res) => {
 // POST /api/auth/refresh - Refresh access token
 router.post('/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // ✅ Читаем refreshToken из cookie
+    const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({
@@ -249,10 +347,19 @@ router.post('/refresh', async (req, res) => {
     // Generate new access token
     const newAccessToken = generateToken(user.id);
 
+    // ✅ Токен в httpOnly cookie
+    const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.secure;
+    
+    res.cookie('accessToken', newAccessToken, {
+      httpOnly: true,
+      secure: isSecure, // ✅ HTTPS only в production
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000
+    });
+
     res.json({
       success: true,
       data: {
-        accessToken: newAccessToken,
         user: {
           id: user.id,
           email: user.email,
@@ -280,25 +387,27 @@ router.post('/refresh', async (req, res) => {
 // GET /api/auth/me - Get current user
 router.get('/me', async (req, res) => {
   try {
-    // Получаем токен из заголовка
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // ✅ Получаем токен из cookie (приоритет) или header (для мобилки)
+    const token = req.cookies?.accessToken || 
+                  (req.headers.authorization && req.headers.authorization.split(' ')[1]);
+    
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: 'No token provided',
         timestamp: new Date().toISOString()
       });
     }
-
-    const token = authHeader.substring(7);
     const jwt = require('jsonwebtoken');
     
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
       
-      // Получаем пользователя из БД
+      // Получаем пользователя из БД с полями компании
       const result = await pool.query(
-        'SELECT id, email, username, first_name, last_name, phone, avatar, role, is_active, is_verified, created_at FROM users WHERE id = $1 AND is_active = true',
+        `SELECT id, email, username, first_name, last_name, phone, avatar, role, is_active, is_verified, 
+         company_name, company_address, company_description, created_at 
+         FROM users WHERE id = $1 AND is_active = true`,
         [decoded.userId]
       );
 
@@ -312,21 +421,32 @@ router.get('/me', async (req, res) => {
 
       const user = result.rows[0];
 
+      // Формируем ответ в зависимости от роли
+      const userData = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        phone: user.phone,
+        avatar: user.avatar,
+        role: user.role,
+        isActive: user.is_active,
+        isVerified: user.is_verified,
+        createdAt: user.created_at
+      };
+
+      // Добавляем поля в зависимости от роли
+      if (user.role === 'master') {
+        userData.companyName = user.company_name;
+        userData.companyAddress = user.company_address;
+        userData.companyDescription = user.company_description;
+      } else {
+        userData.firstName = user.first_name;
+        userData.lastName = user.last_name;
+      }
+
       res.json({
         success: true,
-        data: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          phone: user.phone,
-          avatar: user.avatar,
-          role: user.role,
-          isActive: user.is_active,
-          isVerified: user.is_verified,
-          createdAt: user.created_at
-        },
+        data: userData,
         message: 'User retrieved successfully',
         timestamp: new Date().toISOString()
       });
@@ -480,7 +600,8 @@ router.put('/profile', avatarUpload.single('avatar'), async (req, res) => {
 // POST /api/auth/logout - User logout
 router.post('/logout', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // ✅ Читаем refreshToken из cookie
+    const refreshToken = req.cookies?.refreshToken;
 
     if (refreshToken) {
       // Remove refresh token from database
@@ -489,6 +610,10 @@ router.post('/logout', async (req, res) => {
         [refreshToken]
       );
     }
+
+    // ✅ Очищаем cookies
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
 
     res.json({
       success: true,
@@ -572,12 +697,12 @@ router.post('/forgot-password', async (req, res) => {
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
 
-    // Сохраняем код
-    smsVerificationCodes.set(phone, {
+    // Сохраняем код в Redis с TTL 10 минут (600 секунд)
+    await redisClient.set(`sms:password_reset:${phone}`, JSON.stringify({
       code,
-      expiresAt,
+      expiresAt: expiresAt.toISOString(),
       type: 'password_reset'
-    });
+    }), 'EX', 600);
 
     // Отправляем SMS
     try {
@@ -626,16 +751,18 @@ router.post('/reset-password', async (req, res) => {
       });
     }
 
-    // Проверяем SMS код
-    const storedData = smsVerificationCodes.get(phone);
+    // Проверяем SMS код из Redis
+    const storedDataStr = await redisClient.get(`sms:password_reset:${phone}`);
     
-    if (!storedData) {
+    if (!storedDataStr) {
       return res.status(400).json({
         success: false,
         message: 'No verification code found. Please request a new one',
         timestamp: new Date().toISOString()
       });
     }
+
+    const storedData = JSON.parse(storedDataStr);
 
     if (storedData.type !== 'password_reset') {
       return res.status(400).json({
@@ -645,8 +772,8 @@ router.post('/reset-password', async (req, res) => {
       });
     }
 
-    if (new Date() > storedData.expiresAt) {
-      smsVerificationCodes.delete(phone);
+    if (new Date() > new Date(storedData.expiresAt)) {
+      await redisClient.del(`sms:password_reset:${phone}`);
       return res.status(400).json({
         success: false,
         message: 'Verification code expired. Please request a new one',
@@ -680,8 +807,8 @@ router.post('/reset-password', async (req, res) => {
       });
     }
 
-    // Удаляем использованный код
-    smsVerificationCodes.delete(phone);
+    // Удаляем использованный код из Redis
+    await redisClient.del(`sms:password_reset:${phone}`);
     
     console.log(`✅ Password reset successfully for phone: ${phone}`);
 
@@ -717,19 +844,23 @@ router.post('/send-sms-code', async (req, res) => {
     // Генерируем 6-значный код
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Сохраняем код с временем истечения (5 минут)
-    smsVerificationCodes.set(phone, {
+    // Сохраняем код в Redis с временем истечения (10 минут = 600 секунд)
+    await redisClient.set(`sms:verification:${phone}`, JSON.stringify({
       code,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: Date.now() + 10 * 60 * 1000,
       attempts: 0
-    });
+    }), 'EX', 600);
 
     // Отправляем SMS через существующий сервис
+    const smsStartTime = Date.now();
     try {
+      console.log(`📱 [${new Date().toISOString()}] Starting SMS send to ${phone}`);
       const smsResult = await smsService.sendVerificationCode(phone, code);
-      console.log(`SMS sending result:`, smsResult);
+      const smsDuration = Date.now() - smsStartTime;
+      console.log(`📱 [${new Date().toISOString()}] SMS sending result (took ${smsDuration}ms):`, smsResult);
     } catch (smsError) {
-      console.error(`SMS sending error (non-critical):`, smsError.message);
+      const smsDuration = Date.now() - smsStartTime;
+      console.error(`❌ [${new Date().toISOString()}] SMS sending error after ${smsDuration}ms:`, smsError.message);
       // Продолжаем даже если SMS не отправился - для тестирования
     }
 
@@ -766,9 +897,9 @@ router.post('/verify-sms', async (req, res) => {
       });
     }
 
-    const storedData = smsVerificationCodes.get(phone);
+    const storedDataStr = await redisClient.get(`sms:verification:${phone}`);
 
-    if (!storedData) {
+    if (!storedDataStr) {
       return res.status(400).json({
         success: false,
         message: 'No verification code found for this phone',
@@ -776,9 +907,12 @@ router.post('/verify-sms', async (req, res) => {
       });
     }
 
+    // ✅ redisClient.get() уже делает JSON.parse автоматически
+    const storedData = storedDataStr;
+
     // Проверяем истечение срока
     if (Date.now() > storedData.expiresAt) {
-      smsVerificationCodes.delete(phone);
+      await redisClient.del(`sms:verification:${phone}`);
       return res.status(400).json({
         success: false,
         message: 'Verification code has expired',
@@ -788,7 +922,7 @@ router.post('/verify-sms', async (req, res) => {
 
     // Проверяем количество попыток
     if (storedData.attempts >= 3) {
-      smsVerificationCodes.delete(phone);
+      await redisClient.del(`sms:verification:${phone}`);
       return res.status(400).json({
         success: false,
         message: 'Too many attempts. Please request a new code',
@@ -799,6 +933,8 @@ router.post('/verify-sms', async (req, res) => {
     // Проверяем код
     if (storedData.code !== code) {
       storedData.attempts++;
+      // Обновляем счетчик попыток в Redis
+      await redisClient.set(`sms:verification:${phone}`, JSON.stringify(storedData), 'EX', 300);
       return res.status(400).json({
         success: false,
         message: 'Invalid verification code',
@@ -806,8 +942,8 @@ router.post('/verify-sms', async (req, res) => {
       });
     }
 
-    // Код верный - удаляем из хранилища
-    smsVerificationCodes.delete(phone);
+    // Код верный - удаляем из Redis
+    await redisClient.del(`sms:verification:${phone}`);
 
     res.json({
       success: true,

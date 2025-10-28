@@ -47,11 +47,9 @@ const SupportTicketsPage: React.FC = () => {
   const loadTickets = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('accessToken')
+      // ✅ Токен в httpOnly cookie
       const response = await fetch('https://mebelplace.com.kz/api/support/tickets', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       })
       const data = await response.json()
       setTickets(data.data.tickets || [])
@@ -64,11 +62,9 @@ const SupportTicketsPage: React.FC = () => {
 
   const loadTicketDetails = async (ticketId: string) => {
     try {
-      const token = localStorage.getItem('accessToken')
+      // ✅ Токен в httpOnly cookie
       const response = await fetch(`https://mebelplace.com.kz/api/support/tickets/${ticketId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       })
       const data = await response.json()
       setSelectedTicket(data.data)
@@ -81,12 +77,12 @@ const SupportTicketsPage: React.FC = () => {
     e.preventDefault()
     try {
       setCreatingTicket(true)
-      const token = localStorage.getItem('accessToken')
+      // ✅ Токен в httpOnly cookie
       const response = await fetch('https://mebelplace.com.kz/api/support/tickets', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(newTicket)
       })
@@ -109,12 +105,12 @@ const SupportTicketsPage: React.FC = () => {
 
     try {
       setSendingResponse(true)
-      const token = localStorage.getItem('accessToken')
+      // ✅ Токен в httpOnly cookie
       const response = await fetch(`https://mebelplace.com.kz/api/support/tickets/${selectedTicket.id}/responses`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ message: newResponse.trim() })
       })

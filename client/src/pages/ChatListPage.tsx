@@ -27,11 +27,9 @@ const ChatListPage: React.FC = () => {
     const otherParticipant = chat.participants.find((p: any) => {
       const participantId = p.user_id || p.userId || p.id
       const currentUserId = user?.id
-      console.log('[ChatList] Comparing:', participantId, '!==', currentUserId, '=', participantId !== currentUserId)
       return participantId !== currentUserId
     })
     
-    console.log('[ChatList] Other participant:', otherParticipant?.name || otherParticipant?.username)
     // Если не нашли, возвращаем null (НЕ берём первого!)
     return otherParticipant || null
   }
