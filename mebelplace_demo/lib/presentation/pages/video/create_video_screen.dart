@@ -28,6 +28,7 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
   bool _isUploading = false;
   int _currentStep = 0;
   String _selectedCategory = 'Мебель';
+  final _priceController = TextEditingController();
   
   final List<String> _categories = [
     'Мебель',
@@ -60,6 +61,7 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _priceController.dispose();
     _pageController.dispose();
     _fabAnimationController.dispose();
     super.dispose();
@@ -637,6 +639,68 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
                 );
               }).toList(),
             ),
+            
+            SizedBox(height: 24.h),
+            
+            // Furniture Price
+            Text(
+              'Цена мебели (₸)',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            
+            SizedBox(height: 8.h),
+            
+            Text(
+              'Укажите стоимость изделия (не обязательно)',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: Colors.white.withOpacity(0.5),
+              ),
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            TextFormField(
+              controller: _priceController,
+              keyboardType: TextInputType.number,
+              style: TextStyle(color: Colors.white, fontSize: 16.sp),
+              decoration: InputDecoration(
+                hintText: 'Например: 150000',
+                hintStyle: TextStyle(
+                  color: Colors.white.withOpacity(0.3),
+                ),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide(
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide(
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
+                ),
+                prefixIcon: Icon(
+                  Icons.currency_exchange,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -975,6 +1039,9 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
             : null,
         category: _selectedCategory,
         tags: [],
+        furniturePrice: _priceController.text.isNotEmpty 
+            ? double.tryParse(_priceController.text) 
+            : null,
       );
       
       if (mounted) {

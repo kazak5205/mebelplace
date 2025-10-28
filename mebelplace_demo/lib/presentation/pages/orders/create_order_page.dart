@@ -27,6 +27,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
   bool _isCreating = false;
   int _currentStep = 0;
   String _selectedCategory = 'Кухни';
+  String _selectedRegion = 'Алматы';
   String _selectedUrgency = 'Не срочно';
   
   final List<String> _categories = [
@@ -40,6 +41,23 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
     'Офисная мебель',
     'Декор',
     'Другое',
+  ];
+
+  final List<String> _regions = [
+    'Алматы',
+    'Астана',
+    'Шымкент',
+    'Караганда',
+    'Актобе',
+    'Тараз',
+    'Павлодар',
+    'Усть-Каменогорск',
+    'Семей',
+    'Атырау',
+    'Костанай',
+    'Кызылорда',
+    'Уральск',
+    'Петропавловск',
   ];
 
   final List<String> _urgencies = [
@@ -319,15 +337,80 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
             
             SizedBox(height: 24.h),
             
-            // Address
+            // Region
+            Text(
+              'Регион *',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              child: DropdownButton<String>(
+                value: _selectedRegion,
+                isExpanded: true,
+                dropdownColor: const Color(0xFF1A1A1A),
+                underline: const SizedBox(),
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.primary,
+                ),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+                items: _regions.map((String region) {
+                  return DropdownMenuItem<String>(
+                    value: region,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          color: AppColors.primary,
+                          size: 20.sp,
+                        ),
+                        SizedBox(width: 12.w),
+                        Text(region),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedRegion = newValue;
+                    });
+                    HapticHelper.lightImpact();
+                  }
+                },
+              ),
+            ),
+            
+            SizedBox(height: 24.h),
+            
+            // City
             _buildTextField(
               controller: _addressController,
-              label: 'Адрес',
-              hint: 'Город, район',
-              icon: Icons.location_on_outlined,
+              label: 'Город *',
+              hint: 'Алматы',
+              icon: Icons.location_city_outlined,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Укажите адрес';
+                  return 'Укажите город';
                 }
                 return null;
               },
@@ -752,11 +835,13 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
                       size: 18.sp,
                     ),
                     SizedBox(width: 8.w),
-                    Text(
-                      _addressController.text,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: Colors.white.withOpacity(0.9),
+                    Expanded(
+                      child: Text(
+                        '$_selectedRegion, ${_addressController.text}',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
                       ),
                     ),
                   ],
@@ -955,6 +1040,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
         description: _descriptionController.text.trim(),
         category: _selectedCategory,
         location: _addressController.text.trim(),
+        region: _selectedRegion,
         // budget: removed - не используется на веб-версии
         // urgency: _selectedUrgency, // TODO: Add to API if needed
         images: _selectedImages.isNotEmpty ? _selectedImages.map((f) => f.path).toList() : null,

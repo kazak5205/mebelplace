@@ -20,12 +20,31 @@ class VideoRepository {
     return await getVideoFeed();
   }
 
-  Future<List<VideoModel>> getVideoFeed({int page = 1, int limit = 20}) async {
+  Future<List<VideoModel>> getVideoFeed({int page = 1, int limit = 50}) async {
     try {
-      final response = await _apiService.getVideoFeed({
+      // Получаем текущего пользователя для определения параметров
+      final user = await _localStorage.getUser();
+      
+      final Map<String, dynamic> params = {
         'page': page,
         'limit': limit,
-      });
+      };
+      
+      // Если мастер - исключаем его видео, если клиент - включаем рекомендации
+      if (user != null) {
+        if (user.role == 'master') {
+          params['exclude_author'] = user.id;
+        } else {
+          params['recommendations'] = true;
+        }
+      } else {
+        // Если не авторизован - показываем рекомендации
+        params['recommendations'] = true;
+      }
+      
+      print('🎬 VideoRepository: Loading feed with params: $params');
+      
+      final response = await _apiService.getVideoFeed(params);
       
       if (response.success && response.data != null) {
         return response.data!.videos;
@@ -88,6 +107,7 @@ class VideoRepository {
     String? description,
     String? category,
     List<String>? tags,
+    double? furniturePrice,
   }) async {
     try {
       final token = await _localStorage.getToken();
@@ -100,6 +120,7 @@ class VideoRepository {
         description,
         category,
         tags?.join(','),
+        furniturePrice,
       );
       
       if (response.success && response.data != null) {

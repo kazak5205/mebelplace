@@ -303,6 +303,19 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
   }
 
   Widget _buildOrderCardFromModel(OrderModel order, int index, String status) {
+    // Формируем строку местоположения: "Регион, Город" или только город
+    String locationText = '';
+    if (order.region != null && order.region!.isNotEmpty) {
+      locationText = order.region!;
+      if (order.location != null && order.location!.isNotEmpty) {
+        locationText += ', ${order.location}';
+      }
+    } else if (order.location != null && order.location!.isNotEmpty) {
+      locationText = order.location!;
+    } else {
+      locationText = 'Не указано';
+    }
+    
     return _buildOrderCardUI(
       index: index,
       status: status,
@@ -310,9 +323,9 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
       statusColor: _getStatusColor(order.status),
       title: order.title,
       description: order.description ?? '',
-      location: order.location ?? 'Не указано',
+      location: locationText,
       time: _formatTime(order.createdAt),
-      responseCount: 0, // TODO: Add responsesCount field to OrderModel if available
+      responseCount: order.responseCount, // ✅ Реальное количество откликов из API
       orderId: order.id,
     );
   }

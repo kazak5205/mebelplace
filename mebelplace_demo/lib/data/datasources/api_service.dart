@@ -581,42 +581,52 @@ class ApiService {
     String? description,
     String? category,
     String? tags,
+    double? furniturePrice,
   ) async {
-    await Future.delayed(const Duration(seconds: 2));
-    
-    final newVideo = VideoModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
-      description: description,
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      thumbnailUrl: 'https://picsum.photos/400/600?random=${DateTime.now().millisecondsSinceEpoch}',
-      duration: 60,
-      fileSize: 1024000,
-      authorId: '1',
-      username: 'demo_user',
-      firstName: 'Демо',
-      lastName: 'Пользователь',
-      avatar: 'https://picsum.photos/100/100?random=10',
-      category: category ?? 'Общее',
-      tags: tags?.split(',') ?? [],
-      views: 0,
-      likes: 0,
-      likesCount: 0,
-      commentsCount: 0,
-      isLiked: false,
-      isFeatured: false,
-      priorityOrder: null,
-      isPublic: true,
-      isActive: true,
-      createdAt: DateTime.now(),
-    );
-    
-    return ApiResponse<VideoModel>(
-      success: true,
-      data: newVideo,
-      message: 'Видео загружено',
-      timestamp: DateTime.now().toIso8601String(),
-    );
+    try {
+      // ✅ РЕАЛЬНЫЙ API endpoint /videos/upload
+      final formData = FormData.fromMap({
+        'video': await MultipartFile.fromFile(video.path),
+        'title': title,
+        if (description != null) 'description': description,
+        if (category != null) 'category': category,
+        if (tags != null) 'tags': tags,
+        if (furniturePrice != null) 'furniturePrice': furniturePrice,
+      });
+
+      print('📹 Uploading video: $title');
+      print('   Category: $category');
+      if (furniturePrice != null) print('   Price: $furniturePrice ₸');
+
+      final response = await _dio.post('/videos/upload', data: formData);
+
+      if (response.statusCode == 200) {
+        final data = response.data['data'] ?? response.data;
+        final video = VideoModel.fromJson(data);
+
+        print('✅ Video uploaded: ${video.id}');
+
+        return ApiResponse<VideoModel>(
+          success: true,
+          data: video,
+          message: 'Видео загружено',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<VideoModel>(
+          success: false,
+          message: 'Ошибка загрузки видео',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      print('❌ Video upload error: $e');
+      return ApiResponse<VideoModel>(
+        success: false,
+        message: 'Ошибка загрузки видео: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
   }
 
   // Order endpoints
@@ -716,7 +726,7 @@ class ApiService {
         'title': title,
         'description': description,
         'category': category,
-        if (location != null) 'location': location,
+        if (location != null) 'city': location, // Бекенд ожидает 'city', а не 'location'
         if (region != null) 'region': region,
         if (budget != null) 'budget': budget,
         if (deadline != null) 'deadline': deadline.toIso8601String(),
