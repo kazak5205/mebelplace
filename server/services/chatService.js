@@ -94,17 +94,7 @@ class ChatService {
     return result.rows[0];
   }
 
-  // Обновление статуса сообщения
-  async updateMessageStatus(messageId, status) {
-    const result = await pool.query(`
-      UPDATE messages 
-      SET status = $1, updated_at = NOW()
-      WHERE id = $2
-      RETURNING *
-    `, [status, messageId]);
-
-    return result.rows[0];
-  }
+  // Метод updateMessageStatus удален - колонка status не существует в таблице messages
 
   // Получение участников чата
   async getChatParticipants(chatId) {
