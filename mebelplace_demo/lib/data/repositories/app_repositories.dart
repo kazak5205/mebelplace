@@ -489,7 +489,7 @@ class ChatRepository {
       if (token == null) throw Exception('Not authenticated');
       
       final user = await _localStorage.getUser();
-      final currentUserId = user?.id;
+      final currentUserId = user?.id != null ? int.tryParse(user!.id) : null;
       
       final response = await _apiService.getChats(currentUserId: currentUserId);
       
