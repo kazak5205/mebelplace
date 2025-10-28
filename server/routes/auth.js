@@ -230,7 +230,7 @@ router.post('/login', authRateLimit, async (req, res) => {
     }
 
     // Generate tokens
-    const accessToken = generateToken(user.id);
+    const accessToken = generateToken(user.id, user.username);
     const refreshToken = generateRefreshToken(user.id);
 
     // Store refresh token in database
