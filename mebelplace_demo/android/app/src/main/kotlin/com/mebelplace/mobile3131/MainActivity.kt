@@ -1,4 +1,4 @@
-package com.mebelplace.mebelplace_demo
+package com.mebelplace.mobile3131
 
 import io.flutter.embedding.android.FlutterActivity
 
