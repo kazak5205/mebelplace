@@ -88,9 +88,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "логотип.png"
+  image_path: "логотип_белый_фон.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "логотип.png"
-  # iOS требует непрозрачные иконки
-  remove_alpha_ios: true
-  background_color_ios: "#FFFFFF"
