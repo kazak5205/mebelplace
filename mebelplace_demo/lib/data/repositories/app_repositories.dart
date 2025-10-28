@@ -265,7 +265,8 @@ class AuthRepository {
   }
 
   Future<void> saveAuthData(UserModel user, String token) async {
-    await _localStorage.saveToken(token);
+    // Токен уже сохранен в api_service.dart при регистрации/логине
+    // Здесь только сохраняем пользователя
     await _localStorage.saveUser(user);
   }
 

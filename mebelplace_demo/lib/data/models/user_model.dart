@@ -20,6 +20,11 @@ class UserModel {
   final int? followersCount; // Количество подписчиков
   final int? ordersCount;    // Количество выполненных заказов
   final String? bio;         // Биография/описание
+  
+  // Поля для мастеров
+  final String? companyName;        // Название компании (для мастеров)
+  final String? companyAddress;     // Адрес компании
+  final String? companyDescription; // Описание компании
 
   const UserModel({
     required this.id,
@@ -38,6 +43,9 @@ class UserModel {
     this.followersCount,
     this.ordersCount,
     this.bio,
+    this.companyName,
+    this.companyAddress,
+    this.companyDescription,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
@@ -60,6 +68,9 @@ class UserModel {
     int? followersCount,
     int? ordersCount,
     String? bio,
+    String? companyName,
+    String? companyAddress,
+    String? companyDescription,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -78,10 +89,18 @@ class UserModel {
       followersCount: followersCount ?? this.followersCount,
       ordersCount: ordersCount ?? this.ordersCount,
       bio: bio ?? this.bio,
+      companyName: companyName ?? this.companyName,
+      companyAddress: companyAddress ?? this.companyAddress,
+      companyDescription: companyDescription ?? this.companyDescription,
     );
   }
 
   String get displayName {
+    // Для мастеров показываем название компании
+    if (isMaster && companyName != null && companyName!.isNotEmpty) {
+      return companyName!;
+    }
+    // Для клиентов показываем имя + фамилия или username
     if (firstName != null && lastName != null) {
       return '$firstName $lastName';
     }
