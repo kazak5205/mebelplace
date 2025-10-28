@@ -313,7 +313,7 @@ const CreateVideoPage: React.FC = () => {
                   className="glass-input w-full"
                   placeholder="Например: 150000"
                   min="0"
-                  step="1000"
+                  step="1"
                 />
                 <p className="text-xs text-white/50 mt-1">
                   Укажите стоимость изделия (не обязательно)
