@@ -23,13 +23,18 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
 
   // Controllers
   final _phoneController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _smsCodeController = TextEditingController();
-  final _nameController = TextEditingController();
+  final _companyNameController = TextEditingController();
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   bool _isLoading = false;
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
 
   @override
   void initState() {
@@ -49,8 +54,11 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
   void dispose() {
     _pageController.dispose();
     _phoneController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _smsCodeController.dispose();
-    _nameController.dispose();
+    _companyNameController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -99,9 +107,9 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
                 });
               },
               children: [
-                _buildPhoneStep(),
+                _buildRegistrationFormStep(),
                 _buildSmsCodeStep(),
-                _buildNameStep(),
+                if (widget.role == 'master') _buildCompanyNameStep(),
               ],
             ),
           ),
@@ -111,10 +119,13 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
   }
 
   Widget _buildProgressIndicator() {
+    // Для мастера 3 шага, для клиента 2
+    final totalSteps = widget.role == 'master' ? 3 : 2;
+    
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w),
       child: Row(
-        children: List.generate(3, (index) {
+        children: List.generate(totalSteps, (index) {
           final isActive = index <= _currentStep;
           final isCompleted = index < _currentStep;
           
@@ -139,16 +150,16 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
     );
   }
 
-  Widget _buildPhoneStep() {
+  Widget _buildRegistrationFormStep() {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 24.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Номер телефона',
+              'Регистрация',
               style: TextStyle(
                 fontSize: 28.sp,
                 fontWeight: FontWeight.bold,
@@ -157,15 +168,24 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
             ),
             SizedBox(height: 12.h),
             Text(
-              'Введите ваш номер телефона для регистрации',
+              'Заполните данные для создания аккаунта',
               style: TextStyle(
                 fontSize: 14.sp,
                 color: Colors.white.withOpacity(0.6),
               ),
             ),
-            SizedBox(height: 40.h),
+            SizedBox(height: 32.h),
             
             // Phone input
+            Text(
+              'Номер телефона *',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 8.h),
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
@@ -205,7 +225,183 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
               ),
             ),
             
-            const Spacer(),
+            SizedBox(height: 20.h),
+            
+            // Username input
+            Text(
+              'Имя пользователя *',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            TextField(
+              controller: _usernameController,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+              ),
+              decoration: InputDecoration(
+                hintText: 'username',
+                hintStyle: TextStyle(
+                  color: Colors.white.withOpacity(0.3),
+                ),
+                prefixIcon: Icon(
+                  Icons.person_outline,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide(
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+            
+            SizedBox(height: 20.h),
+            
+            // Password input
+            Text(
+              'Пароль *',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            TextField(
+              controller: _passwordController,
+              obscureText: !_showPassword,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Минимум 6 символов',
+                hintStyle: TextStyle(
+                  color: Colors.white.withOpacity(0.3),
+                ),
+                prefixIcon: Icon(
+                  Icons.lock_outline,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white.withOpacity(0.5),
+                    size: 24.sp,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showPassword = !_showPassword;
+                    });
+                  },
+                ),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide(
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+            
+            SizedBox(height: 20.h),
+            
+            // Confirm Password input
+            Text(
+              'Подтвердите пароль *',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            TextField(
+              controller: _confirmPasswordController,
+              obscureText: !_showConfirmPassword,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Повторите пароль',
+                hintStyle: TextStyle(
+                  color: Colors.white.withOpacity(0.3),
+                ),
+                prefixIcon: Icon(
+                  Icons.lock_outline,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _showConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white.withOpacity(0.5),
+                    size: 24.sp,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showConfirmPassword = !_showConfirmPassword;
+                    });
+                  },
+                ),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide(
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+            
+            SizedBox(height: 40.h),
             
             // Continue button
             _buildContinueButton(
@@ -316,16 +512,14 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
     );
   }
 
-  Widget _buildNameStep() {
-    final isClient = widget.role == 'client';
-    
+  Widget _buildCompanyNameStep() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isClient ? 'Никнейм' : 'Название компании',
+            'Название компании',
             style: TextStyle(
               fontSize: 28.sp,
               fontWeight: FontWeight.bold,
@@ -334,9 +528,7 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
           ),
           SizedBox(height: 12.h),
           Text(
-            isClient
-                ? 'Как вас будут видеть мастера?'
-                : 'Как будет называться ваша мебельная компания?',
+            'Как будет называться ваша мебельная компания?',
             style: TextStyle(
               fontSize: 14.sp,
               color: Colors.white.withOpacity(0.6),
@@ -344,20 +536,20 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
           ),
           SizedBox(height: 40.h),
           
-          // Name input
+          // Company Name input
           TextField(
-            controller: _nameController,
+            controller: _companyNameController,
             style: TextStyle(
               color: Colors.white,
               fontSize: 16.sp,
             ),
             decoration: InputDecoration(
-              hintText: isClient ? 'Введите никнейм' : 'Название компании',
+              hintText: 'Название компании',
               hintStyle: TextStyle(
                 color: Colors.white.withOpacity(0.3),
               ),
               prefixIcon: Icon(
-                isClient ? Icons.person_outline : Icons.business_outlined,
+                Icons.business_outlined,
                 color: AppColors.primary,
                 size: 24.sp,
               ),
@@ -385,7 +577,7 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
           
           const Spacer(),
           
-          // Continue button
+          // Complete button
           _buildContinueButton(
             text: 'Завершить регистрацию',
             onPressed: _completeRegistration,
@@ -465,8 +657,29 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
   }
 
   Future<void> _sendSmsCode() async {
+    // Валидация всех полей
     if (_phoneController.text.isEmpty) {
       _showError('Введите номер телефона');
+      return;
+    }
+    
+    if (_usernameController.text.isEmpty) {
+      _showError('Введите имя пользователя');
+      return;
+    }
+    
+    if (_passwordController.text.isEmpty) {
+      _showError('Введите пароль');
+      return;
+    }
+    
+    if (_passwordController.text.length < 6) {
+      _showError('Пароль должен содержать минимум 6 символов');
+      return;
+    }
+    
+    if (_passwordController.text != _confirmPasswordController.text) {
+      _showError('Пароли не совпадают');
       return;
     }
 
@@ -523,7 +736,12 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
       
       if (mounted) {
         if (response.success) {
-          _goToNextStep();
+          // Для клиента сразу регистрируем, для мастера идем на след. шаг
+          if (widget.role == 'client') {
+            await _completeRegistration();
+          } else {
+            _goToNextStep(); // Мастер идет на шаг "Название компании"
+          }
         } else {
           _showError(response.message ?? 'Неверный код');
         }
@@ -536,10 +754,9 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
   }
 
   Future<void> _completeRegistration() async {
-    if (_nameController.text.isEmpty) {
-      _showError(widget.role == 'client' 
-          ? 'Введите никнейм' 
-          : 'Введите название компании');
+    // Для мастера проверяем название компании
+    if (widget.role == 'master' && _companyNameController.text.isEmpty) {
+      _showError('Введите название компании');
       return;
     }
 
@@ -549,15 +766,17 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
       final apiService = ref.read(apiServiceProvider);
       
       final phone = _phoneController.text.trim();
-      final username = _nameController.text.trim();
-      final password = 'temp_${phone.replaceAll('+', '').replaceAll(' ', '')}';
+      final username = _usernameController.text.trim();
+      final password = _passwordController.text.trim();
       final role = widget.role == 'client' ? 'user' : 'master';
+      final companyName = widget.role == 'master' ? _companyNameController.text.trim() : null;
       
       print('🚀 Starting registration:');
       print('   Phone: $phone');
       print('   Username: $username');
       print('   Password: $password');
       print('   Role: $role');
+      if (companyName != null) print('   Company: $companyName');
       
       // Регистрация через API
       final response = await apiService.register(
@@ -566,7 +785,7 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
           username: username,
           password: password,
           role: role,
-          companyName: widget.role == 'master' ? username : null,
+          companyName: companyName,
         ),
       );
       
