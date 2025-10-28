@@ -610,20 +610,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   {currentVideo.description}
                 </p>
               )}
-              
-              {/* Furniture Price */}
-              {((currentVideo as any).furniture_price || (currentVideo as any).furniturePrice) && (
-                <div className="bg-gradient-to-r from-pink-500/90 to-purple-500/90 backdrop-blur-sm px-3 py-1.5 rounded-lg inline-block">
-                  <p className="text-white font-bold text-sm">
-                    {new Intl.NumberFormat('ru-KZ', { 
-                      style: 'currency', 
-                      currency: 'KZT',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0
-                    }).format((currentVideo as any).furniture_price || (currentVideo as any).furniturePrice)}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
