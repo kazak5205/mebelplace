@@ -3,6 +3,7 @@ const multer = require('multer');
 const { pool } = require('../config/database');
 const { authenticateToken, requireRole, optionalAuth } = require('../middleware/auth');
 const videoService = require('../services/videoService');
+const redisClient = require('../config/redis');
 const router = express.Router();
 
 // Configure multer for video uploads
@@ -105,6 +106,15 @@ router.get('/feed', optionalAuth, async (req, res) => {
     const { page = 1, limit = 10, category, author_id } = req.query;
     const offset = (page - 1) * limit;
 
+    // ✅ Redis cache для feed (TTL 3 минуты)
+    const cacheKey = `feed:${page}:${limit}:${category || 'all'}:${author_id || 'all'}`;
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      console.log(`[FEED] Cache HIT: ${cacheKey}`);
+      return res.json(JSON.parse(cached));
+    }
+    console.log(`[FEED] Cache MISS: ${cacheKey}`);
+
     // Get all videos with their priority information
     let query = `
       SELECT 
@@ -114,6 +124,8 @@ router.get('/feed', optionalAuth, async (req, res) => {
         u.avatar,
         u.first_name,
         u.last_name,
+        u.company_name,
+        u.role,
         avp.priority_order,
         avp.is_featured,
         COUNT(DISTINCT vl.id)::int as like_count,
@@ -140,7 +152,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     }
 
     query += `
-      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, u.username, u.avatar, u.first_name, u.last_name, avp.priority_order, avp.is_featured
+      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, avp.priority_order, avp.is_featured
       ORDER BY v.created_at DESC
     `;
 
@@ -156,6 +168,8 @@ router.get('/feed', optionalAuth, async (req, res) => {
         u.avatar,
         u.first_name,
         u.last_name,
+        u.company_name,
+        u.role,
         avp.priority_order,
         avp.is_featured,
         COUNT(DISTINCT vl.id)::int as like_count,
@@ -182,7 +196,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     }
 
     adminVideosQuery += `
-      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, u.username, u.avatar, u.first_name, u.last_name, avp.priority_order, avp.is_featured
+      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, avp.priority_order, avp.is_featured
       ORDER BY avp.priority_order ASC, v.created_at DESC
     `;
 
@@ -236,7 +250,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
       }
     }
 
-    res.json({
+    const responseData = {
       success: true,
       data: {
         videos: pageVideos,
@@ -249,7 +263,12 @@ router.get('/feed', optionalAuth, async (req, res) => {
       },
       message: 'Video feed retrieved successfully',
       timestamp: new Date().toISOString()
-    });
+    };
+
+    // ✅ Сохраняем в кэш (TTL 3 минуты)
+    await redisClient.set(cacheKey, JSON.stringify(responseData), 'EX', 180);
+
+    res.json(responseData);
 
   } catch (error) {
     console.error('Video feed error:', error);
@@ -694,6 +713,88 @@ router.get('/liked', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/videos/master/:id - Get master profile with videos
+router.get('/master/:id', async (req, res) => {
+  try {
+    const masterId = req.params.id;
+
+    // Get master info
+    const masterResult = await pool.query(`
+      SELECT 
+        id,
+        username,
+        first_name,
+        last_name,
+        phone,
+        avatar,
+        role,
+        bio,
+        company_name,
+        company_address,
+        company_description,
+        created_at
+      FROM users
+      WHERE id = $1 AND is_active = true AND role = 'master'
+    `, [masterId]);
+
+    if (masterResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Master not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const master = masterResult.rows[0];
+
+    // Get subscribers count
+    const subscribersResult = await pool.query(
+      'SELECT COUNT(*) FROM subscriptions WHERE master_id = $1',
+      [masterId]
+    );
+    master.subscribersCount = parseInt(subscribersResult.rows[0].count);
+
+    // Get master's videos
+    const videosResult = await pool.query(`
+      SELECT 
+        v.*,
+        u.username,
+        u.avatar,
+        u.first_name,
+        u.last_name,
+        u.company_name,
+        u.role,
+        COUNT(DISTINCT vl.id)::int as like_count,
+        COUNT(DISTINCT vc.id)::int as comment_count
+      FROM videos v
+      LEFT JOIN users u ON v.author_id = u.id
+      LEFT JOIN video_likes vl ON v.id = vl.video_id
+      LEFT JOIN video_comments vc ON v.id = vc.video_id AND vc.is_active = true
+      WHERE v.author_id = $1 AND v.is_active = true
+      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role
+      ORDER BY v.created_at DESC
+    `, [masterId]);
+
+    res.json({
+      success: true,
+      data: {
+        master,
+        videos: videosResult.rows
+      },
+      message: 'Master profile retrieved successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get master profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get master profile',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // GET /api/videos/:id - Get single video
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
@@ -706,6 +807,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
         u.avatar,
         u.first_name,
         u.last_name,
+        u.company_name,
+        u.role,
         COUNT(DISTINCT vl.id)::int as like_count,
         COUNT(DISTINCT vc.id)::int as comment_count
       FROM videos v
@@ -713,7 +816,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       LEFT JOIN video_likes vl ON v.id = vl.video_id
       LEFT JOIN video_comments vc ON v.id = vc.video_id AND vc.is_active = true
       WHERE v.id = $1 AND v.is_active = true
-      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name
+      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role
     `, [videoId]);
 
     if (result.rows.length === 0) {

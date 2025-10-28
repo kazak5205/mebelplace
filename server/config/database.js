@@ -1,12 +1,20 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+// ✅ Optimized connection pool for 1000 concurrent users
 const pool = new Pool({
   user: process.env.DB_USER || 'mebelplace',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'mebelplace',
   password: process.env.DB_PASSWORD || 'mebelplace123',
   port: process.env.DB_PORT || 5432,
+  // Performance tuning for high concurrency
+  max: 100, // Maximum pool size (was 10 by default)
+  min: 20,  // Minimum pool size (keep connections ready)
+  idleTimeoutMillis: 30000, // 30 seconds
+  connectionTimeoutMillis: 5000, // 5 seconds
+  statement_timeout: 30000, // 30 seconds for query execution
+  query_timeout: 30000
 });
 
 // Test connection
@@ -33,6 +41,10 @@ const initDatabase = async () => {
         last_name VARCHAR(100),
         avatar VARCHAR(500),
         phone VARCHAR(20),
+        bio TEXT,
+        company_name VARCHAR(255),
+        company_address VARCHAR(500),
+        company_description TEXT,
         is_active BOOLEAN DEFAULT true,
         is_verified BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

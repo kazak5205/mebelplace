@@ -601,7 +601,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 }}
                 className="text-white font-semibold text-sm hover:text-blue-300 transition-colors drop-shadow-lg"
               >
-                {currentVideo.username || currentVideo.master?.name || 'Автор'} • {formatTimeAgo(currentVideo.createdAt)}
+                {currentVideo.companyName || currentVideo.company_name || currentVideo.username || currentVideo.master?.name || 'Автор'} • {formatTimeAgo(currentVideo.createdAt)}
               </button>
               
               {/* Description */}
@@ -668,11 +668,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   className="text-white font-bold text-sm"
                   style={{ display: currentVideo.avatar || currentVideo.master?.avatar ? 'none' : 'flex' }}
                 >
-                  {(currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
+                  {(currentVideo.companyName || currentVideo.company_name || currentVideo.username || currentVideo.master?.name)?.charAt(0).toUpperCase() || 'M'}
                 </span>
               </div>
               <span className="text-white font-semibold text-xs">
-                {currentVideo.username || currentVideo.master?.name || 'Автор'}
+                {currentVideo.companyName || currentVideo.company_name || currentVideo.username || currentVideo.master?.name || 'Автор'}
               </span>
             </motion.button>
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const redisClient = require('../config/redis');
 const router = express.Router();
 
 // GET /api/users - Получить список пользователей (с фильтрацией по роли)
@@ -463,6 +464,15 @@ router.get('/:id', async (req, res) => {
   try {
     const userId = req.params.id;
 
+    // ✅ Redis cache для профилей (TTL 5 минут)
+    const cacheKey = `user:profile:${userId}`;
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      console.log(`[USER PROFILE] Cache HIT: ${userId}`);
+      return res.json(JSON.parse(cached));
+    }
+    console.log(`[USER PROFILE] Cache MISS: ${userId}`);
+
     const result = await pool.query(`
       SELECT 
         id,
@@ -474,6 +484,9 @@ router.get('/:id', async (req, res) => {
         avatar,
         role,
         bio,
+        company_name,
+        company_address,
+        company_description,
         created_at,
         is_active
       FROM users
@@ -516,12 +529,17 @@ router.get('/:id', async (req, res) => {
       }
     }
 
-    res.json({
+    const responseData = {
       success: true,
       data: user,
       message: 'User profile retrieved successfully',
       timestamp: new Date().toISOString()
-    });
+    };
+
+    // ✅ Сохраняем в кэш (TTL 5 минут)
+    await redisClient.set(cacheKey, JSON.stringify(responseData), 'EX', 300);
+
+    res.json(responseData);
 
   } catch (error) {
     console.error('Get user profile error:', error);

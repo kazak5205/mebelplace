@@ -67,10 +67,15 @@ app.use(cookieParser());
 // ✅ ИСПРАВЛЕНО: Redis rate limiting (кастомная реализация для ioredis)
 const redisRateLimiter = async (req, res, next) => {
   try {
+    // ✅ Исключаем /api/auth/me из глобального rate limiter (легкий запрос для проверки авторизации)
+    if (req.path === '/api/auth/me') {
+      return next();
+    }
+
     const ip = req.ip || req.connection.remoteAddress;
     const key = `rate_limit:${ip}`;
     const windowMs = 15 * 60 * 1000; // 15 minutes
-    const maxRequests = 1000;
+    const maxRequests = 10000; // Увеличено с 1000 до 10000
 
     // Инкрементируем счётчик
     const current = await redisClient.incr(key);

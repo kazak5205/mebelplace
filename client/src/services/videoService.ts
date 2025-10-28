@@ -61,6 +61,6 @@ export const videoService = {
     category?: string
   }): Promise<{ videos: any[]; pagination: any; search: any }> {
     const response = await apiService.get('/search', params) as any
-    return response.data || response
+    return response // apiService.get уже возвращает data.data
   }
 }

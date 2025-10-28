@@ -275,6 +275,8 @@ router.get('/videos', authenticateToken, requireRole(['admin']), async (req, res
         u.first_name,
         u.last_name,
         u.avatar,
+        u.company_name,
+        u.role,
         avp.priority_order,
         avp.is_featured,
         COUNT(vl.id) as like_count,
@@ -315,7 +317,7 @@ router.get('/videos', authenticateToken, requireRole(['admin']), async (req, res
     }
 
     query += `
-      GROUP BY v.id, u.username, u.first_name, u.last_name, u.avatar, avp.priority_order, avp.is_featured
+      GROUP BY v.id, u.username, u.first_name, u.last_name, u.avatar, u.company_name, u.role, avp.priority_order, avp.is_featured
       ORDER BY ${sortBy} ${sortOrder}
       LIMIT $${++paramCount} OFFSET $${++paramCount}
     `;

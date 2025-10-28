@@ -45,7 +45,10 @@ export interface Video {
   username?: string;
   firstName?: string;
   lastName?: string;
+  companyName?: string;
+  company_name?: string;
   avatar?: string;
+  role?: 'user' | 'master' | 'admin';
   title: string;
   description: string;
   videoUrl: string;

@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
 const { 
+  authenticateToken,
   generateToken, 
   generateRefreshToken, 
   verifyRefreshToken,
@@ -470,31 +471,16 @@ router.get('/me', async (req, res) => {
 });
 
 // PUT /api/auth/profile - Update user profile
-router.put('/profile', avatarUpload.single('avatar'), async (req, res) => {
+router.put('/profile', authenticateToken, avatarUpload.single('avatar'), async (req, res) => {
   console.log('🔵 Profile update request received');
   console.log('📁 File:', req.file ? req.file.filename : 'No file');
   console.log('📝 Body:', req.body);
+  console.log('👤 User from auth:', req.user);
   
   try {
-    // Получаем токен из заголовка
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('❌ No token provided');
-      return res.status(401).json({
-        success: false,
-        message: 'No token provided',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const token = authHeader.substring(7);
-    const jwt = require('jsonwebtoken');
-    
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      console.log('✅ Token verified, userId:', decoded.userId);
-      
-      const { firstName, lastName, phone } = req.body;
+    // ✅ req.user уже доступен из authenticateToken middleware
+    const userId = req.user.id;
+    const { firstName, lastName, phone, bio, companyName, companyAddress, companyDescription } = req.body;
       
       // Формируем запрос на обновление только тех полей, которые переданы
       const updates = [];
@@ -509,42 +495,57 @@ router.put('/profile', avatarUpload.single('avatar'), async (req, res) => {
         updates.push(`last_name = $${++paramCount}`);
         values.push(lastName);
       }
-      if (phone !== undefined && phone !== '') {
-        updates.push(`phone = $${++paramCount}`);
-        values.push(phone);
-      }
-      
-      // Если загружен файл аватара, добавляем его в обновление
-      if (req.file) {
-        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-        console.log('✅ Avatar file uploaded:', avatarUrl);
-        updates.push(`avatar = $${++paramCount}`);
-        values.push(avatarUrl);
-      } else if (req.body.avatar !== undefined && req.body.avatar !== '') {
-        console.log('✅ Avatar URL from body:', req.body.avatar);
-        updates.push(`avatar = $${++paramCount}`);
-        values.push(req.body.avatar);
-      }
-      
-      console.log('📋 Updates to apply:', updates.length, updates);
+    if (phone !== undefined && phone !== '') {
+      updates.push(`phone = $${++paramCount}`);
+      values.push(phone);
+    }
+    
+    // Поля для мастеров
+    if (bio !== undefined) {
+      updates.push(`bio = $${++paramCount}`);
+      values.push(bio);
+    }
+    if (companyName !== undefined) {
+      updates.push(`company_name = $${++paramCount}`);
+      values.push(companyName);
+    }
+    if (companyAddress !== undefined) {
+      updates.push(`company_address = $${++paramCount}`);
+      values.push(companyAddress);
+    }
+    if (companyDescription !== undefined) {
+      updates.push(`company_description = $${++paramCount}`);
+      values.push(companyDescription);
+    }
+    
+    // Если загружен файл аватара, добавляем его в обновление
+    if (req.file) {
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      console.log('✅ Avatar file uploaded:', avatarUrl);
+      updates.push(`avatar = $${++paramCount}`);
+      values.push(avatarUrl);
+    }
+    
+    console.log('📋 Updates to apply:', updates.length, updates);
 
-      if (updates.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'No fields to update',
-          timestamp: new Date().toISOString()
-        });
-      }
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No fields to update',
+        timestamp: new Date().toISOString()
+      });
+    }
 
-      updates.push(`updated_at = NOW()`);
-      values.push(decoded.userId);
+    updates.push(`updated_at = NOW()`);
+    values.push(userId);
 
-      const result = await pool.query(`
-        UPDATE users 
-        SET ${updates.join(', ')}
-        WHERE id = $${++paramCount} AND is_active = true
-        RETURNING id, email, username, first_name, last_name, phone, avatar, role, is_verified, created_at, updated_at
-      `, values);
+    const result = await pool.query(`
+      UPDATE users 
+      SET ${updates.join(', ')}
+      WHERE id = $${++paramCount} AND is_active = true
+      RETURNING id, email, username, first_name, last_name, phone, avatar, role, bio, 
+                company_name, company_address, company_description, is_verified, created_at, updated_at
+    `, values);
 
       if (result.rows.length === 0) {
         return res.status(404).json({
@@ -554,34 +555,37 @@ router.put('/profile', avatarUpload.single('avatar'), async (req, res) => {
         });
       }
 
-      const user = result.rows[0];
+    const user = result.rows[0];
 
-      res.json({
-        success: true,
-        data: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          phone: user.phone,
-          avatar: user.avatar,
-          role: user.role,
-          isVerified: user.is_verified,
-          createdAt: user.created_at,
-          updatedAt: user.updated_at
-        },
-        message: 'Profile updated successfully',
-        timestamp: new Date().toISOString()
-      });
+    // Формируем ответ в зависимости от роли
+    const userData = {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      phone: user.phone,
+      avatar: user.avatar,
+      role: user.role,
+      isVerified: user.is_verified,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at
+    };
 
-    } catch (jwtError) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token',
-        timestamp: new Date().toISOString()
-      });
+    if (user.role === 'master') {
+      userData.bio = user.bio;
+      userData.companyName = user.company_name;
+      userData.companyAddress = user.company_address;
+      userData.companyDescription = user.company_description;
+    } else {
+      userData.firstName = user.first_name;
+      userData.lastName = user.last_name;
     }
+
+    res.json({
+      success: true,
+      data: userData,
+      message: 'Profile updated successfully',
+      timestamp: new Date().toISOString()
+    });
 
   } catch (error) {
     console.error('Update profile error:', error);

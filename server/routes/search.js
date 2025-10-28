@@ -51,6 +51,8 @@ router.get('/', optionalAuth, async (req, res) => {
         u.avatar,
         u.first_name,
         u.last_name,
+        u.company_name,
+        u.role,
         COUNT(vl.id) as like_count,
         COUNT(vc.id) as comment_count,
         'video' as result_type
@@ -80,8 +82,9 @@ router.get('/', optionalAuth, async (req, res) => {
         u.username ILIKE $${++paramCount}
         OR u.first_name ILIKE $${++paramCount}
         OR u.last_name ILIKE $${++paramCount}
+        OR u.company_name ILIKE $${++paramCount}
       )`);
-      params.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+      params.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
     
     searchQuery += searchConditions.join(' OR ');
@@ -93,7 +96,7 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 
     searchQuery += `
-      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name
+      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role
       ORDER BY v.created_at DESC
       LIMIT $${++paramCount} OFFSET $${++paramCount}
     `;
@@ -132,8 +135,9 @@ router.get('/', optionalAuth, async (req, res) => {
         u.username ILIKE $${++countParamCount}
         OR u.first_name ILIKE $${++countParamCount}
         OR u.last_name ILIKE $${++countParamCount}
+        OR u.company_name ILIKE $${++countParamCount}
       )`);
-      countParams.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+      countParams.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
     
     countQuery += countSearchConditions.join(' OR ');

@@ -732,94 +732,116 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
       });
     }
 
-    // Обновляем статус заявки и отклика
+    // ✅ Обновляем статус заявки и откликов (транзакция для атомарности)
     console.log('[ACCEPT RESPONSE] Starting transaction...');
-    await pool.query('BEGIN');
-    console.log('[ACCEPT RESPONSE] Transaction started');
-
-    console.log('[ACCEPT RESPONSE] Updating order status...');
-    await pool.query(
-      'UPDATE orders SET status = $1, accepted_response_id = $2 WHERE id = $3',
-      ['accepted', responseId, orderId]
-    );
-    console.log('[ACCEPT RESPONSE] Order updated');
-
-    console.log('[ACCEPT RESPONSE] Updating response status...');
-    await pool.query(
-      'UPDATE order_responses SET status = $1 WHERE id = $2',
-      ['accepted', responseId]
-    );
-    console.log('[ACCEPT RESPONSE] Response updated');
-
-    // Создаем чат между клиентом и мастером
-    console.log('[ACCEPT RESPONSE] Creating chat...');
-    const chatResult = await pool.query(`
-      INSERT INTO chats (type, name, description, creator_id, order_id)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `, ['private', `Заявка: ${orderResult.rows[0].title}`, `Чат по заявке "${orderResult.rows[0].title}"`, userId, orderId]);
-    console.log('[ACCEPT RESPONSE] Chat created');
-
-    const chatId = chatResult.rows[0].id;
-    console.log('[ACCEPT RESPONSE] Chat ID:', chatId);
-
-    // Добавляем участников в чат
-    console.log('[ACCEPT RESPONSE] Adding chat participants...');
-    await pool.query(
-      'INSERT INTO chat_participants (chat_id, user_id, role) VALUES ($1, $2, $3), ($1, $4, $3)',
-      [chatId, userId, 'member', responseResult.rows[0].master_id]
-    );
-    console.log('[ACCEPT RESPONSE] Chat participants added');
-
-    console.log('[ACCEPT RESPONSE] Committing transaction...');
-    await pool.query('COMMIT');
-    
-    console.log('[ACCEPT RESPONSE] Transaction committed');
-    console.log('[ACCEPT RESPONSE] Chat created with ID:', chatId);
-
-    // Отправляем уведомление мастеру
-    console.log('[ACCEPT RESPONSE] Sending notification to master...');
+    const client = await pool.connect();
     try {
-      const notifResult = await notificationService.sendNotification(
-        responseResult.rows[0].master_id,
-        'response_accepted',
-        'Ваш отклик принят!',
-        `Клиент принял ваш отклик на заявку "${orderResult.rows[0].title}"`,
-        {
-          push: true,
-          sms: true,
-          smsType: 'response_accepted',
-          data: { orderId, chatId }
-        }
-      );
-      console.log('[ACCEPT RESPONSE] Notification sent:', JSON.stringify(notifResult));
-    } catch (notifError) {
-      console.error('[ACCEPT RESPONSE] Notification error:', notifError.message);
-      console.error('[ACCEPT RESPONSE] Notification error stack:', notifError.stack);
-    }
+      await client.query('BEGIN');
+      console.log('[ACCEPT RESPONSE] Transaction started');
 
-    const responseData = {
-      success: true,
-      data: {
-        order: { ...orderResult.rows[0], status: 'accepted' },
-        chat: { id: chatId }
-      },
-      message: 'Response accepted successfully',
-      timestamp: new Date().toISOString()
-    };
-    
-    console.log('[ACCEPT RESPONSE] Sending response:', JSON.stringify(responseData, null, 2));
-    res.json(responseData);
+      // 1. Отклоняем все другие отклики на эту заявку
+      console.log('[ACCEPT RESPONSE] Rejecting other responses...');
+      await client.query(
+        'UPDATE order_responses SET status = $1 WHERE order_id = $2 AND id != $3 AND status = $4',
+        ['rejected', orderId, responseId, 'pending']
+      );
+
+      // 2. Принимаем выбранный отклик
+      console.log('[ACCEPT RESPONSE] Accepting selected response...');
+      const acceptResult = await client.query(
+        'UPDATE order_responses SET status = $1 WHERE id = $2 AND status = $3 RETURNING master_id',
+        ['accepted', responseId, 'pending']
+      );
+
+      if (acceptResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          message: 'Response already accepted or not found',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      const masterId = acceptResult.rows[0].master_id;
+
+      // 3. Обновляем статус заявки
+      console.log('[ACCEPT RESPONSE] Updating order status...');
+      await client.query(
+        'UPDATE orders SET status = $1, master_id = $2 WHERE id = $3',
+        ['accepted', masterId, orderId]
+      );
+      console.log('[ACCEPT RESPONSE] Order updated');
+
+      // 4. Создаем чат между клиентом и мастером
+      console.log('[ACCEPT RESPONSE] Creating chat...');
+      const chatResult = await client.query(`
+        INSERT INTO chats (type, name, description, creator_id, order_id)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING *
+      `, ['private', `Заявка: ${orderResult.rows[0].title}`, `Чат по заявке "${orderResult.rows[0].title}"`, userId, orderId]);
+      console.log('[ACCEPT RESPONSE] Chat created');
+
+      const chatId = chatResult.rows[0].id;
+      console.log('[ACCEPT RESPONSE] Chat ID:', chatId);
+
+      // 5. Добавляем участников в чат
+      console.log('[ACCEPT RESPONSE] Adding chat participants...');
+      await client.query(
+        'INSERT INTO chat_participants (chat_id, user_id, role) VALUES ($1, $2, $3), ($1, $4, $3)',
+        [chatId, userId, 'member', masterId]
+      );
+      console.log('[ACCEPT RESPONSE] Chat participants added');
+
+      console.log('[ACCEPT RESPONSE] Committing transaction...');
+      await client.query('COMMIT');
+      client.release();
+      
+      console.log('[ACCEPT RESPONSE] Transaction committed');
+      console.log('[ACCEPT RESPONSE] Chat created with ID:', chatId);
+
+      // Отправляем уведомление мастеру
+      console.log('[ACCEPT RESPONSE] Sending notification to master...');
+      try {
+        const notifResult = await notificationService.sendNotification(
+          masterId,
+          'response_accepted',
+          'Ваш отклик принят!',
+          `Клиент принял ваш отклик на заявку "${orderResult.rows[0].title}"`,
+          {
+            push: true,
+            sms: true,
+            smsType: 'response_accepted',
+            data: { orderId, chatId }
+          }
+        );
+        console.log('[ACCEPT RESPONSE] Notification sent:', JSON.stringify(notifResult));
+      } catch (notifError) {
+        console.error('[ACCEPT RESPONSE] Notification error:', notifError.message);
+        console.error('[ACCEPT RESPONSE] Notification error stack:', notifError.stack);
+      }
+
+      const responseData = {
+        success: true,
+        data: {
+          order: { ...orderResult.rows[0], status: 'accepted', master_id: masterId },
+          chat: { id: chatId }
+        },
+        message: 'Response accepted successfully',
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('[ACCEPT RESPONSE] Sending response:', JSON.stringify(responseData, null, 2));
+      res.json(responseData);
+    } catch (transactionError) {
+      // Откат транзакции при ошибке
+      await client.query('ROLLBACK');
+      client.release();
+      throw transactionError;
+    }
 
   } catch (error) {
-    try {
-      await pool.query('ROLLBACK');
-    } catch (rollbackError) {
-      console.error('[ACCEPT RESPONSE] Rollback error:', rollbackError.message);
-    }
     console.error('[ACCEPT RESPONSE] Accept response error:', error);
     console.error('[ACCEPT RESPONSE] Error stack:', error.stack);
-    console.error('[ACCEPT RESPONSE] Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Failed to accept response',

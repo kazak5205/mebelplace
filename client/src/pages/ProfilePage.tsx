@@ -290,9 +290,11 @@ const ProfilePage: React.FC = () => {
     )
   }
 
-  const displayName = (user.firstName && user.lastName 
-    ? `${user.firstName} ${user.lastName}` 
-    : user.username) || 'Пользователь'
+  const displayName = user.role === 'master'
+    ? (user.companyName || user.username || 'Мастер')
+    : ((user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.username) || 'Пользователь')
 
   return (
     <div className="min-h-screen bg-black pb-20 md:pb-0">

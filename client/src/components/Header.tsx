@@ -3,23 +3,16 @@ import { motion } from 'framer-motion'
 import { Search, User, LogOut, Settings } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
-import { videoService } from '../services/videoService'
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = (query: string) => {
     if (query.trim().length >= 2) {
-      try {
-        const results = await videoService.searchVideos({ q: query })
-        console.log('Search results:', results)
-        // TODO: Navigate to search results page
-        navigate(`/search?q=${encodeURIComponent(query)}`)
-      } catch (error) {
-        console.error('Search error:', error)
-      }
+      // Сразу переходим на страницу поиска, данные загрузятся там
+      navigate(`/search?q=${encodeURIComponent(query)}`)
     }
   }
 
@@ -59,7 +52,11 @@ const Header: React.FC = () => {
             {user ? (
               <>
                 <div className="text-right hidden md:block">
-                  <p className="text-sm font-medium">{user.name}</p>
+                  <p className="text-sm font-medium">
+                    {user.role === 'master' 
+                      ? (user.companyName || user.username) 
+                      : (user.username || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Клиент')}
+                  </p>
                   <p className="text-xs text-white/60">
                     {user.role === 'admin' ? 'Админ' : user.role === 'master' ? 'Мастер' : 'Клиент'}
                   </p>
