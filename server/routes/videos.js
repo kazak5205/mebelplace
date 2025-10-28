@@ -111,7 +111,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     const cached = await redisClient.get(cacheKey);
     if (cached) {
       console.log(`[FEED] Cache HIT: ${cacheKey}`);
-      return res.json(JSON.parse(cached));
+      return res.json(cached); // redisClient.get() already parses JSON
     }
     console.log(`[FEED] Cache MISS: ${cacheKey}`);
 
@@ -266,7 +266,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     };
 
     // ✅ Сохраняем в кэш (TTL 3 минуты)
-    await redisClient.set(cacheKey, JSON.stringify(responseData), 'EX', 180);
+    await redisClient.setWithTTL(cacheKey, responseData, 180);
 
     res.json(responseData);
 
@@ -458,6 +458,8 @@ router.get('/:id/comments', async (req, res) => {
         u.avatar,
         u.first_name,
         u.last_name,
+        u.company_name,
+        u.role,
         CASE WHEN cl.id IS NOT NULL THEN true ELSE false END as is_liked
       FROM video_comments vc
       LEFT JOIN users u ON vc.user_id = u.id
@@ -476,6 +478,8 @@ router.get('/:id/comments', async (req, res) => {
           u.avatar,
           u.first_name,
           u.last_name,
+          u.company_name,
+          u.role,
           CASE WHEN cl.id IS NOT NULL THEN true ELSE false END as is_liked
         FROM video_comments vc
         LEFT JOIN users u ON vc.user_id = u.id

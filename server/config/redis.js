@@ -261,7 +261,7 @@ const quit = async () => {
 module.exports = {
   redis,
   // Simple operations
-  set: (key, value, ...args) => redis.set(key, value, ...args), // Прямой доступ к redis.set
+  set: setWithTTL, // Always serialize objects properly
   setWithTTL, // Для обратной совместимости
   get,
   del,

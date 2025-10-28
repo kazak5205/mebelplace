@@ -203,9 +203,8 @@ const MasterChannelPage: React.FC = () => {
     )
   }
 
-  const displayName = (master.firstName && master.lastName 
-    ? `${master.firstName} ${master.lastName}` 
-    : master.name || master.username || master.email) || 'Master'
+  // Для мастеров показываем название компании крупным, username снизу мелким
+  const displayName = (master as any).companyName || (master as any).company_name || master.username || 'Master'
 
   return (
     <div className="min-h-screen bg-black">

@@ -849,7 +849,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <span className="font-semibold text-white text-sm">
-                            {comment.username || 'Пользователь'}
+                            {comment.role === 'master' 
+                              ? (comment.company_name || comment.companyName || comment.username) 
+                              : (comment.username || comment.firstName || comment.first_name || 'Пользователь')}
                           </span>
                           <span className="text-xs text-white/50">
                             {formatTimeAgo(comment.created_at)}
@@ -923,7 +925,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center space-x-2 mb-1">
                                     <span className="font-semibold text-white text-xs">
-                                      {reply.username || 'Пользователь'}
+                                      {reply.role === 'master' 
+                                        ? (reply.company_name || reply.companyName || reply.username) 
+                                        : (reply.username || reply.firstName || reply.first_name || 'Пользователь')}
                                     </span>
                                     <span className="text-xs text-white/50">
                                       {formatTimeAgo(reply.created_at)}

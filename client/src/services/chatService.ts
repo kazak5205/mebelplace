@@ -85,7 +85,7 @@ export const chatService = {
 
   // Алиас для совместимости со старым кодом
   async createChatWithUser(userId: string): Promise<Chat> {
-    return apiService.post<Chat>('/chat/create-with-user', { participantId: userId })
+    return apiService.post<Chat>('/chat/create', { participants: [userId], type: 'private' })
   },
 
   async leaveChat(chatId: string): Promise<void> {

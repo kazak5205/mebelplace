@@ -469,7 +469,7 @@ router.get('/:id', async (req, res) => {
     const cached = await redisClient.get(cacheKey);
     if (cached) {
       console.log(`[USER PROFILE] Cache HIT: ${userId}`);
-      return res.json(JSON.parse(cached));
+      return res.json(cached); // redisClient.get() already parses JSON
     }
     console.log(`[USER PROFILE] Cache MISS: ${userId}`);
 
@@ -537,7 +537,7 @@ router.get('/:id', async (req, res) => {
     };
 
     // ✅ Сохраняем в кэш (TTL 5 минут)
-    await redisClient.set(cacheKey, JSON.stringify(responseData), 'EX', 300);
+    await redisClient.setWithTTL(cacheKey, responseData, 300);
 
     res.json(responseData);
 

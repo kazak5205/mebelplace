@@ -21,16 +21,15 @@ class PushService {
   async saveSubscription(userId, subscription) {
     try {
       const result = await pool.query(`
-        INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (user_id, endpoint) 
-        DO UPDATE SET p256dh = $3, auth = $4, updated_at = NOW()
+        INSERT INTO push_subscriptions (user_id, endpoint, keys)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (endpoint) 
+        DO UPDATE SET keys = $3, updated_at = NOW()
         RETURNING *
       `, [
         userId,
         subscription.endpoint,
-        subscription.keys.p256dh,
-        subscription.keys.auth
+        JSON.stringify(subscription.keys)
       ]);
 
       return result.rows[0];
@@ -57,7 +56,7 @@ class PushService {
   async sendToUser(userId, payload) {
     try {
       const subscriptions = await pool.query(
-        'SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1',
+        'SELECT endpoint, keys FROM push_subscriptions WHERE user_id = $1',
         [userId]
       );
 
@@ -71,10 +70,7 @@ class PushService {
         try {
           const subscription = {
             endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth
-            }
+            keys: typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys
           };
 
           await webpush.sendNotification(subscription, JSON.stringify(payload));
@@ -123,7 +119,7 @@ class PushService {
   async sendToAll(payload) {
     try {
       const subscriptions = await pool.query(
-        'SELECT user_id, endpoint, p256dh, auth FROM push_subscriptions'
+        'SELECT user_id, endpoint, keys FROM push_subscriptions'
       );
 
       if (subscriptions.rows.length === 0) {
@@ -135,10 +131,7 @@ class PushService {
         try {
           const subscription = {
             endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth
-            }
+            keys: typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys
           };
 
           await webpush.sendNotification(subscription, JSON.stringify(payload));

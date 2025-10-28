@@ -1,7 +1,7 @@
 FROM node:18-alpine
 
-# Install timezone data
-RUN apk add --no-cache tzdata
+# Install system dependencies: timezone data, ffmpeg for video processing
+RUN apk add --no-cache tzdata ffmpeg
 
 # Set timezone
 ENV TZ=Asia/Almaty
