@@ -30,10 +30,10 @@ class TikTokVideoPlayer extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<TikTokVideoPlayer> createState() => _TikTokVideoPlayerState();
+  ConsumerState<TikTokVideoPlayer> createState() => TikTokVideoPlayerState();
 }
 
-class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
+class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
   VideoPlayerController? _videoController;
@@ -69,17 +69,6 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     )..repeat(reverse: true);
     
     _initializeVideo();
-    
-    // Слушаем изменения активности главной страницы
-    ref.listen<bool>(isHomeActiveProvider, (previous, next) {
-      if (next) {
-        // Главная активна - возобновляем видео
-        resumeVideo();
-      } else {
-        // Главная НЕ активна - жёстко останавливаем
-        pauseVideo();
-      }
-    });
   }
 
   @override
@@ -88,13 +77,11 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       _videoController?.pause();
       _videoController?.setVolume(0);
-    } else if (state == AppLifecycleState.resumed) {
-      // Проверяем активна ли главная страница
-      final isHomeActive = ref.read(isHomeActiveProvider);
-      if (isHomeActive && _isPlaying) {
-        _videoController?.play();
-        _videoController?.setVolume(_isMuted ? 0 : 1);
-      }
+    } else if (state == AppLifecycleState.resumed && _isPlaying) {
+      // Возобновление при возврате в приложение
+      // Логика активности страницы теперь в HomeScreen
+      _videoController?.play();
+      _videoController?.setVolume(_isMuted ? 0 : 1);
     }
   }
 

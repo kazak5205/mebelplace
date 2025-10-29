@@ -20,7 +20,12 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+  final GlobalKey<TikTokVideoPlayerState> _videoPlayerKey = GlobalKey<TikTokVideoPlayerState>();
+
+  @override
+  bool get wantKeepAlive => true; // Сохраняем состояние при переключении табов
+
   @override
   void initState() {
     super.initState();
@@ -42,13 +47,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     // Управление видео и звуком при переключении приложения
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       // Пауза при сворачивании приложения
+      _videoPlayerKey.currentState?.pauseVideo();
     } else if (state == AppLifecycleState.resumed) {
-      // Возобновление при возврате
+      // Возобновление при возврате - только если видно на экране
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+        _videoPlayerKey.currentState?.resumeVideo();
+      }
     }
   }
 
   @override
+  void deactivate() {
+    // Останавливаем видео когда экран становится невидимым
+    _videoPlayerKey.currentState?.pauseVideo();
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    // Возобновляем видео когда экран снова становится видимым
+    super.activate();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _videoPlayerKey.currentState?.resumeVideo();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // Обязательно для AutomaticKeepAliveClientMixin
     final videoState = ref.watch(videoProvider);
 
     return Scaffold(
@@ -60,6 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               : videoState.videos.isEmpty
                   ? _buildEmptyState()
                   : TikTokVideoPlayer(
+                      key: _videoPlayerKey,
                       videos: videoState.videos,
                       onVideoChanged: (video) {
                         // Record view

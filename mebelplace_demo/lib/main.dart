@@ -202,16 +202,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       _previousIndex = _currentIndex;
       _currentIndex = index;
     });
-    
-    // Управляем воспроизведением видео
-    // Пауза если уходим с главной (index 0)
-    // Возобновление если возвращаемся
-    ref.read(authProvider.notifier); // Добавляем импорт providers
-    if (index == 0) {
-      ref.read(isHomeActiveProvider.notifier).state = true;
-    } else {
-      ref.read(isHomeActiveProvider.notifier).state = false;
-    }
   }
 
   @override
