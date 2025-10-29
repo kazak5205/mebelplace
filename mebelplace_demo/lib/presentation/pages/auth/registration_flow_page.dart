@@ -432,7 +432,7 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
           ),
           SizedBox(height: 12.h),
           Text(
-            'Введите 4-значный код, отправленный на ${_phoneController.text}',
+            'Введите 6-значный код, отправленный на ${_phoneController.text}',
             style: TextStyle(
               fontSize: 14.sp,
               color: Colors.white.withOpacity(0.6),
@@ -445,7 +445,7 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
             controller: _smsCodeController,
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
-            maxLength: 4,
+            maxLength: 6,
             style: TextStyle(
               color: Colors.white,
               fontSize: 32.sp,
@@ -454,7 +454,7 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
             ),
             decoration: InputDecoration(
               counterText: '',
-              hintText: '- - - -',
+              hintText: '- - - - - -',
               hintStyle: TextStyle(
                 color: Colors.white.withOpacity(0.3),
                 letterSpacing: 16.w,
@@ -715,7 +715,7 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
   }
 
   Future<void> _verifySmsCode() async {
-    if (_smsCodeController.text.length < 4) {
+    if (_smsCodeController.text.length < 6) {
       _showError('Введите код из SMS');
       return;
     }

@@ -18,8 +18,8 @@ class SmsVerificationPage extends ConsumerStatefulWidget {
 }
 
 class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
-  final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+  final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
   
   bool _isVerifying = false;
   int _resendCountdown = 60;
@@ -184,10 +184,10 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
   Widget _buildCodeInput() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: List.generate(4, (index) {
+      children: List.generate(6, (index) {
         return Container(
-          width: 60.w,
-          height: 60.w,
+          width: 50.w,
+          height: 50.w,
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12.r),
@@ -215,7 +215,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
             ),
             onChanged: (value) {
               if (value.isNotEmpty) {
-                if (index < 3) {
+                if (index < 5) {
                   _focusNodes[index + 1].requestFocus();
                 } else {
                   _focusNodes[index].unfocus();
@@ -331,7 +331,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
   Future<void> _verifyCode() async {
     final code = _controllers.map((controller) => controller.text).join();
     
-    if (code.length != 4) {
+    if (code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Введите полный код'),
