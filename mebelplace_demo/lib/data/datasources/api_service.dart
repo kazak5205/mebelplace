@@ -131,10 +131,12 @@ class ApiService {
     }
   }
 
-  // Проверка SMS кода
-  Future<ApiResponse<AuthData>> verifySmsCode(String phone, String code) async {
+  // Проверка SMS кода (БЕЗ создания пользователя!)
+  Future<ApiResponse<EmptyResponse>> verifySmsCode(String phone, String code) async {
     try {
       print('📡 API: POST /auth/verify-sms');
+      print('   Phone: $phone, Code: $code');
+      
       final response = await _dio.post('/auth/verify-sms', data: {
         'phone': phone,
         'code': code,
@@ -146,21 +148,31 @@ class ApiService {
         print('✅ API: SMS verified successfully');
         
         // ✅ API просто подтверждает код, user создается позже при /auth/register
-        return ApiResponse<AuthData>(
+        return ApiResponse<EmptyResponse>(
           success: true,
-          data: null, // Нет данных, только подтверждение
+          data: EmptyResponse(),
           message: responseData['message'] ?? 'Код подтвержден',
           timestamp: DateTime.now().toIso8601String(),
         );
       } else {
-        return ApiResponse<AuthData>(
+        return ApiResponse<EmptyResponse>(
           success: false,
+          data: EmptyResponse(),
           message: response.data['message'] ?? 'Неверный код',
           timestamp: DateTime.now().toIso8601String(),
         );
       }
     } catch (e) {
       print('❌ API: Verify SMS error: $e');
+      if (e is DioException) {
+        final errorMsg = e.response?.data?['message'] ?? 'Неверный код';
+        return ApiResponse<EmptyResponse>(
+          success: false,
+          data: EmptyResponse(),
+          message: errorMsg,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
       throw Exception('Ошибка верификации: ${e.toString()}');
     }
   }
