@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/image_helper.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/repository_providers.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/models/video_model.dart';
 import '../../../data/models/order_model.dart';
@@ -288,7 +289,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     ),
                     _buildStatItem(
                       label: 'Лайки',
-                      value: _calculateTotalLikes(profileState.masterVideos).toString(),
+                      value: _calculateTotalLikes(ref.watch(videoProvider).videos.where((v) => v.authorId == user.id).toList()).toString(),
                     ),
                   ],
                 ),

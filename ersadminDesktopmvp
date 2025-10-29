@@ -49,3 +49,26 @@ warning: in the working copy of 'codemagic.yaml', LF will be replaced by CRLF th
              [m
      artifacts:[m
        - mebelplace_demo/build/ios/ipa/*.ipa[m
+[33mcommit 7aa82a24e55b45fb1b05ab07f215d06e55e5e59f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mapp-store-preparation[m[33m, [m[1;31morigin/app-store-preparation[m[33m)[m
+Author: MebelPlace <admin@mebelplace.com.kz>
+Date:   Wed Oct 29 13:15:42 2025 +0500
+
+    fix: improve comments loading and SMS verification flow
+
+ .../lib/data/datasources/api_service.dart          | 436 [32m++++++++++[m[31m---[m
+ .../lib/data/datasources/socket_service.dart       |  37 [32m+[m[31m-[m
+ .../lib/data/repositories/app_repositories.dart    |   2 [31m-[m
+ .../pages/auth/forgot_password_page.dart           | 700 [32m++++++++++[m[31m-----------[m
+ .../lib/presentation/pages/auth/login_page.dart    |   7 [31m-[m
+ .../pages/auth/registration_flow_page.dart         |  20 [31m-[m
+ .../lib/presentation/pages/home_screen.dart        |  90 [32m++[m[31m-[m
+ .../lib/presentation/pages/messages/chat_page.dart |   2 [32m+[m[31m-[m
+ .../pages/messages/messages_screen.dart            |   2 [32m+[m[31m-[m
+ .../pages/orders/order_detail_page.dart            |   3 [32m+[m[31m-[m
+ .../presentation/pages/orders/orders_screen.dart   | 148 [32m++++[m[31m-[m
+ .../pages/profile/master_channel_page.dart         |  62 [32m+[m[31m-[m
+ .../presentation/pages/profile/profile_screen.dart | 482 [32m+++++++++++++[m[31m-[m
+ .../presentation/pages/support/support_page.dart   |   4 [32m+[m[31m-[m
+ .../lib/presentation/providers/app_providers.dart  |  14 [32m+[m
+ .../presentation/widgets/tiktok_video_player.dart  |   4 [32m+[m[31m-[m
+ 16 files changed, 1450 insertions(+), 563 deletions(-)

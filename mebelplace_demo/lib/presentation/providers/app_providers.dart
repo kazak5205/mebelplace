@@ -628,6 +628,21 @@ class CommentNotifier extends StateNotifier<CommentState> {
       );
     }
   }
+
+  Future<void> addComment(String content) async {
+    try {
+      final response = await _apiService.addComment(_videoId, content);
+      if (response.success) {
+        // Reload comments after adding
+        await loadComments();
+      }
+    } catch (e) {
+      state = state.copyWith(
+        error: e.toString(),
+      );
+      rethrow;
+    }
+  }
 }
 
 class CommentState {

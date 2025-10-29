@@ -1411,6 +1411,39 @@ class ApiService {
     }
   }
 
+  Future<ApiResponse<CommentModel>> addComment(String videoId, String content) async {
+    try {
+      _debugLog('📡 API: POST /videos/$videoId/comments');
+      final response = await _dio.post('/videos/$videoId/comments', data: {
+        'content': content,
+      });
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = response.data;
+        final commentData = data['data'] ?? data;
+        final comment = CommentModel.fromJson(commentData);
+        
+        _debugLog('✅ API: Comment added');
+        
+        return ApiResponse<CommentModel>(
+          success: true,
+          data: comment,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<CommentModel>(
+          success: false,
+          message: 'Ошибка добавления комментария',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Add comment error: $e');
+      throw Exception('Ошибка добавления комментария: ${e.toString()}');
+    }
+  }
+
   Future<ApiResponse<List<VideoModel>>> getMasterVideos(String masterId) async {
     try {
       // ИСПРАВЛЕНО: используем реальный endpoint /videos/master/:masterId

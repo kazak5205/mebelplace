@@ -9,7 +9,7 @@ import '../../core/utils/image_helper.dart';
 import '../../data/models/video_model.dart';
 import '../../data/models/comment_model.dart';
 import '../providers/video_provider.dart';
-import '../providers/app_providers.dart' hide videoProvider;
+import '../providers/app_providers.dart' as providers;
 import '../widgets/tiktok_video_player.dart';
 import '../widgets/loading_widget.dart';
 
@@ -482,7 +482,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     super.initState();
     // Load comments when sheet opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(commentNotifierProvider(widget.video.id).notifier).loadComments();
+      ref.read(providers.commentProvider(widget.video.id).notifier).loadComments();
     });
   }
 
@@ -494,7 +494,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final commentState = ref.watch(commentProvider(widget.video.id));
+    final commentState = ref.watch(providers.commentProvider(widget.video.id));
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
@@ -644,7 +644,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     if (content.isEmpty) return;
 
     try {
-      await ref.read(commentNotifierProvider(widget.video.id).notifier).addComment(content);
+      await ref.read(commentProvider(widget.video.id).notifier).addComment(content);
       _commentController.clear();
       FocusScope.of(context).unfocus();
     } catch (e) {
