@@ -12,6 +12,7 @@ import '../providers/video_provider.dart';
 import '../providers/app_providers.dart' as providers;
 import '../widgets/tiktok_video_player.dart';
 import '../widgets/loading_widget.dart';
+import '../../main.dart'; // Для routeObserver
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
