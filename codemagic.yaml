@@ -32,7 +32,7 @@ workflows:
           cd mebelplace_demo
           flutter build apk --release \
             --build-name=1.0.0 \
-            --build-number=58
+            --build-number=59
             
     artifacts:
       - mebelplace_demo/build/app/outputs/flutter-apk/*.apk
@@ -161,7 +161,7 @@ workflows:
           cd mebelplace_demo
           flutter build ipa --release \
             --build-name=1.0.0 \
-            --build-number=58 \
+            --build-number=59 \
             --export-options-plist=$CM_BUILD_DIR/mebelplace_demo/export_options.plist
             
     artifacts:
