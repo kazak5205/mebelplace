@@ -140,16 +140,16 @@ class AppNavigator extends ConsumerWidget {
 
 // AuthScreen удален - теперь используем RegistrationTypeSelectionPage
 
-class MainNavigation extends StatefulWidget {
+class MainNavigation extends ConsumerStatefulWidget {
   final UserModel? user;
 
   const MainNavigation({super.key, this.user});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  ConsumerState<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _MainNavigationState extends ConsumerState<MainNavigation> {
   int _currentIndex = 0;
   int _previousIndex = 0;
 
@@ -202,6 +202,16 @@ class _MainNavigationState extends State<MainNavigation> {
       _previousIndex = _currentIndex;
       _currentIndex = index;
     });
+    
+    // Управляем воспроизведением видео
+    // Пауза если уходим с главной (index 0)
+    // Возобновление если возвращаемся
+    ref.read(authProvider.notifier); // Добавляем импорт providers
+    if (index == 0) {
+      ref.read(isHomeActiveProvider.notifier).state = true;
+    } else {
+      ref.read(isHomeActiveProvider.notifier).state = false;
+    }
   }
 
   @override

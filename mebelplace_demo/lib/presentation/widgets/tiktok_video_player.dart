@@ -37,11 +37,13 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
   VideoPlayerController? _videoController;
-  VideoPlayerController? _preloadController; // Предзагрузка следующего видео
+  final Map<int, VideoPlayerController> _preloadedControllers = {}; // Предзагрузка нескольких видео
   int _currentIndex = 0;
   bool _isPlaying = true;
   bool _isMuted = false;
   bool _showControls = false;
+  bool _isBuffering = false;
+  bool _isDescriptionExpanded = false; // Для expandable описания
   late AnimationController _heartAnimationController;
   late AnimationController _controlsAnimationController;
   late AnimationController _orderButtonAnimationController;
@@ -67,6 +69,17 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     )..repeat(reverse: true);
     
     _initializeVideo();
+    
+    // Слушаем изменения активности главной страницы
+    ref.listen<bool>(isHomeActiveProvider, (previous, next) {
+      if (next) {
+        // Главная активна - возобновляем видео
+        resumeVideo();
+      } else {
+        // Главная НЕ активна - жёстко останавливаем
+        pauseVideo();
+      }
+    });
   }
 
   @override
@@ -74,60 +87,151 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     // Пауза видео когда приложение в фоне
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       _videoController?.pause();
-    } else if (state == AppLifecycleState.resumed && _isPlaying) {
-      _videoController?.play();
+      _videoController?.setVolume(0);
+    } else if (state == AppLifecycleState.resumed) {
+      // Проверяем активна ли главная страница
+      final isHomeActive = ref.read(isHomeActiveProvider);
+      if (isHomeActive && _isPlaying) {
+        _videoController?.play();
+        _videoController?.setVolume(_isMuted ? 0 : 1);
+      }
     }
   }
 
   void _initializeVideo() {
     if (widget.videos.isNotEmpty && widget.videos.length > _currentIndex) {
-      _videoController?.dispose();
-      
-      // Создаем новый контроллер
-      final videoUrl = ImageHelper.getFullImageUrl(widget.videos[_currentIndex].videoUrl);
-      _videoController = VideoPlayerController.networkUrl(
-        Uri.parse(videoUrl),
-        videoPlayerOptions: VideoPlayerOptions(
-          mixWithOthers: false, // Не миксовать с другими видео
-          allowBackgroundPlayback: false,
-        ),
-      );
-      
-      // Инициализация с оптимизацией
-      _videoController!.initialize().then((_) {
-        if (mounted) {
-          setState(() {});
-          if (_isPlaying) {
-            _videoController!.play();
+      // Проверяем, есть ли уже предзагруженный контроллер
+      if (_preloadedControllers.containsKey(_currentIndex)) {
+        _videoController?.dispose();
+        _videoController = _preloadedControllers[_currentIndex];
+        _preloadedControllers.remove(_currentIndex);
+        
+        if (_videoController!.value.isInitialized) {
+          if (mounted) {
+            setState(() {});
+            if (_isPlaying) {
+              _startPlayingWhenBuffered();
+            }
+            _videoController!.setVolume(_isMuted ? 0 : 1);
+            _videoController!.setLooping(true);
           }
-          _videoController!.setVolume(_isMuted ? 0 : 1);
-          _videoController!.setLooping(true);
-          
-          // Предзагружаем следующее видео
-          _preloadNextVideo();
         }
-      }).catchError((error) {
-        // ❌ Video init error: $error');
-      });
+      } else {
+        // Создаем новый контроллер
+        _videoController?.dispose();
+        
+        final videoUrl = ImageHelper.getFullImageUrl(widget.videos[_currentIndex].videoUrl);
+        _videoController = VideoPlayerController.networkUrl(
+          Uri.parse(videoUrl),
+          videoPlayerOptions: VideoPlayerOptions(
+            mixWithOthers: false,
+            allowBackgroundPlayback: false,
+          ),
+        );
+        
+        setState(() {
+          _isBuffering = true;
+        });
+        
+        // Инициализация с буферизацией
+        _videoController!.initialize().then((_) {
+          if (mounted) {
+            setState(() {
+              _isBuffering = false;
+            });
+            if (_isPlaying) {
+              _startPlayingWhenBuffered();
+            }
+            _videoController!.setVolume(_isMuted ? 0 : 1);
+            _videoController!.setLooping(true);
+          }
+        }).catchError((error) {
+          if (mounted) {
+            setState(() {
+              _isBuffering = false;
+            });
+          }
+        });
+      }
+      
+      // Предзагружаем следующие 3 видео
+      _preloadNextVideos();
     }
   }
   
-  void _preloadNextVideo() {
-    final nextIndex = _currentIndex + 1;
-    if (nextIndex < widget.videos.length) {
-      _preloadController?.dispose();
-      final preloadVideoUrl = ImageHelper.getFullImageUrl(widget.videos[nextIndex].videoUrl);
-      _preloadController = VideoPlayerController.networkUrl(
-        Uri.parse(preloadVideoUrl),
-        videoPlayerOptions: VideoPlayerOptions(
-          mixWithOthers: false,
-          allowBackgroundPlayback: false,
-        ),
-      );
-      // Только инициализация, не воспроизведение
-      _preloadController!.initialize().catchError((error) {
-        // ❌ Preload error: $error');
-      });
+  // Воспроизводить когда буфер достиг хотя бы 25%
+  void _startPlayingWhenBuffered() {
+    if (_videoController == null || !_videoController!.value.isInitialized) {
+      return;
+    }
+    
+    final duration = _videoController!.value.duration.inMilliseconds;
+    if (duration == 0) {
+      // Если длительность ещё не известна, просто начинаем играть
+      _videoController!.play();
+      return;
+    }
+    
+    // Проверяем буферизацию каждые 100ms
+    void checkBuffering() {
+      if (_videoController == null || !mounted) return;
+      
+      final buffered = _videoController!.value.buffered;
+      if (buffered.isNotEmpty) {
+        final bufferedEnd = buffered.last.end.inMilliseconds;
+        final bufferPercent = bufferedEnd / duration;
+        
+        // Начинаем играть когда буфер >= 25%
+        if (bufferPercent >= 0.25) {
+          _videoController!.play();
+          return;
+        }
+      }
+      
+      // Проверяем снова через 100ms
+      Future.delayed(const Duration(milliseconds: 100), checkBuffering);
+    }
+    
+    checkBuffering();
+  }
+  
+  // Предзагрузка следующих 3 видео
+  void _preloadNextVideos() {
+    for (int i = 1; i <= 3; i++) {
+      final nextIndex = _currentIndex + i;
+      if (nextIndex < widget.videos.length && !_preloadedControllers.containsKey(nextIndex)) {
+        final preloadVideoUrl = ImageHelper.getFullImageUrl(widget.videos[nextIndex].videoUrl);
+        final controller = VideoPlayerController.networkUrl(
+          Uri.parse(preloadVideoUrl),
+          videoPlayerOptions: VideoPlayerOptions(
+            mixWithOthers: false,
+            allowBackgroundPlayback: false,
+          ),
+        );
+        _preloadedControllers[nextIndex] = controller;
+        // Только инициализация, не воспроизведение
+        controller.initialize().catchError((error) {
+          _preloadedControllers.remove(nextIndex);
+        });
+      }
+    }
+    
+    // Очищаем старые предзагруженные контроллеры
+    _cleanupOldPreloadedControllers();
+  }
+  
+  // Очистка старых предзагруженных контроллеров
+  void _cleanupOldPreloadedControllers() {
+    final keysToRemove = <int>[];
+    _preloadedControllers.forEach((index, controller) {
+      // Удаляем контроллеры которые далеко позади или далеко впереди
+      if (index < _currentIndex - 1 || index > _currentIndex + 3) {
+        controller.dispose();
+        keysToRemove.add(index);
+      }
+    });
+    for (var key in keysToRemove) {
+      _preloadedControllers.remove(key);
     }
   }
 
@@ -135,7 +239,11 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _videoController?.dispose();
-    _preloadController?.dispose(); // Очищаем предзагруженный контроллер
+    // Очищаем все предзагруженные контроллеры
+    for (var controller in _preloadedControllers.values) {
+      controller.dispose();
+    }
+    _preloadedControllers.clear();
     _pageController.dispose();
     _heartAnimationController.dispose();
     _controlsAnimationController.dispose();
@@ -143,16 +251,19 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     super.dispose();
   }
   
-  // Метод для паузы видео извне (когда уходим со страницы)
+  // Метод для жёсткой остановки видео извне (когда уходим со страницы)
   void pauseVideo() {
     _videoController?.pause();
+    _videoController?.setVolume(0); // Выключаем звук
     _isPlaying = false;
   }
   
-  // Метод для возобновления видео
+  // Метод для возобновления видео когда возвращаемся
   void resumeVideo() {
-    if (_isPlaying) {
-      _videoController?.play();
+    if (_videoController != null && _videoController!.value.isInitialized) {
+      _isPlaying = true;
+      _videoController!.play();
+      _videoController!.setVolume(_isMuted ? 0 : 1);
     }
   }
 
@@ -162,26 +273,11 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       
       setState(() {
         _currentIndex = index;
-        
-        // Если следующее видео уже предзагружено, используем его
-        if (_preloadController != null && index == _currentIndex) {
-          _videoController = _preloadController;
-          _preloadController = null;
-          
-          // Сразу воспроизводим
-          if (_isPlaying && _videoController!.value.isInitialized) {
-            _videoController!.play();
-            _videoController!.setVolume(_isMuted ? 0 : 1);
-            _videoController!.setLooping(true);
-          }
-          
-          // Предзагружаем следующее
-          _preloadNextVideo();
-        } else {
-          // Если не предзагружено, инициализируем обычным способом
-          _initializeVideo();
-        }
+        _isDescriptionExpanded = false; // Сбрасываем при смене видео
       });
+      
+      // Инициализируем новое видео (автоматически использует предзагруженное если есть)
+      _initializeVideo();
       
       // Удаляем старый контроллер асинхронно
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -292,33 +388,48 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     return SizedBox(
       width: double.infinity,
       height: double.infinity,
-      child: _videoController?.value.isInitialized == true
-          ? FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _videoController!.value.size.width,
-                height: _videoController!.value.size.height,
-                child: VideoPlayer(_videoController!),
-              ),
-            )
-          : Stack(
-              children: [
-                // Thumbnail placeholder
-                if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
-                  Positioned.fill(
-                    child: CachedNetworkImage(
-                      imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.black87,
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.black87,
-                      ),
-                    ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Всегда показываем thumbnail на заднем фоне
+          if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
+            Positioned.fill(
+              child: CachedNetworkImage(
+                imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: Colors.black87,
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.black87,
+                  child: Icon(
+                    Icons.video_library_outlined,
+                    size: 60.sp,
+                    color: Colors.white.withOpacity(0.3),
                   ),
-                // Loading indicator
-                Center(
+                ),
+              ),
+            ),
+          
+          // Видео плеер (поверх thumbnail)
+          if (_videoController?.value.isInitialized == true && !_isBuffering && !(_videoController?.value.hasError ?? false))
+            Positioned.fill(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoController!.value.size.width,
+                  height: _videoController!.value.size.height,
+                  child: VideoPlayer(_videoController!),
+                ),
+              ),
+            ),
+          
+          // Loading indicator (поверх thumbnail при загрузке)
+          if (_isBuffering || (_videoController?.value.isInitialized == false))
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+                child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -326,11 +437,60 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
                         color: AppColors.primary,
                         strokeWidth: 3,
                       ),
-                      SizedBox(height: 16.h),
+                      SizedBox(height: 12.h),
                       Text(
                         'Загрузка видео...',
                         style: TextStyle(
                           color: Colors.white,
+                          fontSize: 13.sp,
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black,
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          
+          // Ошибка загрузки видео (показываем поверх thumbnail)
+          if (_videoController?.value.hasError == true)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.wifi_off_rounded,
+                        size: 60.sp,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        'Проблема с подключением',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          shadows: const [
+                            Shadow(
+                              color: Colors.black,
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        'Проверьте интернет',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
                           fontSize: 14.sp,
                           shadows: const [
                             Shadow(
@@ -343,8 +503,10 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
+        ],
+      ),
     );
   }
 
@@ -653,24 +815,32 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
             overflow: TextOverflow.ellipsis,
           ),
           
-          // Description
+          // Description (expandable как в TikTok)
           if (video.description != null && video.description!.isNotEmpty) ...[
             SizedBox(height: 6.h),
-            Text(
-              video.description!,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 14.sp,
-                shadows: const [
-                  Shadow(
-                    color: Colors.black,
-                    offset: Offset(0, 1),
-                    blurRadius: 3,
-                  ),
-                ],
+            GestureDetector(
+              onTap: () {
+                HapticHelper.lightImpact();
+                setState(() {
+                  _isDescriptionExpanded = !_isDescriptionExpanded;
+                });
+              },
+              child: Text(
+                video.description!,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 14.sp,
+                  shadows: const [
+                    Shadow(
+                      color: Colors.black,
+                      offset: Offset(0, 1),
+                      blurRadius: 3,
+                    ),
+                  ],
+                ),
+                maxLines: _isDescriptionExpanded ? null : 2,
+                overflow: _isDescriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
           

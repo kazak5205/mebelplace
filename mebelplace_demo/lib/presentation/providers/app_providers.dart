@@ -11,6 +11,9 @@ import '../../data/datasources/api_service.dart';
 import '../../data/datasources/socket_service.dart';
 import 'repository_providers.dart';
 
+// Provider для управления воспроизведением видео (активна ли главная страница)
+final isHomeActiveProvider = StateProvider<bool>((ref) => true);
+
 // Video Provider
 final videoProvider = StateNotifierProvider<VideoNotifier, VideoState>((ref) {
   final videoRepository = ref.watch(videoRepositoryProvider);
