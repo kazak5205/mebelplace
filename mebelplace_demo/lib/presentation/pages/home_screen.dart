@@ -644,7 +644,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
     if (content.isEmpty) return;
 
     try {
-      await ref.read(commentProvider(widget.video.id).notifier).addComment(content);
+      await ref.read(providers.commentProvider(widget.video.id).notifier).addComment(content);
       _commentController.clear();
       FocusScope.of(context).unfocus();
     } catch (e) {
