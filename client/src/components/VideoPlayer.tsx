@@ -511,9 +511,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute top-20 left-0 right-0 z-50 flex justify-center px-4"
+          className="absolute top-20 left-4 right-20 z-50"
         >
-          <div className="relative w-full max-w-[400px]">
+          <div className="relative w-full max-w-[350px]">
             <motion.input
               type="text"
               value={searchQuery}
@@ -530,7 +530,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         {/* TikTok Style Layout - Vertical Video Player */}
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Main Video Container - Vertical Format (9:16) */}
-          <div className="relative w-full max-w-md md:max-w-lg mx-auto h-full">
+          <div className="relative w-full md:max-w-lg mx-auto h-full">
             <AnimatePresence initial={false} mode="wait">
               <motion.div
                 drag="y"
@@ -582,7 +582,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
 
           {/* Video Info - Bottom Left - INSIDE video container */}
-          <div className="absolute bottom-32 left-4 z-40 max-w-xs">
+          <div className="absolute bottom-32 left-4 right-20 z-40 max-w-[240px] sm:max-w-xs">
             <div className="space-y-2">
               {/* Title - Always Visible */}
               {currentVideo.title && (

@@ -12,6 +12,10 @@ import { navigateToLogin } from '../utils/navigationRef';
 export const apiClient = new ApiClient({
   baseURL: API_CONFIG.BASE_URL,
   timeout: API_CONFIG.TIMEOUT,
+  headers: {
+    'x-client-type': 'mobile', // ✅ Указываем бэкенду что это мобильный клиент
+    'Content-Type': 'application/json',
+  },
   getToken: async () => {
     try {
       return await AsyncStorage.getItem('authToken');
