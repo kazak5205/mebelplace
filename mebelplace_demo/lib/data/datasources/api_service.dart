@@ -403,6 +403,13 @@ class ApiService {
         final data = response.data;
         final List<dynamic> videosJson = data['data']['videos'] ?? [];
         
+        print('📦 API: Raw videos count: ${videosJson.length}');
+        if (videosJson.isNotEmpty) {
+          print('   First video keys: ${(videosJson.first as Map).keys.join(", ")}');
+          print('   First video avatar: ${(videosJson.first as Map)['avatar']}');
+          print('   First video username: ${(videosJson.first as Map)['username']}');
+        }
+        
         // Fix relative URLs by adding base URL
         final fixedVideosJson = videosJson.map((json) {
           final videoUrl = json['videoUrl'] as String?;
@@ -418,7 +425,9 @@ class ApiService {
               : (thumbnailUrl != null ? 'https://mebelplace.com.kz$thumbnailUrl' : null);
           fixedJson['avatar'] = avatar?.startsWith('http') == true 
               ? avatar 
-              : (avatar != null ? 'https://mebelplace.com.kz$avatar' : null);
+              : (avatar != null && avatar.isNotEmpty ? 'https://mebelplace.com.kz$avatar' : null);
+          
+          print('   🖼️ Avatar processing: ${json['avatar']} -> ${fixedJson['avatar']}');
           
           return fixedJson;
         }).toList();
@@ -426,6 +435,10 @@ class ApiService {
         final videos = fixedVideosJson.map((json) => VideoModel.fromJson(json)).toList();
         
         print('🎥 API: Loaded ${videos.length} videos from server');
+        if (videos.isNotEmpty) {
+          print('   ✅ First video avatar URL: ${videos.first.avatar}');
+          print('   ✅ First video username: ${videos.first.username}');
+        }
     
     return ApiResponse<VideoFeedData>(
       success: true,
@@ -1230,7 +1243,18 @@ class ApiService {
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> commentsJson = data['data']?['comments'] ?? data['comments'] ?? [];
+        // Backend возвращает data как массив напрямую, а не data.comments
+        final List<dynamic> commentsJson = data['data'] is List 
+            ? data['data'] 
+            : (data['data'] is Map && data['data']['comments'] != null) 
+                ? data['data']['comments']
+                : [];
+        
+        print('📦 API: Comments JSON structure: ${commentsJson.length} items');
+        if (commentsJson.isNotEmpty) {
+          print('   First comment keys: ${(commentsJson.first as Map).keys.join(", ")}');
+        }
+        
         final comments = commentsJson.map((json) => CommentModel.fromJson(json)).toList();
         
         print('✅ API: Loaded ${comments.length} comments');

@@ -251,6 +251,18 @@ router.get('/feed', optionalAuth, async (req, res) => {
       }
     }
 
+    // 🐛 DEBUG: Check avatar data before sending
+    if (pageVideos.length > 0) {
+      console.log('[FEED DEBUG] First video data:', {
+        id: pageVideos[0].id,
+        username: pageVideos[0].username,
+        avatar: pageVideos[0].avatar,
+        firstName: pageVideos[0].first_name,
+        lastName: pageVideos[0].last_name,
+        hasAvatar: !!pageVideos[0].avatar
+      });
+    }
+
     const responseData = {
       success: true,
       data: {
