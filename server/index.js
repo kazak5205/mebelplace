@@ -29,7 +29,7 @@ const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
       ? ["https://mebelplace.com.kz", "https://www.mebelplace.com.kz"]
-      : process.env.CLIENT_URL || "http://localhost:5173",
+      : ["http://localhost:5173", "http://localhost:8080", process.env.CLIENT_URL].filter(Boolean),
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -57,7 +57,7 @@ app.use(helmet({
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ["https://mebelplace.com.kz", "https://www.mebelplace.com.kz"]
-    : process.env.CLIENT_URL || "http://localhost:5173",
+    : ["http://localhost:5173", "http://localhost:8080", process.env.CLIENT_URL].filter(Boolean),
   credentials: true
 }));
 
