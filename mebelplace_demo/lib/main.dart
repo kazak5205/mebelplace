@@ -28,6 +28,9 @@ import 'presentation/pages/legal/terms_of_service_page.dart';
 import 'presentation/pages/legal/privacy_policy_page.dart';
 import 'presentation/providers/app_providers.dart';
 
+// Global RouteObserver для отслеживания навигации
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() {
   print('🚀 MebelPlace App Starting...');
   runApp(const ProviderScope(child: MebelPlaceApp()));
@@ -49,6 +52,7 @@ class MebelPlaceApp extends ConsumerWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.system,
+          navigatorObservers: [routeObserver], // Добавляем observer для отслеживания навигации
           home: const AppNavigator(),
           routes: {
             '/home': (context) => const AppNavigator(),

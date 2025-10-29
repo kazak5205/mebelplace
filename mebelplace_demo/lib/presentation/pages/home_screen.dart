@@ -20,8 +20,9 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver, RouteAware {
   final GlobalKey<TikTokVideoPlayerState> _videoPlayerKey = GlobalKey<TikTokVideoPlayerState>();
+  bool _isVisible = true;
 
   @override
   bool get wantKeepAlive => true; // Сохраняем состояние при переключении табов
@@ -37,39 +38,86 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Подписываемся на изменения route
+    final modalRoute = ModalRoute.of(context);
+    if (modalRoute is PageRoute) {
+      routeObserver.subscribe(this, modalRoute);
+    }
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  // RouteAware callbacks - отслеживают когда экран виден/невиден из-за других routes
+  @override
+  void didPush() {
+    // Экран стал виден (первый раз или возврат из поверхностного route)
+    _resumeIfNeeded();
+  }
+
+  @override
+  void didPopNext() {
+    // Вернулись на этот экран (убрали route который был поверх)
+    _resumeIfNeeded();
+  }
+
+  @override
+  void didPushNext() {
+    // Новый route открылся поверх этого экрана
+    _pauseVideo();
+  }
+
+  @override
+  void didPop() {
+    // Этот экран удаляется
+    _pauseVideo();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Управление видео и звуком при переключении приложения
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // Пауза при сворачивании приложения
-      _videoPlayerKey.currentState?.pauseVideo();
+      _pauseVideo();
     } else if (state == AppLifecycleState.resumed) {
-      // Возобновление при возврате - только если видно на экране
-      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
-        _videoPlayerKey.currentState?.resumeVideo();
-      }
+      _resumeIfNeeded();
     }
   }
 
+  // Lifecycle методы для IndexedStack
   @override
   void deactivate() {
-    // Останавливаем видео когда экран становится невидимым
-    _videoPlayerKey.currentState?.pauseVideo();
+    // Останавливаем видео когда экран становится невидимым в IndexedStack
+    _isVisible = false;
+    _pauseVideo();
     super.deactivate();
   }
 
   @override
   void activate() {
-    // Возобновляем видео когда экран снова становится видимым
+    // Возобновляем видео когда экран снова становится видимым в IndexedStack
     super.activate();
+    _isVisible = true;
+    _resumeIfNeeded();
+  }
+
+  void _pauseVideo() {
+    _videoPlayerKey.currentState?.pauseVideo();
+  }
+
+  void _resumeIfNeeded() {
+    // Возобновляем только если экран действительно виден
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _videoPlayerKey.currentState?.resumeVideo();
+      if (mounted && _isVisible) {
+        final route = ModalRoute.of(context);
+        if (route?.isCurrent == true) {
+          _videoPlayerKey.currentState?.resumeVideo();
+        }
       }
     });
   }
