@@ -18,6 +18,8 @@ class UserModel {
   final DateTime? updatedAt;
   final double? rating;     // Рейтинг мастера
   final int? followersCount; // Количество подписчиков
+  final int? subscribersCount; // Количество подписчиков (альтернативное название с бекенда)
+  final int? subscriptionsCount; // Количество подписок пользователя (на кого он подписан)
   final int? ordersCount;    // Количество выполненных заказов
   final String? bio;         // Биография/описание
   
@@ -41,6 +43,8 @@ class UserModel {
     this.updatedAt,
     this.rating,
     this.followersCount,
+    this.subscribersCount,
+    this.subscriptionsCount,
     this.ordersCount,
     this.bio,
     this.companyName,
@@ -66,6 +70,8 @@ class UserModel {
     DateTime? updatedAt,
     double? rating,
     int? followersCount,
+    int? subscribersCount,
+    int? subscriptionsCount,
     int? ordersCount,
     String? bio,
     String? companyName,
@@ -87,6 +93,8 @@ class UserModel {
       updatedAt: updatedAt ?? this.updatedAt,
       rating: rating ?? this.rating,
       followersCount: followersCount ?? this.followersCount,
+      subscribersCount: subscribersCount ?? this.subscribersCount,
+      subscriptionsCount: subscriptionsCount ?? this.subscriptionsCount,
       ordersCount: ordersCount ?? this.ordersCount,
       bio: bio ?? this.bio,
       companyName: companyName ?? this.companyName,

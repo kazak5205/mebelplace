@@ -7,7 +7,9 @@ import '../../widgets/typing_indicator.dart';
 import '../../widgets/skeleton_loading.dart';
 import '../../../utils/haptic_helper.dart';
 import '../../../core/utils/image_helper.dart';
+import '../../../data/datasources/socket_service.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/socket_provider.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -19,12 +21,24 @@ class MessagesScreen extends ConsumerStatefulWidget {
 class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  late SocketService _socketService;
 
   @override
   void initState() {
     super.initState();
-    // Загружаем чаты
+    
+    // Инициализация WebSocket для обновления списка чатов
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _socketService = ref.read(socketServiceProvider);
+      
+      // Слушаем новые сообщения для обновления списка чатов
+      _socketService.onNewMessage = (message) {
+        print('📨 New message received, refreshing chat list');
+        // Обновляем список чатов
+        ref.read(chatProvider.notifier).loadChats();
+      };
+      
+      // Загружаем чаты
       ref.read(chatProvider.notifier).loadChats();
     });
   }

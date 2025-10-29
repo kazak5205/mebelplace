@@ -503,6 +503,15 @@ class ChatRepository {
   final LocalStorage _localStorage;
 
   ChatRepository(this._apiService, this._localStorage);
+  
+  // WebSocket methods
+  Future<void> connectSocket() async {
+    // Socket подключается через SocketService
+  }
+  
+  void disconnectSocket() {
+    // Socket отключается через SocketService
+  }
 
   Future<List<ChatModel>> getChats() async {
     try {

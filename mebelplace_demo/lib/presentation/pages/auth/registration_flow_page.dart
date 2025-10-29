@@ -702,11 +702,6 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
             ),
           );
           
-          // В DEV режиме показываем код
-          if (response.data?['code'] != null) {
-            _smsCodeController.text = response.data!['code'].toString();
-          }
-          
           _goToNextStep();
         } else {
           _showError(response.message ?? 'Ошибка отправки SMS');

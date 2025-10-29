@@ -18,6 +18,7 @@ class VideoModel {
   final String? avatar;
   final String category;
   final List<String> tags;
+  final double? furniturePrice; // Цена мебели (для магазина)
   final int views;
   final int likes;
   final int likesCount;
@@ -45,6 +46,7 @@ class VideoModel {
     this.avatar,
     required this.category,
     required this.tags,
+    this.furniturePrice,
     required this.views,
     required this.likes,
     required this.likesCount,
@@ -87,12 +89,15 @@ class VideoModel {
       avatar: json['avatar']?.toString(),
       category: json['category'].toString(),
       tags: parsedTags,
+      furniturePrice: json['furniturePrice'] != null || json['furniture_price'] != null
+          ? double.tryParse((json['furniturePrice'] ?? json['furniture_price']).toString())
+          : null,
       views: (json['views'] as num).toInt(),
       likes: (json['likes'] as num).toInt(),
-      likesCount: (json['likesCount'] ?? json['likeCount'] as num).toInt(),
-      commentsCount: (json['commentsCount'] ?? json['commentCount'] as num).toInt(),
-      isLiked: json['isLiked'] as bool,
-      isFeatured: json['isFeatured'] as bool,
+      likesCount: ((json['likesCount'] ?? json['likeCount']) as num?)?.toInt() ?? 0,
+      commentsCount: ((json['commentsCount'] ?? json['commentCount']) as num?)?.toInt() ?? 0,
+      isLiked: (json['isLiked'] ?? false) as bool,
+      isFeatured: (json['isFeatured'] ?? false) as bool,
       priorityOrder: json['priorityOrder'] as int?,
       isPublic: json['isPublic'] as bool,
       isActive: json['isActive'] as bool,
@@ -118,6 +123,7 @@ class VideoModel {
     String? avatar,
     String? category,
     List<String>? tags,
+    double? furniturePrice,
     int? views,
     int? likes,
     int? likesCount,
@@ -145,6 +151,7 @@ class VideoModel {
       avatar: avatar ?? this.avatar,
       category: category ?? this.category,
       tags: tags ?? this.tags,
+      furniturePrice: furniturePrice ?? this.furniturePrice,
       views: views ?? this.views,
       likes: likes ?? this.likes,
       likesCount: likesCount ?? this.likesCount,

@@ -8,6 +8,7 @@ import '../../data/models/order_response_model.dart';
 import '../../data/models/comment_model.dart';
 import '../../data/repositories/app_repositories.dart';
 import '../../data/datasources/api_service.dart';
+import '../../data/datasources/socket_service.dart';
 import 'repository_providers.dart';
 
 // Video Provider
@@ -153,6 +154,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         error: null,
       );
+      
+      // Подключаем WebSocket после успешного входа
+      await SocketService().connect();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -176,6 +180,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         error: null,
       );
+      
+      // Подключаем WebSocket после успешной регистрации
+      await SocketService().connect();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -193,10 +200,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isLoading: false,
       error: null,
     );
+    
+    // Подключаем WebSocket
+    await SocketService().connect();
   }
 
   Future<void> logout() async {
     try {
+      // Отключаем WebSocket перед выходом
+      SocketService().disconnect();
+      
       await _authRepository.logout();
       state = AuthState.initial();
     } catch (e) {
@@ -385,7 +398,19 @@ final chatProvider = StateNotifierProvider<ChatNotifier, ChatState>((ref) {
 class ChatNotifier extends StateNotifier<ChatState> {
   final ChatRepository _chatRepository;
 
-  ChatNotifier(this._chatRepository) : super(ChatState.initial());
+  ChatNotifier(this._chatRepository) : super(ChatState.initial()) {
+    _initializeSocket();
+  }
+  
+  void _initializeSocket() {
+    // Socket инициализируется при первой загрузке чата
+  }
+  
+  @override
+  void dispose() {
+    // Socket будет отключаться при выходе
+    super.dispose();
+  }
 
   Future<void> loadChats() async {
     state = state.copyWith(isLoading: true);

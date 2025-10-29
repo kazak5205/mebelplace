@@ -66,7 +66,7 @@ class OrderModel {
       status: json['status'].toString(),
       price: double.tryParse((json['price'] ?? 0).toString()),
       deadline: json['deadline'] != null ? DateTime.tryParse(json['deadline'].toString()) : null,
-      location: json['location']?.toString(),
+      location: json['location']?.toString() ?? json['city']?.toString(), // ✅ Бэкенд использует 'city'
       images: (json['images'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       createdAt: DateTime.parse((json['createdAt'] ?? json['created_at']).toString()),
       updatedAt: json['updatedAt'] != null || json['updated_at'] != null

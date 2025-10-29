@@ -4,7 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/message_model.dart';
+import '../../../data/datasources/socket_service.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/socket_provider.dart';
 import '../../widgets/loading_widget.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -22,18 +24,53 @@ class ChatPage extends ConsumerStatefulWidget {
 class _ChatPageState extends ConsumerState<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  late SocketService _socketService;
   
   @override
   void initState() {
     super.initState();
-    // Загружаем сообщения чата
+    
+    // Инициализация WebSocket
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _socketService = ref.read(socketServiceProvider);
+      
+      // Подключаемся к WebSocket
+      _socketService.connect().then((_) {
+        // Присоединяемся к чату
+        _socketService.joinChat(widget.chatId);
+        
+        // Слушаем новые сообщения
+        _socketService.onNewMessage = (message) {
+          // Добавляем сообщение только если оно для этого чата
+          if (message.chatId == widget.chatId) {
+            print('📨 New message in current chat: ${message.content}');
+            // Перезагружаем сообщения
+            ref.read(chatProvider.notifier).loadMessages(widget.chatId);
+            
+            // Прокручиваем вниз
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  _scrollController.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                );
+              }
+            });
+          }
+        };
+      });
+      
+      // Загружаем сообщения чата
       ref.read(chatProvider.notifier).loadMessages(widget.chatId);
     });
   }
 
   @override
   void dispose() {
+    // Покидаем чат
+    _socketService.leaveChat(widget.chatId);
+    
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -43,7 +80,14 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
     
-    ref.read(chatProvider.notifier).sendMessage(widget.chatId, message);
+    // Отправляем через WebSocket для мгновенной доставки
+    if (_socketService.isConnected) {
+      _socketService.sendMessage(widget.chatId, message);
+    } else {
+      // Fallback на REST API если WebSocket не подключен
+      ref.read(chatProvider.notifier).sendMessage(widget.chatId, message);
+    }
+    
     _messageController.clear();
     
     // Прокручиваем вниз после отправки
@@ -61,6 +105,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
+    final isSocketConnected = ref.watch(socketConnectionProvider);
     
     return Scaffold(
       backgroundColor: AppColors.dark,
@@ -71,13 +116,28 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          'Чат',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Чат',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(width: 8.w),
+            // Индикатор WebSocket подключения
+            Container(
+              width: 8.w,
+              height: 8.w,
+              decoration: BoxDecoration(
+                color: isSocketConnected ? Colors.green : Colors.grey,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
         ),
         centerTitle: true,
       ),
