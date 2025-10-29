@@ -164,6 +164,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             expandedHeight: 0,
             pinned: true,
             backgroundColor: AppColors.dark,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.settings_outlined, color: Colors.white, size: 24.sp),
+                onPressed: () => _showSettingsDialog(context, user),
+              ),
+            ],
           ),
         ];
       },
@@ -274,15 +280,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     ),
                     _buildStatItem(
                       label: 'Подписчики',
-                      value: (user.followersCount ?? 0).toString(),
+                      value: (user.subscribersCount ?? user.followersCount ?? 0).toString(),
                     ),
                     _buildStatItem(
                       label: 'Подписки',
-                      value: '0', // TODO: Добавить в UserModel subscriptionsCount
+                      value: (user.subscriptionsCount ?? 0).toString(),
                     ),
                     _buildStatItem(
                       label: 'Лайки',
-                      value: '0', // TODO: Подсчитать лайки пользователя
+                      value: _calculateTotalLikes(profileState.masterVideos).toString(),
                     ),
                   ],
                 ),
@@ -364,6 +370,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
+  int _calculateTotalLikes(List<dynamic> videos) {
+    if (videos.isEmpty) return 0;
+    return videos.fold<int>(0, (sum, video) {
+      if (video is Map && video.containsKey('likesCount')) {
+        return sum + (video['likesCount'] as int? ?? 0);
+      }
+      return sum;
+    });
+  }
+
   Widget _buildStatItem({required String label, required String value}) {
     return Column(
       children: [
@@ -433,7 +449,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return GridView.builder(
       padding: EdgeInsets.all(2.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+        crossAxisCount: 2, // 2 колонки как на вебе для мобильных устройств
         mainAxisSpacing: 2.w,
         crossAxisSpacing: 2.w,
         childAspectRatio: 9 / 16,
@@ -548,7 +564,321 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
+  void _showSettingsDialog(BuildContext context, UserModel user) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.darkSurface,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 24.h),
+            
+            Text(
+              'Настройки',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 24.h),
+            
+            // Edit Profile
+            _buildSettingsItem(
+              icon: Icons.edit_outlined,
+              iconColor: Colors.pink,
+              title: 'Редактировать профиль',
+              subtitle: 'Изменить имя, фото и другие данные',
+              onTap: () {
+                Navigator.pop(context);
+                _showEditProfileDialog(context, user);
+              },
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            // Language
+            Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 40.w,
+                        height: 40.w,
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Icon(Icons.language, color: Colors.blue, size: 20.sp),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Язык',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Выберите язык интерфейса',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.white.withOpacity(0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: EdgeInsets.symmetric(vertical: 10.h),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                          ),
+                          child: Text('Русский', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            ElevatedButton(
+                              onPressed: null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.05),
+                                disabledBackgroundColor: Colors.white.withOpacity(0.05),
+                                padding: EdgeInsets.symmetric(vertical: 10.h),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                              ),
+                              child: Text(
+                                'Қазақша',
+                                style: TextStyle(fontSize: 12.sp, color: Colors.white.withOpacity(0.3)),
+                              ),
+                            ),
+                            Positioned(
+                              top: -2,
+                              right: -2,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                decoration: BoxDecoration(
+                                  color: Colors.yellow,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Text(
+                                  'Скоро',
+                                  style: TextStyle(
+                                    fontSize: 9.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            // Support
+            _buildSettingsItem(
+              icon: Icons.help_outline,
+              iconColor: Colors.green,
+              title: 'Поддержка',
+              subtitle: 'Связаться с службой поддержки',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/support');
+              },
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            // Delete Account
+            _buildSettingsItem(
+              icon: Icons.delete_outline,
+              iconColor: Colors.red,
+              title: 'Удалить профиль',
+              subtitle: 'Безвозвратное удаление аккаунта',
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteAccountDialog(context);
+              },
+              isDestructive: true,
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            // Logout
+            _buildSettingsItem(
+              icon: Icons.logout,
+              iconColor: Colors.orange,
+              title: 'Выйти',
+              subtitle: 'Выход из аккаунта',
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(authProvider.notifier).logout();
+              },
+            ),
+            
+            SizedBox(height: 24.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: isDestructive ? Colors.red.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isDestructive ? Colors.red.withOpacity(0.3) : Colors.white.withOpacity(0.1),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40.w,
+              height: 40.w,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Icon(icon, color: iconColor, size: 20.sp),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: isDestructive ? Colors.red : Colors.white,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.darkSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Text(
+          'Удалить профиль?',
+          style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Вы уверены, что хотите удалить профиль? Это действие необратимо.',
+          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Отмена', style: TextStyle(color: Colors.white.withOpacity(0.6))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final apiService = ref.read(apiServiceProvider);
+                await apiService.deleteAccount();
+                Navigator.pop(context);
+                await ref.read(authProvider.notifier).logout();
+                Navigator.pushNamedAndRemoveUntil(context, '/register', (route) => false);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Ошибка при удалении аккаунта'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+            ),
+            child: Text('Удалить', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showEditProfileDialog(BuildContext context, UserModel user) {
+    final firstNameController = TextEditingController(text: user.firstName ?? '');
+    final lastNameController = TextEditingController(text: user.lastName ?? '');
+    final usernameController = TextEditingController(text: user.username);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -564,20 +894,150 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: Text(
-          'Функция редактирования профиля будет доступна в следующей версии',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
-            fontSize: 14.sp,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Имя
+              TextField(
+                controller: firstNameController,
+                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                decoration: InputDecoration(
+                  labelText: 'Имя',
+                  labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              
+              // Фамилия
+              TextField(
+                controller: lastNameController,
+                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                decoration: InputDecoration(
+                  labelText: 'Фамилия',
+                  labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              
+              // Username
+              TextField(
+                controller: usernameController,
+                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                decoration: InputDecoration(
+                  labelText: 'Имя пользователя',
+                  labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                  helperText: 'Только латиница, цифры и _',
+                  helperStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11.sp),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Понятно',
+              'Отмена',
               style: TextStyle(
-                color: AppColors.primary,
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 14.sp,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Валидация username
+              final username = usernameController.text.trim();
+              if (username.isNotEmpty && !RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(username)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Username может содержать только латиницу, цифры и _'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              
+              try {
+                final apiService = ref.read(apiServiceProvider);
+                await apiService.updateProfile(
+                  firstName: firstNameController.text.trim().isEmpty ? null : firstNameController.text.trim(),
+                  lastName: lastNameController.text.trim().isEmpty ? null : lastNameController.text.trim(),
+                  username: username.isEmpty ? null : username,
+                );
+                
+                // Обновляем локальный state
+                await ref.read(authProvider.notifier).refreshUser();
+                
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Профиль успешно обновлен!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(e.toString().contains('409') || e.toString().contains('already taken')
+                        ? 'Это имя пользователя уже занято'
+                        : 'Ошибка обновления профиля'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+            ),
+            child: Text(
+              'Сохранить',
+              style: TextStyle(
+                color: Colors.white,
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w600,
               ),

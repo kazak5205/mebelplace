@@ -394,8 +394,8 @@ class _SupportPageState extends ConsumerState<SupportPage> {
           _buildQuickActionItem(
             icon: Icons.phone,
             title: 'Позвонить',
-            subtitle: '+7 (777) 123-45-67',
-            onTap: () => _makePhoneCall('+77771234567'),
+            subtitle: '+7 (775) 990-56-23',
+            onTap: () => _makePhoneCall('+77759905623'),
           ),
           
           SizedBox(height: 12.h),

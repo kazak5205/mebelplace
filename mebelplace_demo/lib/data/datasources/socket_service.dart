@@ -1,6 +1,11 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:flutter/foundation.dart';
 import '../models/message_model.dart';
 import 'local_storage.dart';
+
+void _debugLog(String msg) {
+  if (kDebugMode) print(msg);
+}
 
 class SocketService {
   static final SocketService _instance = SocketService._internal();
@@ -20,18 +25,18 @@ class SocketService {
 
   Future<void> connect() async {
     if (_socket?.connected ?? false) {
-      print('🔌 Socket already connected');
+      _debugLog('🔌 Socket already connected');
       return;
     }
 
     final token = await _localStorage.getToken();
     if (token == null) {
-      print('❌ Cannot connect socket: no auth token');
+      _debugLog('❌ Cannot connect socket: no auth token');
       return;
     }
 
     try {
-      print('🔌 Connecting to Socket.IO server...');
+      _debugLog('🔌 Connecting to Socket.IO server...');
       
       _socket = IO.io('https://mebelplace.com.kz', <String, dynamic>{
         'transports': ['websocket'],
@@ -44,37 +49,37 @@ class SocketService {
       });
 
       _socket!.onConnect((_) {
-        print('✅ Socket connected!');
+        _debugLog('✅ Socket connected!');
         onConnected?.call();
       });
 
       _socket!.onDisconnect((_) {
-        print('🔌 Socket disconnected');
+        _debugLog('🔌 Socket disconnected');
         onDisconnected?.call();
       });
 
       _socket!.onConnectError((error) {
-        print('❌ Socket connection error: $error');
+        _debugLog('❌ Socket connection error: $error');
       });
 
       _socket!.onError((error) {
-        print('❌ Socket error: $error');
+        _debugLog('❌ Socket error: $error');
       });
 
       // Слушаем новые сообщения
       _socket!.on('new_message', (data) {
-        print('📨 New message received: $data');
+        _debugLog('📨 New message received: $data');
         try {
           final message = MessageModel.fromJson(data as Map<String, dynamic>);
           onNewMessage?.call(message);
         } catch (e) {
-          print('❌ Error parsing message: $e');
+          _debugLog('❌ Error parsing message: $e');
         }
       });
 
       // Слушаем событие "пишет..."
       _socket!.on('typing', (data) {
-        print('✍️ User is typing in chat: $data');
+        _debugLog('✍️ User is typing in chat: $data');
         if (data is Map && data['chatId'] != null) {
           onTyping?.call(data['chatId'].toString());
         }
@@ -82,19 +87,19 @@ class SocketService {
 
       // Слушаем событие "сообщение прочитано"
       _socket!.on('message_read', (data) {
-        print('👁️ Message read: $data');
+        _debugLog('👁️ Message read: $data');
       });
 
       _socket!.connect();
       
     } catch (e) {
-      print('❌ Failed to connect socket: $e');
+      _debugLog('❌ Failed to connect socket: $e');
     }
   }
 
   void disconnect() {
     if (_socket != null) {
-      print('🔌 Disconnecting socket...');
+      _debugLog('🔌 Disconnecting socket...');
       _socket!.disconnect();
       _socket!.dispose();
       _socket = null;
@@ -104,7 +109,7 @@ class SocketService {
   // Присоединиться к конкретному чату
   void joinChat(String chatId) {
     if (_socket?.connected ?? false) {
-      print('🚪 Joining chat: $chatId');
+      _debugLog('🚪 Joining chat: $chatId');
       _socket!.emit('join_chat', {'chatId': chatId});
     }
   }
@@ -112,7 +117,7 @@ class SocketService {
   // Покинуть чат
   void leaveChat(String chatId) {
     if (_socket?.connected ?? false) {
-      print('🚪 Leaving chat: $chatId');
+      _debugLog('🚪 Leaving chat: $chatId');
       _socket!.emit('leave_chat', {'chatId': chatId});
     }
   }
@@ -120,7 +125,7 @@ class SocketService {
   // Отправить сообщение через WebSocket
   void sendMessage(String chatId, String content) {
     if (_socket?.connected ?? false) {
-      print('📤 Sending message via socket: $content');
+      _debugLog('📤 Sending message via socket: $content');
       _socket!.emit('send_message', {
         'chatId': chatId,
         'content': content,

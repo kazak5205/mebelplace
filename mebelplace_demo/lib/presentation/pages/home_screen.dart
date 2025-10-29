@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/image_helper.dart';
 import '../../data/models/video_model.dart';
@@ -203,28 +205,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 _buildShareOption(
                   icon: Icons.copy,
                   label: 'Копировать ссылку',
-                  onTap: () {
-                    // Copy link to clipboard
+                  onTap: () async {
+                    final link = 'https://mebelplace.com.kz/video/${video.id}';
+                    await Clipboard.setData(ClipboardData(text: link));
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ссылка скопирована')),
+                      SnackBar(
+                        content: const Text('Ссылка скопирована'),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                      ),
                     );
                   },
                 ),
                 _buildShareOption(
                   icon: Icons.share,
                   label: 'Поделиться',
-                  onTap: () {
-                    // Share via system share
+                  onTap: () async {
                     Navigator.pop(context);
+                    final link = 'https://mebelplace.com.kz/video/${video.id}';
+                    await Share.share(
+                      'Смотри это видео на MebelPlace: ${video.title}\n$link',
+                      subject: video.title,
+                    );
                   },
                 ),
                 _buildShareOption(
                   icon: Icons.download,
                   label: 'Скачать',
                   onTap: () {
-                    // Download video
                     Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Функция скачивания будет доступна в следующей версии'),
+                        backgroundColor: AppColors.primary,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                      ),
+                    );
                   },
                 ),
               ],
@@ -446,14 +465,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 }
 
 // Отдельный виджет для комментариев с использованием Consumer
-class CommentsBottomSheet extends ConsumerWidget {
+class CommentsBottomSheet extends ConsumerStatefulWidget {
   final VideoModel video;
 
   const CommentsBottomSheet({super.key, required this.video});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final commentState = ref.watch(commentProvider(video.id));
+  ConsumerState<CommentsBottomSheet> createState() => _CommentsBottomSheetState();
+}
+
+class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
+  final _commentController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Load comments when sheet opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(commentNotifierProvider(widget.video.id).notifier).loadComments();
+    });
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final commentState = ref.watch(commentProvider(widget.video.id));
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
@@ -570,6 +611,7 @@ class CommentsBottomSheet extends ConsumerWidget {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _commentController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Добавить комментарий...',
@@ -578,12 +620,16 @@ class CommentsBottomSheet extends ConsumerWidget {
                       ),
                       border: InputBorder.none,
                     ),
+                    onSubmitted: (_) => _sendComment(),
                   ),
                 ),
-                Icon(
-                  Icons.send,
-                  color: AppColors.primary,
-                  size: 20.sp,
+                IconButton(
+                  icon: Icon(
+                    Icons.send,
+                    color: AppColors.primary,
+                    size: 20.sp,
+                  ),
+                  onPressed: _sendComment,
                 ),
               ],
             ),
@@ -591,6 +637,24 @@ class CommentsBottomSheet extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _sendComment() async {
+    final content = _commentController.text.trim();
+    if (content.isEmpty) return;
+
+    try {
+      await ref.read(commentNotifierProvider(widget.video.id).notifier).addComment(content);
+      _commentController.clear();
+      FocusScope.of(context).unfocus();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ошибка отправки комментария: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   String _formatCommentTime(DateTime? time) {

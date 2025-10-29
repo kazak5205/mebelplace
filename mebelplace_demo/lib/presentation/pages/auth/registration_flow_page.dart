@@ -766,13 +766,6 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
       final role = widget.role == 'client' ? 'user' : 'master';
       final companyName = widget.role == 'master' ? _companyNameController.text.trim() : null;
       
-      print('🚀 Starting registration:');
-      print('   Phone: $phone');
-      print('   Username: $username');
-      print('   Password: $password');
-      print('   Role: $role');
-      if (companyName != null) print('   Company: $companyName');
-      
       // Регистрация через API
       final response = await apiService.register(
         RegisterRequest(
@@ -784,25 +777,14 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
         ),
       );
       
-      print('📥 Registration response:');
-      print('   Success: ${response.success}');
-      print('   Message: ${response.message}');
-      print('   Has data: ${response.data != null}');
-      print('   Has accessToken: ${response.data?.accessToken != null}');
-      print('   Has refreshToken: ${response.data?.refreshToken != null}');
-      
       if (mounted) {
         final token = response.data?.accessToken ?? response.data?.token;
         if (response.success && response.data != null && token != null) {
-          print('✅ Registration successful! Saving auth data...');
-          
           // Сохраняем токен и пользователя
           await ref.read(authProvider.notifier).setAuthData(
             response.data!.user,
             token,
           );
-          
-          print('✅ Auth data saved! Navigating to home...');
           
           // Переход на главный экран
           Navigator.of(context).pushNamedAndRemoveUntil(
@@ -810,12 +792,10 @@ class _RegistrationFlowPageState extends ConsumerState<RegistrationFlowPage>
             (route) => false,
           );
         } else {
-          print('❌ Registration failed: ${response.message}');
           _showError(response.message ?? 'Ошибка регистрации');
         }
       }
     } catch (e) {
-      print('❌ Registration exception: $e');
       _showError('Ошибка регистрации: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);

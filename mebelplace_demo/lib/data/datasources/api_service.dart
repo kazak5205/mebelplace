@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../models/video_model.dart';
 import '../models/order_model.dart';
@@ -9,6 +10,13 @@ import '../models/order_response_model.dart';
 import '../models/comment_model.dart';
 import '../adapters/case_converter.dart';
 import 'local_storage.dart';
+
+// Debug logging helper - only logs in debug mode
+void _debugLog(String message) {
+  if (kDebugMode) {
+    print(message);
+  }
+}
 
 // API Service with real endpoints from OpenAPI
 class ApiService {
@@ -22,47 +30,47 @@ class ApiService {
     // Добавляем интерцептор для JWT токенов
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        print('📤 API Request: ${options.method} ${options.path}');
+        _debugLog('📤 API Request: ${options.method} ${options.path}');
         if (options.queryParameters.isNotEmpty) {
-          print('   Query: ${options.queryParameters}');
+          _debugLog('   Query: ${options.queryParameters}');
         }
         if (options.data != null && options.data is! FormData) {
-          print('   Body: ${options.data}');
+          _debugLog('   Body: ${options.data}');
         }
         
         // Добавляем JWT токен если есть
         final token = await LocalStorage().getToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
-          print('   Auth: Bearer ${token.substring(0, 20)}...');
+          _debugLog('   Auth: Bearer ${token.substring(0, 20)}...');
         }
         handler.next(options);
       },
       onResponse: (response, handler) {
-        print('📥 API Response: ${response.statusCode} ${response.requestOptions.path}');
+        _debugLog('📥 API Response: ${response.statusCode} ${response.requestOptions.path}');
         
         // ✅ ТРАНСФОРМАЦИЯ snake_case → camelCase (как веб-фронтенд!)
         if (response.data != null) {
           // Логируем структуру ПЕРЕД трансформацией
           if (response.data is Map) {
-            print('   Keys (before transform): ${(response.data as Map).keys.take(10).join(", ")}');
+            _debugLog('   Keys (before transform): ${(response.data as Map).keys.take(10).join(", ")}');
           }
           
           response.data = snakeToCamel(response.data);
           
           // Логируем структуру ПОСЛЕ трансформации
           if (response.data is Map) {
-            print('   Keys (after transform): ${(response.data as Map).keys.take(10).join(", ")}');
+            _debugLog('   Keys (after transform): ${(response.data as Map).keys.take(10).join(", ")}');
           }
         }
         return handler.next(response);
       },
       onError: (error, handler) {
-        print('❌ API Error: ${error.response?.statusCode} ${error.requestOptions.path}');
+        _debugLog('❌ API Error: ${error.response?.statusCode} ${error.requestOptions.path}');
         if (error.response?.data != null) {
-          print('   Error data: ${error.response?.data}');
+          _debugLog('   Error data: ${error.response?.data}');
         }
-        print('   Message: ${error.message}');
+        _debugLog('   Message: ${error.message}');
         handler.next(error);
       },
     ));
@@ -74,13 +82,13 @@ class ApiService {
   // Восстановление пароля - отправка SMS кода
   Future<ApiResponse<EmptyResponse>> forgotPassword(String phone) async {
     try {
-      print('📡 API: POST /auth/forgot-password');
+      _debugLog('📡 API: POST /auth/forgot-password');
       final response = await _dio.post('/auth/forgot-password', data: {
         'phone': phone,
       });
       
       if (response.statusCode == 200) {
-        print('✅ API: SMS code sent to $phone');
+        _debugLog('✅ API: SMS code sent to $phone');
         return ApiResponse<EmptyResponse>(
           success: true,
           data: EmptyResponse(),
@@ -95,7 +103,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Forgot password error: $e');
+      _debugLog('❌ API: Forgot password error: $e');
       throw Exception('Ошибка отправки кода: ${e.toString()}');
     }
   }
@@ -103,13 +111,13 @@ class ApiService {
   // Отправка SMS кода для верификации
   Future<ApiResponse<Map<String, dynamic>>> sendSmsCode(String phone) async {
     try {
-      print('📡 API: POST /auth/send-sms-code');
+      _debugLog('📡 API: POST /auth/send-sms-code');
       final response = await _dio.post('/auth/send-sms-code', data: {
         'phone': phone,
       });
       
       if (response.statusCode == 200) {
-        print('✅ API: SMS code sent to $phone');
+        _debugLog('✅ API: SMS code sent to $phone');
         // В DEV режиме бэк возвращает код
         final code = response.data['code'];
         return ApiResponse<Map<String, dynamic>>(
@@ -126,7 +134,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Send SMS code error: $e');
+      _debugLog('❌ API: Send SMS code error: $e');
       throw Exception('Ошибка отправки SMS: ${e.toString()}');
     }
   }
@@ -134,8 +142,8 @@ class ApiService {
   // Проверка SMS кода (БЕЗ создания пользователя!)
   Future<ApiResponse<EmptyResponse>> verifySmsCode(String phone, String code) async {
     try {
-      print('📡 API: POST /auth/verify-sms');
-      print('   Phone: $phone, Code: $code');
+      _debugLog('📡 API: POST /auth/verify-sms');
+      _debugLog('   Phone: $phone, Code: $code');
       
       final response = await _dio.post('/auth/verify-sms', data: {
         'phone': phone,
@@ -145,7 +153,7 @@ class ApiService {
       if (response.statusCode == 200) {
         final responseData = response.data;
         
-        print('✅ API: SMS verified successfully');
+        _debugLog('✅ API: SMS verified successfully');
         
         // ✅ API просто подтверждает код, user создается позже при /auth/register
         return ApiResponse<EmptyResponse>(
@@ -163,7 +171,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Verify SMS error: $e');
+      _debugLog('❌ API: Verify SMS error: $e');
       if (e is DioException) {
         final errorMsg = e.response?.data?['message'] ?? 'Неверный код';
         return ApiResponse<EmptyResponse>(
@@ -184,7 +192,7 @@ class ApiService {
     String newPassword,
   ) async {
     try {
-      print('📡 API: POST /auth/reset-password');
+      _debugLog('📡 API: POST /auth/reset-password');
       final response = await _dio.post('/auth/reset-password', data: {
         'phone': phone,
         'code': code,
@@ -192,7 +200,7 @@ class ApiService {
       });
       
       if (response.statusCode == 200) {
-        print('✅ API: Password reset successful');
+        _debugLog('✅ API: Password reset successful');
         return ApiResponse<EmptyResponse>(
           success: true,
           data: EmptyResponse(),
@@ -207,7 +215,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Reset password error: $e');
+      _debugLog('❌ API: Reset password error: $e');
       throw Exception('Ошибка сброса пароля: ${e.toString()}');
     }
   }
@@ -254,7 +262,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Login error: $e');
+      _debugLog('❌ API: Login error: $e');
       throw Exception('Ошибка входа: ${e.toString()}');
     }
     
@@ -262,7 +270,7 @@ class ApiService {
 
   Future<ApiResponse<AuthData>> register(RegisterRequest request) async {
     try {
-      print('📡 API: POST /auth/register - ${request.role}');
+      _debugLog('📡 API: POST /auth/register - ${request.role}');
       final response = await _dio.post('/auth/register', data: request.toJson());
       
       if (response.statusCode == 201) {
@@ -278,7 +286,7 @@ class ApiService {
           await LocalStorage().saveRefreshToken(refreshToken);
         }
         
-        print('✅ API: Registration successful, tokens saved');
+        _debugLog('✅ API: Registration successful, tokens saved');
         
         return ApiResponse<AuthData>(
           success: true,
@@ -298,14 +306,14 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Register error: $e');
+      _debugLog('❌ API: Register error: $e');
       throw Exception('Ошибка регистрации: ${e.toString()}');
     }
   }
 
   Future<ApiResponse<UserModel>> getCurrentUser() async {
     try {
-      print('📡 API: GET /auth/profile');
+      _debugLog('📡 API: GET /auth/profile');
       final response = await _dio.get('/auth/profile');
       
       if (response.statusCode == 200) {
@@ -313,7 +321,7 @@ class ApiService {
         final data = responseData['data'] ?? responseData;
         final user = UserModel.fromJson(data);
         
-        print('✅ API: Current user loaded: ${user.username}');
+        _debugLog('✅ API: Current user loaded: ${user.username}');
         
         return ApiResponse<UserModel>(
           success: true,
@@ -329,18 +337,89 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Get current user error: $e');
+      _debugLog('❌ API: Get current user error: $e');
       throw Exception('Ошибка получения профиля: ${e.toString()}');
     }
   }
 
-  Future<ApiResponse<EmptyResponse>> logout(LogoutRequest request) async {
+  Future<ApiResponse<UserModel>> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? username,
+    String? phone,
+    String? avatar,
+  }) async {
     try {
-      print('📡 API: POST /auth/logout');
+      _debugLog('📡 API: PUT /auth/profile');
+      final data = <String, dynamic>{};
+      if (firstName != null) data['firstName'] = firstName;
+      if (lastName != null) data['lastName'] = lastName;
+      if (username != null) data['username'] = username;
+      if (phone != null) data['phone'] = phone;
+      if (avatar != null) data['avatar'] = avatar;
+      
+      final response = await _dio.put('/auth/profile', data: data);
+      
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        final userData = responseData['data'] ?? responseData;
+        final user = UserModel.fromJson(userData);
+        
+        _debugLog('✅ API: Profile updated: ${user.username}');
+        
+        return ApiResponse<UserModel>(
+          success: true,
+          data: user,
+          message: responseData['message'] ?? 'Профиль обновлен',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<UserModel>(
+          success: false,
+          message: response.data['message'] ?? 'Ошибка обновления профиля',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Update profile error: $e');
+      throw Exception('Ошибка обновления профиля: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<EmptyResponse>> deleteAccount() async {
+    try {
+      _debugLog('📡 API: DELETE /auth/profile');
+      final response = await _dio.delete('/auth/profile');
+      
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _debugLog('✅ API: Account deleted successfully');
+        
+        return ApiResponse<EmptyResponse>(
+          success: true,
+          data: EmptyResponse(),
+          message: 'Аккаунт удален',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<EmptyResponse>(
+          success: false,
+          message: response.data['message'] ?? 'Ошибка удаления аккаунта',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Delete account error: $e');
+      throw Exception('Ошибка удаления аккаунта: ${e.toString()}');
+    }
+  }
+
+  Future<ApiResponse<EmptyResponse>> logout(LogoutRequest request) async{
+    try {
+      _debugLog('📡 API: POST /auth/logout');
       final response = await _dio.post('/auth/logout');
       
       if (response.statusCode == 200 || response.statusCode == 204) {
-        print('✅ API: Logout successful');
+        _debugLog('✅ API: Logout successful');
         return ApiResponse<EmptyResponse>(
           success: true,
           data: EmptyResponse(),
@@ -355,14 +434,14 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Logout error: $e');
+      _debugLog('❌ API: Logout error: $e');
       throw Exception('Ошибка выхода: ${e.toString()}');
     }
   }
 
   Future<ApiResponse<AuthData>> refreshToken(RefreshRequest request) async {
     try {
-      print('📡 API: POST /auth/refresh');
+      _debugLog('📡 API: POST /auth/refresh');
       final response = await _dio.post('/auth/refresh', data: {
         'refreshToken': request.refreshToken,
       });
@@ -375,7 +454,7 @@ class ApiService {
         final accessToken = data['accessToken'] ?? data['access_token'];
         final refreshToken = data['refreshToken'] ?? data['refresh_token'];
         
-        print('✅ API: Token refreshed');
+        _debugLog('✅ API: Token refreshed');
         
         return ApiResponse<AuthData>(
           success: true,
@@ -395,7 +474,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Refresh token error: $e');
+      _debugLog('❌ API: Refresh token error: $e');
       throw Exception('Ошибка обновления токена: ${e.toString()}');
     }
   }
@@ -403,23 +482,23 @@ class ApiService {
   // Video endpoints
   Future<ApiResponse<VideoFeedData>> getVideoFeed(Map<String, dynamic> params) async {
     try {
-      print('🔍 API: Fetching videos from ${_dio.options.baseUrl}/videos/feed');
-      print('📝 API: Params: $params');
+      _debugLog('🔍 API: Fetching videos from ${_dio.options.baseUrl}/videos/feed');
+      _debugLog('📝 API: Params: $params');
       
       final response = await _dio.get('/videos/feed', queryParameters: params);
       
-      print('✅ API: Response status ${response.statusCode}');
-      print('📦 API: Response data: ${response.data}');
+      _debugLog('✅ API: Response status ${response.statusCode}');
+      _debugLog('📦 API: Response data: ${response.data}');
       
       if (response.statusCode == 200) {
         final data = response.data;
         final List<dynamic> videosJson = data['data']['videos'] ?? [];
         
-        print('📦 API: Raw videos count: ${videosJson.length}');
+        _debugLog('📦 API: Raw videos count: ${videosJson.length}');
         if (videosJson.isNotEmpty) {
-          print('   First video keys: ${(videosJson.first as Map).keys.join(", ")}');
-          print('   First video avatar: ${(videosJson.first as Map)['avatar']}');
-          print('   First video username: ${(videosJson.first as Map)['username']}');
+          _debugLog('   First video keys: ${(videosJson.first as Map).keys.join(", ")}');
+          _debugLog('   First video avatar: ${(videosJson.first as Map)['avatar']}');
+          _debugLog('   First video username: ${(videosJson.first as Map)['username']}');
         }
         
         // Fix relative URLs by adding base URL
@@ -439,17 +518,17 @@ class ApiService {
               ? avatar 
               : (avatar != null && avatar.isNotEmpty ? 'https://mebelplace.com.kz$avatar' : null);
           
-          print('   🖼️ Avatar processing: ${json['avatar']} -> ${fixedJson['avatar']}');
+          _debugLog('   🖼️ Avatar processing: ${json['avatar']} -> ${fixedJson['avatar']}');
           
           return fixedJson;
         }).toList();
         
         final videos = fixedVideosJson.map((json) => VideoModel.fromJson(json)).toList();
         
-        print('🎥 API: Loaded ${videos.length} videos from server');
+        _debugLog('🎥 API: Loaded ${videos.length} videos from server');
         if (videos.isNotEmpty) {
-          print('   ✅ First video avatar URL: ${videos.first.avatar}');
-          print('   ✅ First video username: ${videos.first.username}');
+          _debugLog('   ✅ First video avatar URL: ${videos.first.avatar}');
+          _debugLog('   ✅ First video username: ${videos.first.username}');
         }
     
     return ApiResponse<VideoFeedData>(
@@ -467,7 +546,7 @@ class ApiService {
       timestamp: DateTime.now().toIso8601String(),
     );
       } else {
-        print('❌ API: Bad status code ${response.statusCode}');
+        _debugLog('❌ API: Bad status code ${response.statusCode}');
         return ApiResponse<VideoFeedData>(
           success: false,
           data: VideoFeedData(
@@ -479,7 +558,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Error fetching videos: $e');
+      _debugLog('❌ API: Error fetching videos: $e');
       
       return ApiResponse<VideoFeedData>(
         success: false,
@@ -619,8 +698,8 @@ class ApiService {
         if (furniturePrice != null) 'furniturePrice': furniturePrice,
       });
 
-      print('📹 Uploading video: $title');
-      print('   Category: $category');
+      _debugLog('📹 Uploading video: $title');
+      _debugLog('   Category: $category');
       if (furniturePrice != null) print('   Price: $furniturePrice ₸');
 
       final response = await _dio.post('/videos/upload', data: formData);
@@ -629,7 +708,7 @@ class ApiService {
         final data = response.data['data'] ?? response.data;
         final video = VideoModel.fromJson(data);
 
-        print('✅ Video uploaded: ${video.id}');
+        _debugLog('✅ Video uploaded: ${video.id}');
 
         return ApiResponse<VideoModel>(
           success: true,
@@ -645,7 +724,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ Video upload error: $e');
+      _debugLog('❌ Video upload error: $e');
       return ApiResponse<VideoModel>(
         success: false,
         message: 'Ошибка загрузки видео: ${e.toString()}',
@@ -692,7 +771,7 @@ class ApiService {
     );
       }
     } catch (e) {
-      print('❌ API: Get user orders error: $e');
+      _debugLog('❌ API: Get user orders error: $e');
       return ApiResponse<OrderFeedData>(
         success: false,
         data: OrderFeedData(
@@ -707,14 +786,14 @@ class ApiService {
 
   Future<ApiResponse<OrderModel>> getOrder(String orderId) async {
     try {
-      print('📡 API: GET /orders/$orderId');
+      _debugLog('📡 API: GET /orders/$orderId');
       final response = await _dio.get('/orders/$orderId');
       
       if (response.statusCode == 200) {
         final data = response.data['data'] ?? response.data;
         final order = OrderModel.fromJson(data);
         
-        print('✅ API: Order loaded: ${order.id}');
+        _debugLog('✅ API: Order loaded: ${order.id}');
         
         return ApiResponse<OrderModel>(
           success: true,
@@ -730,7 +809,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Get order error: $e');
+      _debugLog('❌ API: Get order error: $e');
       throw Exception('Ошибка загрузки заказа: ${e.toString()}');
     }
   }
@@ -773,7 +852,7 @@ class ApiService {
         final data = response.data['data'] ?? response.data;
         final order = OrderModel.fromJson(data);
         
-        print('✅ API: Order created: ${order.id}');
+        _debugLog('✅ API: Order created: ${order.id}');
         
         return ApiResponse<OrderModel>(
           success: true,
@@ -789,7 +868,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Create order error: $e');
+      _debugLog('❌ API: Create order error: $e');
       return ApiResponse<OrderModel>(
         success: false,
         message: 'Ошибка создания заказа: ${e.toString()}',
@@ -803,7 +882,7 @@ class ApiService {
     OrderResponseRequest request,
   ) async {
     try {
-      print('📡 API: POST /orders/$orderId/response');
+      _debugLog('📡 API: POST /orders/$orderId/response');
       final response = await _dio.post('/orders/$orderId/response', data: {
         'message': request.message,
         'price': request.price,
@@ -812,7 +891,7 @@ class ApiService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = response.data['data'] ?? response.data;
         final orderResponse = OrderResponse.fromJson(data);
-        print('✅ API: Response created');
+        _debugLog('✅ API: Response created');
         
         return ApiResponse<OrderResponse>(
           success: true,
@@ -828,7 +907,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Respond to order error: $e');
+      _debugLog('❌ API: Respond to order error: $e');
       throw Exception('Ошибка отклика: ${e.toString()}');
     }
   }
@@ -838,7 +917,7 @@ class ApiService {
     AcceptRequest request,
   ) async {
     try {
-      print('📡 API: POST /orders/$orderId/accept');
+      _debugLog('📡 API: POST /orders/$orderId/accept');
       final response = await _dio.post('/orders/$orderId/accept', data: {
         'responseId': request.responseId,
       });
@@ -848,7 +927,7 @@ class ApiService {
         final order = OrderModel.fromJson(data['order'] ?? data);
         final chatId = data['chatId'] ?? data['chat_id'] ?? '';
         
-        print('✅ API: Response accepted');
+        _debugLog('✅ API: Response accepted');
         
         return ApiResponse<AcceptResponse>(
           success: true,
@@ -864,14 +943,14 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Accept response error: $e');
+      _debugLog('❌ API: Accept response error: $e');
       throw Exception('Ошибка принятия: ${e.toString()}');
     }
   }
 
   Future<ApiResponse<List<CategoryData>>> getOrderCategories() async {
     try {
-      print('📡 API: GET /orders/categories');
+      _debugLog('📡 API: GET /orders/categories');
       final response = await _dio.get('/orders/categories');
       
       if (response.statusCode == 200) {
@@ -898,7 +977,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('⚠️ API: Categories error, using fallback: $e');
+      _debugLog('⚠️ API: Categories error, using fallback: $e');
       return ApiResponse<List<CategoryData>>(
         success: true,
         data: [
@@ -914,7 +993,7 @@ class ApiService {
 
   Future<ApiResponse<List<String>>> getRegions() async {
     try {
-      print('📡 API: GET /regions');
+      _debugLog('📡 API: GET /regions');
       final response = await _dio.get('/regions');
       
       if (response.statusCode == 200) {
@@ -937,10 +1016,131 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('⚠️ API: Regions error, using fallback: $e');
+      _debugLog('⚠️ API: Regions error, using fallback: $e');
       return ApiResponse<List<String>>(
         success: true,
         data: ['Алматы', 'Астана', 'Шымкент', 'Караганда', 'Актобе'],
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  // Search endpoints
+  Future<ApiResponse<List<VideoModel>>> searchVideos(String query) async {
+    try {
+      _debugLog('📡 API: GET /search (videos)');
+      final response = await _dio.get('/search', queryParameters: {
+        'q': query,
+        'type': 'video',
+      });
+      
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        final videosData = responseData['data']?['videos'] ?? responseData['videos'] ?? [];
+        final videos = (videosData as List).map((v) => VideoModel.fromJson(v)).toList();
+        
+        _debugLog('✅ API: Found ${videos.length} videos');
+        
+        return ApiResponse<List<VideoModel>>(
+          success: true,
+          data: videos,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<VideoModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка поиска видео',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Search videos error: $e');
+      return ApiResponse<List<VideoModel>>(
+        success: true,
+        data: [],
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  Future<ApiResponse<OrdersData>> searchOrders(String query) async {
+    try {
+      _debugLog('📡 API: GET /search (orders)');
+      final response = await _dio.get('/search', queryParameters: {
+        'q': query,
+        'type': 'order',
+      });
+      
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        final ordersData = responseData['data']?['orders'] ?? responseData['orders'] ?? [];
+        final orders = (ordersData as List).map((o) => OrderModel.fromJson(o)).toList();
+        
+        _debugLog('✅ API: Found ${orders.length} orders');
+        
+        return ApiResponse<OrdersData>(
+          success: true,
+          data: OrdersData(orders: orders),
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<OrdersData>(
+          success: false,
+          data: OrdersData(orders: []),
+          message: 'Ошибка поиска заказов',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Search orders error: $e');
+      return ApiResponse<OrdersData>(
+        success: true,
+        data: OrdersData(orders: []),
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  Future<ApiResponse<List<UserModel>>> searchMasters(String query) async {
+    try {
+      _debugLog('📡 API: GET /search (masters)');
+      final response = await _dio.get('/search', queryParameters: {
+        'q': query,
+        'type': 'channel',
+      });
+      
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        final mastersData = responseData['data']?['users'] ?? responseData['users'] ?? [];
+        final masters = (mastersData as List).map((u) => UserModel.fromJson(u)).toList();
+        
+        _debugLog('✅ API: Found ${masters.length} masters');
+        
+        return ApiResponse<List<UserModel>>(
+          success: true,
+          data: masters,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<UserModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка поиска мастеров',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Search masters error: $e');
+      return ApiResponse<List<UserModel>>(
+        success: true,
+        data: [],
         message: null,
         timestamp: DateTime.now().toIso8601String(),
       );
@@ -956,7 +1156,7 @@ class ApiService {
         final data = response.data;
         final List<dynamic> chatsJson = data['data']?['chats'] ?? data['data'] ?? [];
         
-        print('📋 API: Parsing ${chatsJson.length} chats with currentUserId: $currentUserId');
+        _debugLog('📋 API: Parsing ${chatsJson.length} chats with currentUserId: $currentUserId');
         
         final chats = chatsJson.map((json) => ChatModel.fromJson(json, currentUserId: currentUserId)).toList();
         
@@ -975,7 +1175,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Get chats error: $e');
+      _debugLog('❌ API: Get chats error: $e');
       return ApiResponse<List<ChatModel>>(
         success: false,
         data: [],
@@ -1010,7 +1210,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Get messages error: $e');
+      _debugLog('❌ API: Get messages error: $e');
       return ApiResponse<List<MessageModel>>(
         success: false,
         data: [],
@@ -1066,7 +1266,7 @@ class ApiService {
         final List<dynamic> videosJson = data['data']?['videos'] ?? data['videos'] ?? [];
         final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
         
-        print('🔍 API: Found ${videos.length} videos for query "$query"');
+        _debugLog('🔍 API: Found ${videos.length} videos for query "$query"');
         
         return ApiResponse<List<VideoModel>>(
           success: true,
@@ -1083,7 +1283,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Search videos error: $e');
+      _debugLog('❌ API: Search videos error: $e');
       return ApiResponse<List<VideoModel>>(
         success: false,
         data: [],
@@ -1096,7 +1296,7 @@ class ApiService {
   // Поиск мастеров (каналов)
   Future<ApiResponse<List<UserModel>>> searchMasters(String query) async {
     try {
-      print('📡 API: GET /search?q=$query&type=channel');
+      _debugLog('📡 API: GET /search?q=$query&type=channel');
       final response = await _dio.get('/search', queryParameters: {
         'q': query,
         'type': 'channel',
@@ -1131,7 +1331,7 @@ class ApiService {
           }
         }
         
-        print('🔍 API: Found ${masters.length} masters for query "$query"');
+        _debugLog('🔍 API: Found ${masters.length} masters for query "$query"');
         
         return ApiResponse<List<UserModel>>(
           success: true,
@@ -1148,7 +1348,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Search masters error: $e');
+      _debugLog('❌ API: Search masters error: $e');
       return ApiResponse<List<UserModel>>(
         success: false,
         data: [],
@@ -1161,11 +1361,11 @@ class ApiService {
   // Подписаться на мастера
   Future<ApiResponse<EmptyResponse>> subscribeToUser(String userId) async {
     try {
-      print('📡 API: POST /users/$userId/subscribe');
+      _debugLog('📡 API: POST /users/$userId/subscribe');
       final response = await _dio.post('/users/$userId/subscribe');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ API: Subscribed to user $userId');
+        _debugLog('✅ API: Subscribed to user $userId');
         return ApiResponse<EmptyResponse>(
           success: true,
           data: EmptyResponse(),
@@ -1180,7 +1380,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Subscribe error: $e');
+      _debugLog('❌ API: Subscribe error: $e');
       throw Exception('Ошибка подписки: ${e.toString()}');
     }
   }
@@ -1188,11 +1388,11 @@ class ApiService {
   // Отписаться от мастера
   Future<ApiResponse<EmptyResponse>> unsubscribeFromUser(String userId) async {
     try {
-      print('📡 API: DELETE /users/$userId/unsubscribe');
+      _debugLog('📡 API: DELETE /users/$userId/unsubscribe');
       final response = await _dio.delete('/users/$userId/unsubscribe');
       
       if (response.statusCode == 200 || response.statusCode == 204) {
-        print('✅ API: Unsubscribed from user $userId');
+        _debugLog('✅ API: Unsubscribed from user $userId');
         return ApiResponse<EmptyResponse>(
           success: true,
           data: EmptyResponse(),
@@ -1207,22 +1407,58 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Unsubscribe error: $e');
+      _debugLog('❌ API: Unsubscribe error: $e');
       throw Exception('Ошибка отписки: ${e.toString()}');
+    }
+  }
+
+  // Проверка статуса подписки на пользователя
+  Future<ApiResponse<Map<String, dynamic>>> getSubscriptionStatus(String userId) async {
+    try {
+      _debugLog('📡 API: GET /users/$userId/subscription-status');
+      final response = await _dio.get('/users/$userId/subscription-status');
+      
+      if (response.statusCode == 200) {
+        final data = response.data['data'] ?? response.data;
+        _debugLog('✅ API: Subscription status loaded');
+        
+        return ApiResponse<Map<String, dynamic>>(
+          success: true,
+          data: data is Map<String, dynamic> ? data : {},
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<Map<String, dynamic>>(
+          success: false,
+          data: {},
+          message: 'Не удалось получить статус подписки',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Get subscription status error: $e');
+      // Возвращаем успешный ответ с isSubscribed: false вместо ошибки
+      return ApiResponse<Map<String, dynamic>>(
+        success: true,
+        data: {'isSubscribed': false},
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
     }
   }
 
   // Получение профиля пользователя (мастера)
   Future<ApiResponse<UserModel>> getUser(String userId) async {
     try {
-      print('📡 API: GET /users/$userId');
+      _debugLog('📡 API: GET /users/$userId');
       final response = await _dio.get('/users/$userId');
       
       if (response.statusCode == 200) {
         final data = response.data['data'] ?? response.data;
         final user = UserModel.fromJson(data);
         
-        print('✅ API: User loaded: ${user.username}');
+        _debugLog('✅ API: User loaded: ${user.username}');
         
         return ApiResponse<UserModel>(
           success: true,
@@ -1238,7 +1474,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Get user error: $e');
+      _debugLog('❌ API: Get user error: $e');
       return ApiResponse<UserModel>(
         success: false,
         message: 'Ошибка загрузки пользователя: ${e.toString()}',
@@ -1250,7 +1486,7 @@ class ApiService {
   // Загрузка комментариев к видео
   Future<ApiResponse<List<CommentModel>>> getVideoComments(String videoId) async {
     try {
-      print('📡 API: GET /videos/$videoId/comments');
+      _debugLog('📡 API: GET /videos/$videoId/comments');
       final response = await _dio.get('/videos/$videoId/comments');
       
       if (response.statusCode == 200) {
@@ -1262,14 +1498,14 @@ class ApiService {
                 ? data['data']['comments']
                 : [];
         
-        print('📦 API: Comments JSON structure: ${commentsJson.length} items');
+        _debugLog('📦 API: Comments JSON structure: ${commentsJson.length} items');
         if (commentsJson.isNotEmpty) {
-          print('   First comment keys: ${(commentsJson.first as Map).keys.join(", ")}');
+          _debugLog('   First comment keys: ${(commentsJson.first as Map).keys.join(", ")}');
         }
         
         final comments = commentsJson.map((json) => CommentModel.fromJson(json)).toList();
         
-        print('✅ API: Loaded ${comments.length} comments');
+        _debugLog('✅ API: Loaded ${comments.length} comments');
         
         return ApiResponse<List<CommentModel>>(
           success: true,
@@ -1286,7 +1522,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Get comments error: $e');
+      _debugLog('❌ API: Get comments error: $e');
       return ApiResponse<List<CommentModel>>(
         success: false,
         data: [],
@@ -1343,7 +1579,7 @@ class ApiService {
         
         final pagination = data['data']?['pagination'];
         
-        print('📦 API: Loaded ${orders.length} user orders');
+        _debugLog('📦 API: Loaded ${orders.length} user orders');
         
         return ApiResponse<OrderFeedData>(
           success: true,
@@ -1371,7 +1607,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Get user orders error: $e');
+      _debugLog('❌ API: Get user orders error: $e');
       return ApiResponse<OrderFeedData>(
         success: false,
         data: OrderFeedData(
@@ -1397,7 +1633,7 @@ class ApiService {
         final List<dynamic> ordersJson = data['data']?['orders'] ?? data['orders'] ?? [];
         final orders = ordersJson.map((json) => OrderModel.fromJson(json)).toList();
         
-        print('🔍 API: Found ${orders.length} orders for query "$query"');
+        _debugLog('🔍 API: Found ${orders.length} orders for query "$query"');
         
         return ApiResponse<OrderFeedData>(
           success: true,
@@ -1425,7 +1661,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Search orders error: $e');
+      _debugLog('❌ API: Search orders error: $e');
       return ApiResponse<OrderFeedData>(
         success: false,
         data: OrderFeedData(
@@ -1474,7 +1710,7 @@ class ApiService {
     String? category,
   }) async {
     try {
-      print('📡 API: POST /support/contact');
+      _debugLog('📡 API: POST /support/contact');
       final response = await _dio.post('/support/contact', data: {
         'subject': subject,
         'message': message,
@@ -1482,7 +1718,7 @@ class ApiService {
       });
       
       if (response.statusCode == 201 || response.statusCode == 200) {
-        print('✅ API: Support message sent');
+        _debugLog('✅ API: Support message sent');
         return ApiResponse<EmptyResponse>(
           success: true,
           data: EmptyResponse(),
@@ -1497,7 +1733,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('❌ API: Send support message error: $e');
+      _debugLog('❌ API: Send support message error: $e');
       throw Exception('Ошибка отправки сообщения: ${e.toString()}');
     }
   }

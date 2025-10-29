@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/image_helper.dart';
 import '../../../data/models/order_model.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/loading_widget.dart';
@@ -337,7 +338,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12.r),
                     child: Image.network(
-                      order.images[index],
+                      ImageHelper.getFullImageUrl(order.images[index]),
                       width: 120.w,
                       height: 120.h,
                       fit: BoxFit.cover,

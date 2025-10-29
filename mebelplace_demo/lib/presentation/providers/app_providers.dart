@@ -205,6 +205,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await SocketService().connect();
   }
 
+  Future<void> refreshUser() async {
+    try {
+      final user = await _authRepository.getCurrentUser();
+      state = state.copyWith(
+        user: user,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        error: e.toString(),
+      );
+    }
+  }
+
   Future<void> logout() async {
     try {
       // Отключаем WebSocket перед выходом

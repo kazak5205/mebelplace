@@ -106,7 +106,7 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
           _preloadNextVideo();
         }
       }).catchError((error) {
-        print('❌ Video init error: $error');
+        // ❌ Video init error: $error');
       });
     }
   }
@@ -124,7 +124,7 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       );
       // Только инициализация, не воспроизведение
       _preloadController!.initialize().catchError((error) {
-        print('❌ Preload error: $error');
+        // ❌ Preload error: $error');
       });
     }
   }

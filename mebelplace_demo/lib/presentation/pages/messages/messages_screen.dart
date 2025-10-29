@@ -33,7 +33,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
       
       // Слушаем новые сообщения для обновления списка чатов
       _socketService.onNewMessage = (message) {
-        print('📨 New message received, refreshing chat list');
+          // 📨 New message received, refreshing chat list');
         // Обновляем список чатов
         ref.read(chatProvider.notifier).loadChats();
       };

@@ -71,6 +71,9 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
           _followersCount = user.followersCount ?? 0;
           _isLoadingUser = false;
         });
+        
+        // Загружаем статус подписки
+        _loadSubscriptionStatus();
       } else {
         if (mounted) {
           setState(() {
@@ -85,6 +88,54 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
           _userError = e.toString();
           _isLoadingUser = false;
         });
+      }
+    }
+  }
+
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.getSubscriptionStatus(widget.masterId);
+      
+      if (mounted && response.success && response.data != null) {
+        setState(() {
+          _isFollowing = response.data!['isSubscribed'] ?? false;
+        });
+      }
+    } catch (e) {
+      // Игнорируем ошибку, просто не покажем статус подписки
+    }
+  }
+
+  Future<void> _toggleSubscribe() async {
+    final apiService = ref.read(apiServiceProvider);
+    
+    try {
+      if (_isFollowing) {
+        await apiService.unsubscribeFromUser(widget.masterId);
+        if (mounted) {
+          setState(() {
+            _isFollowing = false;
+            _followersCount = (_followersCount - 1).clamp(0, 999999);
+          });
+        }
+      } else {
+        await apiService.subscribeToUser(widget.masterId);
+        if (mounted) {
+          setState(() {
+            _isFollowing = true;
+            _followersCount++;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -295,16 +346,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
             width: double.infinity,
             height: 44.h,
             child: ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isFollowing = !_isFollowing;
-                  if (_isFollowing) {
-                    _followersCount++;
-                  } else {
-                    _followersCount--;
-                  }
-                });
-              },
+              onPressed: _toggleSubscribe,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isFollowing 
                     ? Colors.white.withOpacity(0.2)

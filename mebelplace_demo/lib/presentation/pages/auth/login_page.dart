@@ -396,9 +396,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final phone = _phoneController.text.trim();
       final password = _passwordController.text.trim();
 
-      print('📱 Attempting login...');
-      print('   Phone: $phone');
-
       // Логин через API
       await ref.read(authProvider.notifier).login(phone, password);
 
@@ -406,20 +403,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       if (mounted) {
         if (authState.user != null) {
-          print('✅ Login successful!');
-          
           // Переход на главный экран
           Navigator.of(context).pushNamedAndRemoveUntil(
             '/home',
             (route) => false,
           );
         } else if (authState.error != null) {
-          print('❌ Login failed: ${authState.error}');
           _showError(authState.error!);
         }
       }
     } catch (e) {
-      print('❌ Login exception: $e');
       _showError('Ошибка входа: ${e.toString()}');
     } finally {
       if (mounted) {

@@ -22,6 +22,10 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _showWelcomeModal = false;
+  
+  // Фильтры
+  String? _selectedCategory;
+  String? _selectedRegion;
 
   @override
   void initState() {
@@ -640,15 +644,147 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
               ),
             ),
             SizedBox(height: 24.h),
-            // TODO: Add filter options
-            Text(
-              'Фильтры в разработке',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.white.withOpacity(0.5),
+            
+            // Категория
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Категория',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
+            SizedBox(height: 8.h),
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              children: ['Все', 'Кухни', 'Шкафы', 'Столы', 'Стулья', 'Кровати', 'Гостиные', 'Детская', 'Офисная'].map((cat) {
+                final isSelected = (_selectedCategory == cat) || (cat == 'Все' && _selectedCategory == null);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedCategory = cat == 'Все' ? null : cat;
+                    });
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      cat,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.white,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            
             SizedBox(height: 24.h),
+            
+            // Регион
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Регион',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              children: ['Все', 'Алматы', 'Астана', 'Шымкент', 'Караганда', 'Актобе'].map((region) {
+                final isSelected = (_selectedRegion == region) || (region == 'Все' && _selectedRegion == null);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedRegion = region == 'Все' ? null : region;
+                    });
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : Colors.white.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      region,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.white,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            
+            SizedBox(height: 32.h),
+            
+            // Кнопки
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedCategory = null;
+                        _selectedRegion = null;
+                      });
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                    ),
+                    child: Text(
+                      'Сбросить',
+                      style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ref.read(orderProvider.notifier).loadOrders();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                    ),
+                    child: Text(
+                      'Применить',
+                      style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            SizedBox(height: 12.h),
           ],
         ),
       ),

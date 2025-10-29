@@ -42,8 +42,6 @@ class VideoRepository {
         params['recommendations'] = true;
       }
       
-      print('🎬 VideoRepository: Loading feed with params: $params');
-      
       final response = await _apiService.getVideoFeed(params);
       
       if (response.success && response.data != null) {

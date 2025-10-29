@@ -43,7 +43,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         _socketService.onNewMessage = (message) {
           // Добавляем сообщение только если оно для этого чата
           if (message.chatId == widget.chatId) {
-            print('📨 New message in current chat: ${message.content}');
+            // 📨 New message in current chat: ${message.content}');
             // Перезагружаем сообщения
             ref.read(chatProvider.notifier).loadMessages(widget.chatId);
             
