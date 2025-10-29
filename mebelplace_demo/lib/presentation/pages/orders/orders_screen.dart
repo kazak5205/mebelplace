@@ -864,7 +864,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
               SizedBox(height: 8.h),
               
               Text(
-                'Вы можете начать получать заказы прямо сейчас',
+                'Начните принимать заказы от клиентов',
                 style: TextStyle(
                   fontSize: 16.sp,
                   color: Colors.white.withOpacity(0.7),
@@ -964,7 +964,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
                               ),
                               children: [
                                 const TextSpan(
-                                  text: 'Пока вы не загрузите хотя бы одно видео с вашими работами, ',
+                                  text: 'Пока вы не загрузите хотя бы одну видеорекламу с вашими работами, ',
                                 ),
                                 TextSpan(
                                   text: 'клиенты не смогут найти ваш профиль в поиске',
@@ -981,7 +981,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
                           ),
                           SizedBox(height: 4.h),
                           Text(
-                            'Видео помогает клиентам увидеть качество вашей работы и принять решение о заказе.',
+                            'Видеореклама помогает клиентам увидеть качество вашей работы и принять решение о заказе. Загружайте короткие ролики с примерами ваших работ.',
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: Colors.white.withOpacity(0.7),
@@ -1069,7 +1069,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
               
               // Подсказка
               Text(
-                'Вы всегда можете создать видео через кнопку "Создать видеорекламу" в профиле',
+                'Вы всегда можете создать видеорекламу через кнопку "+" в нижней панели навигации',
                 style: TextStyle(
                   fontSize: 12.sp,
                   color: Colors.white.withOpacity(0.5),
