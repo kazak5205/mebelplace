@@ -22,7 +22,7 @@ router.post('/register', authRateLimit, async (req, res) => {
     const { 
       phone, username, password, 
       firstName, lastName, // для клиентов (role='user')
-      companyName, companyAddress, companyDescription, // для мастеров (role='master')
+      companyName, companyAddress, companyDescription, companyType, // для мастеров (role='master')
       role = 'user' 
     } = req.body;
 
@@ -74,11 +74,12 @@ router.post('/register', authRateLimit, async (req, res) => {
     let result;
     if (role === 'master') {
       // Регистрация мастера с данными компании
+      const finalCompanyType = companyType || 'master'; // Default: 'master'
       result = await pool.query(`
-        INSERT INTO users (phone, username, password_hash, company_name, company_address, company_description, role)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, phone, username, company_name, company_address, company_description, role, created_at
-      `, [phone, username, passwordHash, companyName, companyAddress, companyDescription, role]);
+        INSERT INTO users (phone, username, password_hash, company_name, company_address, company_description, company_type, role)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, phone, username, company_name, company_address, company_description, company_type, role, created_at
+      `, [phone, username, passwordHash, companyName, companyAddress, companyDescription, finalCompanyType, role]);
     } else {
       // Регистрация клиента с именем/фамилией
       result = await pool.query(`
@@ -113,6 +114,7 @@ router.post('/register', authRateLimit, async (req, res) => {
       userData.companyName = user.company_name;
       userData.companyAddress = user.company_address;
       userData.companyDescription = user.company_description;
+      userData.companyType = user.company_type; // Тип компании: master/company/shop
     } else {
       userData.firstName = user.first_name;
       userData.lastName = user.last_name;
@@ -196,7 +198,7 @@ router.post('/login', authRateLimit, async (req, res) => {
 
     // Get user from database by phone
     const result = await pool.query(
-      'SELECT id, email, username, password_hash, first_name, last_name, phone, role, is_active, is_verified FROM users WHERE phone = $1',
+      'SELECT id, email, username, password_hash, first_name, last_name, phone, role, company_name, company_address, company_description, company_type, avatar, is_active, is_verified FROM users WHERE phone = $1',
       [phone]
     );
 
@@ -268,8 +270,17 @@ router.post('/login', authRateLimit, async (req, res) => {
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      avatar: user.avatar,
       isVerified: user.is_verified
     };
+
+    // Добавляем данные компании для мастеров
+    if (user.role === 'master') {
+      userData.companyName = user.company_name;
+      userData.companyAddress = user.company_address;
+      userData.companyDescription = user.company_description;
+      userData.companyType = user.company_type || 'master';
+    }
 
     // Для мобильного клиента токены в JSON
     const responseData = { user: userData };
@@ -478,7 +489,7 @@ router.put('/profile', authenticateToken, avatarUpload.single('avatar'), async (
   try {
     // ✅ req.user уже доступен из authenticateToken middleware
     const userId = req.user.id;
-    const { firstName, lastName, phone, bio, companyName, companyAddress, companyDescription } = req.body;
+    const { firstName, lastName, phone, bio, companyName, companyAddress, companyDescription, companyType } = req.body;
       
       // Формируем запрос на обновление только тех полей, которые переданы
       const updates = [];
@@ -514,6 +525,10 @@ router.put('/profile', authenticateToken, avatarUpload.single('avatar'), async (
     if (companyDescription !== undefined) {
       updates.push(`company_description = $${++paramCount}`);
       values.push(companyDescription);
+    }
+    if (companyType !== undefined) {
+      updates.push(`company_type = $${++paramCount}`);
+      values.push(companyType);
     }
     
     // Если загружен файл аватара, добавляем его в обновление

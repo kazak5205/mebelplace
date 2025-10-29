@@ -201,7 +201,8 @@ const ProfilePage: React.FC = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
-        username: formData.username
+        username: formData.username,
+        companyType: formData.companyType // ✅ Добавляем тип компании
       })
       setIsEditing(false)
       alert('Профиль успешно обновлен!')

@@ -487,6 +487,7 @@ router.get('/:id', async (req, res) => {
         company_name,
         company_address,
         company_description,
+        company_type,
         created_at,
         is_active
       FROM users

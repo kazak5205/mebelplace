@@ -38,3 +38,4 @@ export const getCompanyTypeColors = (type: string | undefined) => {
   return COMPANY_TYPE_COLORS[type as CompanyType] || COMPANY_TYPE_COLORS.master
 }
 
+
