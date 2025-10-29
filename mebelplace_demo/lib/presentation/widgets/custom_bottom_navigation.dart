@@ -71,59 +71,65 @@ class CustomBottomNavigation extends StatelessWidget {
         
         // Центральная большая кнопка
         Positioned(
-          bottom: 24.h, // Опущена ниже на 20%
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: () => onTap(2),
-                child: TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 150),
-                  tween: Tween(begin: 1.0, end: currentIndex == 2 ? 1.1 : 1.0),
-                  builder: (context, scale, child) {
-                    return Transform.scale(
-                      scale: scale,
-                      child: Container(
-                        width: 70.w,
-                        height: 70.w,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFFF97316),
-                              Color(0xFFEA580C),
+          bottom: 18.h, // Улучшена позиция для попадания в вырез
+          child: GestureDetector(
+            onTap: () => onTap(2),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: 90.w, // Увеличена зона нажатия
+              height: 90.h, // Увеличена зона нажатия
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 150),
+                    tween: Tween(begin: 1.0, end: currentIndex == 2 ? 1.1 : 1.0),
+                    builder: (context, scale, child) {
+                      return Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          width: 70.w,
+                          height: 70.w,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFFF97316),
+                                Color(0xFFEA580C),
+                              ],
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.5),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
                             ],
                           ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.5),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
+                          child: Icon(
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 36.sp,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 36.sp,
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+                  SizedBox(height: 6.h),
+                  Text(
+                    isMaster ? 'Видео' : 'Заказ',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      color: currentIndex == 2 ? AppColors.primary : Colors.white.withOpacity(0.6),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 6.h),
-              Text(
-                isMaster ? 'Видео' : 'Заказ',
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
-                  color: currentIndex == 2 ? AppColors.primary : Colors.white.withOpacity(0.6),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ],

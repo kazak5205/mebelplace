@@ -80,6 +80,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
         Scaffold(
           backgroundColor: AppColors.dark,
           body: SafeArea(
+            top: true,
+            bottom: false, // Убираем SafeArea снизу чтобы не было полупрозрачного бара
         child: Column(
           children: [
             // Header

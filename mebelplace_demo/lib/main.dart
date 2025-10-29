@@ -22,6 +22,7 @@ import 'presentation/pages/profile/profile_screen.dart';
 import 'presentation/pages/profile/master_channel_page.dart';
 import 'presentation/pages/search/search_results_page.dart';
 import 'presentation/pages/video/create_video_screen.dart';
+import 'presentation/pages/video/video_detail_page.dart';
 import 'presentation/pages/support/support_page.dart';
 import 'presentation/pages/legal/terms_of_service_page.dart';
 import 'presentation/pages/legal/privacy_policy_page.dart';
@@ -108,6 +109,12 @@ class MebelPlaceApp extends ConsumerWidget {
               final args = settings.arguments as Map<String, dynamic>;
               return MaterialPageRoute(
                 builder: (context) => RegistrationFlowPage(role: args['role']),
+              );
+            }
+            if (settings.name == '/video-detail') {
+              final videoId = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => VideoDetailPage(videoId: videoId),
               );
             }
             return null;

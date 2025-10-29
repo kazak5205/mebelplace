@@ -84,8 +84,9 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       _videoController?.dispose();
       
       // Создаем новый контроллер
+      final videoUrl = ImageHelper.getFullImageUrl(widget.videos[_currentIndex].videoUrl);
       _videoController = VideoPlayerController.networkUrl(
-        Uri.parse(widget.videos[_currentIndex].videoUrl),
+        Uri.parse(videoUrl),
         videoPlayerOptions: VideoPlayerOptions(
           mixWithOthers: false, // Не миксовать с другими видео
           allowBackgroundPlayback: false,
@@ -115,8 +116,9 @@ class _TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     final nextIndex = _currentIndex + 1;
     if (nextIndex < widget.videos.length) {
       _preloadController?.dispose();
+      final preloadVideoUrl = ImageHelper.getFullImageUrl(widget.videos[nextIndex].videoUrl);
       _preloadController = VideoPlayerController.networkUrl(
-        Uri.parse(widget.videos[nextIndex].videoUrl),
+        Uri.parse(preloadVideoUrl),
         videoPlayerOptions: VideoPlayerOptions(
           mixWithOthers: false,
           allowBackgroundPlayback: false,
