@@ -115,7 +115,7 @@ const UserOrdersPage: React.FC = () => {
             onClick={() => navigate('/orders/create')}
             className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-lg hover:shadow-orange-500/25 transition-all"
           >
-            <Plus size={20} />
+            <Plus className="w-5 h-5" />
             <span className="font-medium">Создать заявку</span>
           </button>
         </div>
@@ -123,7 +123,7 @@ const UserOrdersPage: React.FC = () => {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Поиск заявок..."
@@ -133,7 +133,7 @@ const UserOrdersPage: React.FC = () => {
             />
           </div>
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -171,7 +171,7 @@ const UserOrdersPage: React.FC = () => {
                 onClick={() => navigate('/orders/create')}
                 className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow-lg hover:shadow-orange-500/25 transition-all"
               >
-                <Plus size={20} className="inline mr-2" />
+                <Plus className="inline mr-2 w-5 h-5" />
                 Создать заявку
               </button>
             )}
@@ -191,13 +191,13 @@ const UserOrdersPage: React.FC = () => {
                     onClick={() => handlePin(order.id)}
                     className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center"
                   >
-                    <Pin size={20} />
+                    <Pin className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleDelete(order.id)}
                     className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center"
                   >
-                    <Trash2 size={20} />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -222,7 +222,7 @@ const UserOrdersPage: React.FC = () => {
                     <h3 className="text-lg font-semibold mb-1">{order.title}</h3>
                     <p className="text-gray-400 text-sm line-clamp-2">{order.description}</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
                     {getStatusText(order.status)}
                   </span>
                 </div>
@@ -230,7 +230,7 @@ const UserOrdersPage: React.FC = () => {
                 <div className="flex items-center space-x-4 text-sm text-gray-400 mb-3">
                   <span className="px-3 py-1 bg-gray-800 rounded-full">{(order as any).category || 'Мебель'}</span>
                   <div className="flex items-center space-x-1">
-                    <Clock size={14} />
+                    <Clock className="w-4 h-4" />
                     <span>{new Date(order.createdAt).toLocaleDateString('ru-RU')}</span>
                   </div>
                 </div>
@@ -251,7 +251,7 @@ const UserOrdersPage: React.FC = () => {
                       }}
                       className="flex items-center space-x-2 px-4 py-2 bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors"
                     >
-                      <Eye size={16} />
+                      <Eye className="w-4 h-4" />
                       <span>Просмотреть отклики</span>
                     </button>
                   )}

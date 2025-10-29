@@ -6,6 +6,9 @@ export interface ApiResponse<T = any> {
   timestamp: string;
 }
 
+// Company Type для мастеров
+export type CompanyType = 'master' | 'company' | 'shop';
+
 // User Types
 export interface User {
   id: string;
@@ -18,6 +21,8 @@ export interface User {
   companyName?: string;
   companyAddress?: string;
   companyDescription?: string;
+  companyType?: CompanyType; // Тип компании: мастер / цех / магазин
+  company_type?: string; // snake_case для API
   avatar?: string;
   role: 'user' | 'master' | 'admin'; // 'user' это обычный клиент
   isOnline?: boolean;

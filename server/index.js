@@ -10,6 +10,9 @@ require('dotenv').config();
 // Redis client для кэширования и real-time данных
 const redisClient = require('./config/redis');
 
+// Video processing queue
+const { videoQueue, getQueueStats, closeQueue } = require('./services/videoQueue');
+
 const authRoutes = require('./routes/auth');
 const videoRoutes = require('./routes/videos');
 const searchRoutes = require('./routes/search');
@@ -187,8 +190,50 @@ initDatabase().then(() => {
   server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📱 Socket.IO ready for real-time communication`);
+    console.log(`🎬 Video processing queue initialized (max 2 concurrent jobs)`);
   });
 }).catch(err => {
   console.error('Failed to start server:', err);
   process.exit(1);
 });
+
+// Graceful shutdown
+const shutdown = async (signal) => {
+  console.log(`\n${signal} received, shutting down gracefully...`);
+  
+  try {
+    // Закрываем сервер (не принимаем новые подключения)
+    server.close(() => {
+      console.log('✅ HTTP server closed');
+    });
+    
+    // Закрываем очередь (дожидаемся текущих задач)
+    await closeQueue();
+    console.log('✅ Video queue closed');
+    
+    // Закрываем Redis
+    await redisClient.disconnect();
+    console.log('✅ Redis disconnected');
+    
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ Error during shutdown:', err);
+    process.exit(1);
+  }
+};
+
+// Обработчики сигналов
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Периодическая очистка старых задач (каждые 6 часов)
+const { cleanOldJobs } = require('./services/videoQueue');
+setInterval(async () => {
+  try {
+    await cleanOldJobs();
+    const stats = await getQueueStats();
+    console.log('[VIDEO QUEUE] Stats:', stats);
+  } catch (error) {
+    console.error('[VIDEO QUEUE] Error in cleanup:', error);
+  }
+}, 6 * 60 * 60 * 1000); // 6 часов

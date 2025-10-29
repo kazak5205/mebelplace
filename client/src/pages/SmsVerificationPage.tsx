@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Phone, ArrowLeft, Building2 } from 'lucide-react'
+import { Phone, ArrowLeft, Building2, Store, Hammer } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { CompanyType } from '../types'
 
 const SmsVerificationPage = () => {
     const [step, setStep] = useState<'sms' | 'company'>('sms')
     const [smsCode, setSmsCode] = useState('')
     const [companyName, setCompanyName] = useState('')
+    const [companyType, setCompanyType] = useState<CompanyType>('master')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [resendLoading, setResendLoading] = useState(false)
@@ -107,7 +109,8 @@ const SmsVerificationPage = () => {
         try {
             await createUser({
                 ...formData,
-                companyName: companyName
+                companyName: companyName,
+                companyType: companyType
             })
         } catch (err: any) {
             setError(err.message || 'Ошибка создания аккаунта')
@@ -134,7 +137,7 @@ const SmsVerificationPage = () => {
     }
     
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4 py-8">
+        <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4 md:px-6 py-8">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -151,10 +154,10 @@ const SmsVerificationPage = () => {
                                 <h1 className="text-2xl font-bold text-white mb-2">
                                     Подтверждение номера
                                 </h1>
-                                <p className="text-gray-400">
+                                <p className="text-sm md:text-base text-gray-400">
                                     Введите код из SMS, отправленного на номер
                                 </p>
-                                <p className="text-white font-medium mt-1">{phone}</p>
+                                <p className="text-sm md:text-base text-white font-medium mt-1">{phone}</p>
                             </div>
                         </div>
 
@@ -182,7 +185,7 @@ const SmsVerificationPage = () => {
                         <button
                             type="submit"
                             disabled={loading || !smsCode}
-                            className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed"
+                            className="w-full py-3 text-base bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Проверка...' : 'Подтвердить'}
                         </button>
@@ -191,7 +194,7 @@ const SmsVerificationPage = () => {
                             type="button"
                             onClick={handleResend}
                             disabled={resendLoading || countdown > 0}
-                            className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-800 disabled:cursor-not-allowed disabled:text-gray-500"
+                            className="w-full py-3 text-base bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-800 disabled:cursor-not-allowed disabled:text-gray-500"
                         >
                             {resendLoading ? 'Отправка...' : countdown > 0 ? `Отправить повторно через ${countdown}с` : 'Отправить код повторно'}
                         </button>
@@ -199,7 +202,7 @@ const SmsVerificationPage = () => {
                         <button
                             type="button"
                             onClick={() => navigate('/register')}
-                            className="w-full py-3 text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-2"
+                            className="w-full py-3 text-base text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-2"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Назад к регистрации
@@ -216,14 +219,14 @@ const SmsVerificationPage = () => {
                                 <h1 className="text-2xl font-bold text-white mb-2">
                                     Название компании
                                 </h1>
-                                <p className="text-gray-400">
+                                <p className="text-sm md:text-base text-gray-400">
                                     Укажите название вашей компании или мастерской
                                 </p>
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-300">
+                            <label className="block text-sm md:text-base font-medium text-gray-300">
                                 Название компании <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
@@ -235,10 +238,101 @@ const SmsVerificationPage = () => {
                                     value={companyName}
                                     onChange={(e) => setCompanyName(e.target.value)}
                                     placeholder="ИП Иванов или ТОО Мебель+"
-                                    className="w-full pl-11 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
+                                    className="w-full pl-11 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-sm md:text-base text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
                                     disabled={loading}
                                     autoFocus
                                 />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm md:text-base font-medium text-gray-300">
+                                Тип вашего бизнеса <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-1 gap-3">
+                                {/* Мастер */}
+                                <button
+                                    type="button"
+                                    onClick={() => setCompanyType('master')}
+                                    className={`p-4 rounded-lg border-2 transition-all ${
+                                        companyType === 'master'
+                                            ? 'bg-yellow-500/20 border-yellow-500 ring-2 ring-yellow-500/50'
+                                            : 'bg-gray-800 border-gray-700 hover:border-yellow-500/50'
+                                    }`}
+                                    disabled={loading}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                            companyType === 'master' ? 'bg-yellow-500/30' : 'bg-gray-700'
+                                        }`}>
+                                            <Hammer className={`w-5 h-5 ${companyType === 'master' ? 'text-yellow-400' : 'text-gray-400'}`} />
+                                        </div>
+                                        <div className="text-left flex-1">
+                                            <div className={`font-semibold ${companyType === 'master' ? 'text-yellow-400' : 'text-white'}`}>
+                                                Мастер
+                                            </div>
+                                            <div className="text-sm text-gray-400">
+                                                Работаю индивидуально
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
+
+                                {/* Мебельная компания */}
+                                <button
+                                    type="button"
+                                    onClick={() => setCompanyType('company')}
+                                    className={`p-4 rounded-lg border-2 transition-all ${
+                                        companyType === 'company'
+                                            ? 'bg-orange-500/20 border-orange-500 ring-2 ring-orange-500/50'
+                                            : 'bg-gray-800 border-gray-700 hover:border-orange-500/50'
+                                    }`}
+                                    disabled={loading}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                            companyType === 'company' ? 'bg-orange-500/30' : 'bg-gray-700'
+                                        }`}>
+                                            <Building2 className={`w-5 h-5 ${companyType === 'company' ? 'text-orange-400' : 'text-gray-400'}`} />
+                                        </div>
+                                        <div className="text-left flex-1">
+                                            <div className={`font-semibold ${companyType === 'company' ? 'text-orange-400' : 'text-white'}`}>
+                                                Мебельная компания
+                                            </div>
+                                            <div className="text-sm text-gray-400">
+                                                Производственный цех
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
+
+                                {/* Мебельный магазин */}
+                                <button
+                                    type="button"
+                                    onClick={() => setCompanyType('shop')}
+                                    className={`p-4 rounded-lg border-2 transition-all ${
+                                        companyType === 'shop'
+                                            ? 'bg-red-500/20 border-red-500 ring-2 ring-red-500/50'
+                                            : 'bg-gray-800 border-gray-700 hover:border-red-500/50'
+                                    }`}
+                                    disabled={loading}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                            companyType === 'shop' ? 'bg-red-500/30' : 'bg-gray-700'
+                                        }`}>
+                                            <Store className={`w-5 h-5 ${companyType === 'shop' ? 'text-red-400' : 'text-gray-400'}`} />
+                                        </div>
+                                        <div className="text-left flex-1">
+                                            <div className={`font-semibold ${companyType === 'shop' ? 'text-red-400' : 'text-white'}`}>
+                                                Мебельный магазин
+                                            </div>
+                                            <div className="text-sm text-gray-400">
+                                                Торговая точка
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
                             </div>
                         </div>
 
@@ -251,7 +345,7 @@ const SmsVerificationPage = () => {
                         <button
                             type="submit"
                             disabled={loading || !companyName.trim()}
-                            className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed"
+                            className="w-full py-3 text-base bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Создание аккаунта...' : 'Завершить регистрацию'}
                         </button>
@@ -260,7 +354,7 @@ const SmsVerificationPage = () => {
                             type="button"
                             onClick={() => setStep('sms')}
                             disabled={loading}
-                            className="w-full py-3 text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-2"
+                            className="w-full py-3 text-base text-gray-400 hover:text-white transition-colors flex items-center justify-center gap-2"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Назад

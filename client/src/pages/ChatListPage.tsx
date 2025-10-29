@@ -151,7 +151,7 @@ const ChatListPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 md:px-0">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -159,8 +159,6 @@ const ChatListPage: React.FC = () => {
       >
         <h1 className="text-3xl font-bold gradient-text text-center">Чаты</h1>
       </motion.div>
-      
-      
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -174,7 +172,7 @@ const ChatListPage: React.FC = () => {
           placeholder="Поиск чатов..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="glass-input w-full pl-12"
+          className="glass-input w-full pl-12 text-sm md:text-base"
         />
       </motion.div>
 
@@ -189,7 +187,7 @@ const ChatListPage: React.FC = () => {
             <h3 className="text-xl font-medium text-white/70 mb-2">
               {searchQuery ? 'Чаты не найдены' : 'Нет чатов'}
             </h3>
-            <p className="text-white/50">
+            <p className="text-sm text-white/50">
               {searchQuery 
                 ? 'Попробуйте изменить поисковый запрос'
                 : 'Начните новый чат с мастером'
@@ -210,7 +208,7 @@ const ChatListPage: React.FC = () => {
                 className="cursor-pointer"
               >
                 <div className="flex items-center space-x-4 p-4">
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -253,11 +251,11 @@ const ChatListPage: React.FC = () => {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-medium text-white truncate">
+                    <div className="flex items-center justify-between mb-1 gap-2">
+                      <h3 className="font-medium text-sm md:text-base text-white truncate">
                         {(getOtherParticipant(chat) as any)?.name || (getOtherParticipant(chat) as any)?.username}
                       </h3>
-                      <span className="text-xs text-white/60">
+                      <span className="text-sm text-white/60 flex-shrink-0">
                         {formatTime(chat.updatedAt)}
                       </span>
                     </div>
@@ -268,7 +266,7 @@ const ChatListPage: React.FC = () => {
                   </div>
 
                   {chat.unreadCount > 0 && (
-                    <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center">
+                    <div className="bg-red-500 text-white text-sm px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0">
                       {chat.unreadCount}
                     </div>
                   )}

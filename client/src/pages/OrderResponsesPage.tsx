@@ -219,7 +219,7 @@ const OrderResponsesPage: React.FC = () => {
                     
                     <div className="text-right">
                       <p className="text-sm text-white/60">Предложено</p>
-                      <p className="text-xs text-white/40">{formatTime(response.createdAt)}</p>
+                      <p className="text-sm text-white/40">{formatTime(response.createdAt)}</p>
                     </div>
                   </div>
 

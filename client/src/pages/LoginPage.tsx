@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4 md:px-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -39,46 +39,52 @@ const LoginPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Phone Number */}
           <div>
-            <label className="block text-white text-sm mb-2">Номер телефона</label>
+            <label className="block text-white text-sm md:text-base mb-2">
+              Номер телефона
+            </label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+7XXXXXXXXXX"
-                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-sm md:text-base text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
                 required
               />
             </div>
-            <p className="text-gray-500 text-xs mt-1">Формат: +7XXXXXXXXXX или 8XXXXXXXXXX</p>
+            <p className="text-gray-500 text-sm mt-1">
+              Формат: +7XXXXXXXXXX или 8XXXXXXXXXX
+            </p>
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-white text-sm mb-2">Пароль</label>
+            <label className="block text-white text-sm md:text-base mb-2">
+              Пароль
+            </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
+                className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-700 rounded-lg text-sm md:text-base text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 p-1"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
           {/* Remember Me & Forgot Password */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -88,7 +94,10 @@ const LoginPage: React.FC = () => {
               />
               <span className="text-white text-sm">Запомнить меня</span>
             </label>
-            <Link to="/forgot-password" className="text-orange-500 hover:text-orange-400 text-sm transition-colors">
+            <Link 
+              to="/forgot-password" 
+              className="text-orange-500 hover:text-orange-400 text-sm transition-colors"
+            >
               Забыли пароль?
             </Link>
           </div>
@@ -104,11 +113,11 @@ const LoginPage: React.FC = () => {
             </motion.div>
           )}
 
-          {/* Submit Button */}
+          {/* Submit Button - минимум 44px высота */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-orange-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-orange-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Вход...' : 'Войти'}
           </button>

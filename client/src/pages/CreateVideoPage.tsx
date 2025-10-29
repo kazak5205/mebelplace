@@ -222,7 +222,7 @@ const CreateVideoPage: React.FC = () => {
 
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-blue-300 mb-2">💡 Рекомендации</h4>
-                <ul className="text-xs text-white/70 space-y-1">
+                <ul className="text-sm text-white/70 space-y-1">
                   <li>• Формат: MP4, MOV, AVI, WebM</li>
                   <li>• Максимальный размер: 200 МБ</li>
                   <li>• Рекомендуемая длина: 30-60 секунд</li>
@@ -257,7 +257,7 @@ const CreateVideoPage: React.FC = () => {
                   className="glass-input w-full"
                   placeholder="Например: Кухонный гарнитур из массива дуба"
                 />
-                <p className="text-xs text-white/50 mt-1">
+                <p className="text-sm text-white/50 mt-1">
                   Используйте краткое и понятное название
                 </p>
               </div>
@@ -274,7 +274,7 @@ const CreateVideoPage: React.FC = () => {
                   className="glass-input w-full resize-none"
                   placeholder="Расскажите о вашей работе: какие материалы использовали, сколько времени заняло изготовление, какие особенности..."
                 />
-                <p className="text-xs text-white/50 mt-1">
+                <p className="text-sm text-white/50 mt-1">
                   Подробное описание поможет клиентам лучше понять вашу работу
                 </p>
               </div>
@@ -315,7 +315,7 @@ const CreateVideoPage: React.FC = () => {
                   min="0"
                   step="1"
                 />
-                <p className="text-xs text-white/50 mt-1">
+                <p className="text-sm text-white/50 mt-1">
                   Укажите стоимость изделия (не обязательно)
                 </p>
               </div>
@@ -332,7 +332,7 @@ const CreateVideoPage: React.FC = () => {
                   className="glass-input w-full"
                   placeholder="мебель, кухня, дуб, на заказ, ручная работа"
                 />
-                <p className="text-xs text-white/50 mt-1">
+                <p className="text-sm text-white/50 mt-1">
                   Теги помогут клиентам найти ваше видео
                 </p>
               </div>

@@ -8,6 +8,7 @@ import { userService } from '../services/userService'
 import { apiService } from '../services/api'
 import { useSocket } from '../contexts/SocketContext'
 import { useAuth } from '../contexts/AuthContext'
+import { getCompanyTypeLabel, getCompanyTypeColors } from '../utils/companyTypes'
 
 type TabType = 'videos' | 'likes' | 'saved'
 
@@ -288,14 +289,28 @@ const MasterChannelPage: React.FC = () => {
 
             {/* Profile Stats */}
             <div className="flex-1">
-              <motion.h2
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.7 }}
-                className="text-xl font-bold text-white mb-2"
-              >
-                {displayName}
-              </motion.h2>
+              <div className="flex items-center gap-2 mb-2">
+                <motion.h2
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="text-xl font-bold text-white"
+                >
+                  {displayName}
+                </motion.h2>
+                
+                {/* Company Type Badge */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.75 }}
+                  className={`px-2 py-0.5 rounded-md border ${getCompanyTypeColors((master as any).companyType || (master as any).company_type).bg} ${getCompanyTypeColors((master as any).companyType || (master as any).company_type).border}`}
+                >
+                  <span className={`text-xs font-semibold ${getCompanyTypeColors((master as any).companyType || (master as any).company_type).text}`}>
+                    {getCompanyTypeLabel((master as any).companyType || (master as any).company_type)}
+                  </span>
+                </motion.div>
+              </div>
               
               <motion.p
                 initial={{ opacity: 0, x: 20 }}
@@ -317,25 +332,25 @@ const MasterChannelPage: React.FC = () => {
                   <div className="text-lg font-bold text-white">
                     {formatCount((master as any).followingCount || (master as any).following_count || 0)}
                   </div>
-                  <div className="text-xs text-white/60">Подписки</div>
+                  <div className="text-sm text-white/60">Подписки</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-white">
                     {formatCount(subscribersCount)}
                   </div>
-                  <div className="text-xs text-white/60">Подписчики</div>
+                  <div className="text-sm text-white/60">Подписчики</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-white">
                     {formatCount(videos.reduce((sum, v) => sum + Number(v.views || v.viewsCount || 0), 0))}
                   </div>
-                  <div className="text-xs text-white/60">Просмотры</div>
+                  <div className="text-sm text-white/60">Просмотры</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-white">
                     {formatCount(videos.reduce((sum, v) => sum + Number(v.likeCount || v.likesCount || (v as any).likes || (v as any).like_count || 0), 0))}
                   </div>
-                  <div className="text-xs text-white/60">Лайки</div>
+                  <div className="text-sm text-white/60">Лайки</div>
                 </div>
               </motion.div>
 
@@ -552,7 +567,7 @@ const MasterChannelPage: React.FC = () => {
                       {/* Overlay with stats */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300">
                         <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="flex items-center justify-between text-white text-xs">
+                          <div className="flex items-center justify-between text-white text-sm">
                             <div className="flex items-center gap-1">
                               <Eye className="w-3 h-3" />
                               <span>{formatCount(video.views || (video as any).views_count || video.viewsCount || 0)}</span>

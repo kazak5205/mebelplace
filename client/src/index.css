@@ -36,6 +36,15 @@
   html {
     scroll-behavior: smooth;
   }
+  
+  /* Отключаем анимации на мобилке для лучшей производительности */
+  @media (max-width: 768px) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {

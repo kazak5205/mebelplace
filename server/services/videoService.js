@@ -206,62 +206,160 @@ class VideoService {
     }
   }
 
-  // Optimize video for fast start playback (improved to prevent over-compression)
+  // 🎯 Compress and optimize video for mobile devices (H.264, 2-4 Mbps, max 1080p)
+  async compressAndOptimizeVideo(videoPath) {
+    try {
+      console.log(`[COMPRESS] Starting compression for: ${videoPath}`);
+      
+      // Get video metadata
+      const metadata = await ffprobe(videoPath);
+      const videoStream = metadata.streams.find(s => s.codec_type === 'video');
+      
+      if (!videoStream) {
+        throw new Error('No video stream found');
+      }
+      
+      const width = videoStream.width;
+      const height = videoStream.height;
+      const currentBitrate = metadata.format.bit_rate;
+      
+      console.log(`[COMPRESS] Original: ${width}x${height}, bitrate: ${Math.round(currentBitrate / 1000)}kbps`);
+      
+      // Determine if compression is needed
+      const maxDimension = Math.max(width, height);
+      const targetBitrate = '3000k'; // 3 Mbps - оптимально для мобильных
+      const needsCompression = maxDimension > 1080 || currentBitrate > 4000000; // 4 Mbps
+      
+      if (!needsCompression && videoStream.codec_name === 'h264') {
+        console.log(`[COMPRESS] Video already optimized, applying faststart only`);
+        return this.optimizeVideoForFastStart(videoPath);
+      }
+      
+      const tempPath = videoPath + '.compressed';
+      
+      // Calculate scale filter for max 1080p
+      let scaleFilter = '';
+      if (maxDimension > 1080) {
+        if (width > height) {
+          scaleFilter = 'scale=1920:1080:force_original_aspect_ratio=decrease';
+        } else {
+          scaleFilter = 'scale=1080:1920:force_original_aspect_ratio=decrease';
+        }
+      }
+      
+      return new Promise((resolve, reject) => {
+        const command = ffmpeg(videoPath)
+          // Video codec: H.264 with hardware acceleration if available
+          .videoCodec('libx264')
+          .addOption('-preset', 'medium') // Баланс скорости и качества
+          .addOption('-crf', '23') // Constant Rate Factor (18-28, 23 = хорошее качество)
+          .addOption('-maxrate', targetBitrate)
+          .addOption('-bufsize', '6000k') // 2x target bitrate
+          .addOption('-b:v', targetBitrate)
+          
+          // Audio codec: AAC 128kbps
+          .audioCodec('aac')
+          .audioBitrate('128k')
+          .audioChannels(2)
+          .audioFrequency(44100)
+          
+          // Fast start for progressive playback
+          .addOption('-movflags', '+faststart')
+          
+          // Pixel format for compatibility
+          .addOption('-pix_fmt', 'yuv420p')
+          
+          // Encoding profile for mobile compatibility
+          .addOption('-profile:v', 'high')
+          .addOption('-level', '4.1')
+          
+          // Optimization flags
+          .addOption('-avoid_negative_ts', 'make_zero')
+          .addOption('-fflags', '+genpts')
+          .addOption('-max_muxing_queue_size', '2048');
+        
+        // Apply scale filter if needed
+        if (scaleFilter) {
+          command.videoFilters(scaleFilter);
+          console.log(`[COMPRESS] Applying scale: ${scaleFilter}`);
+        }
+        
+        command
+          .output(tempPath)
+          .on('start', (commandLine) => {
+            console.log(`[COMPRESS] Command: ${commandLine}`);
+          })
+          .on('progress', (progress) => {
+            if (progress.percent) {
+              console.log(`[COMPRESS] Progress: ${Math.round(progress.percent)}%`);
+            }
+          })
+          .on('end', async () => {
+            try {
+              // Verify compressed file was created
+              const stats = await fs.stat(tempPath);
+              const originalStats = await fs.stat(videoPath);
+              
+              const compressionRatio = ((1 - stats.size / originalStats.size) * 100).toFixed(1);
+              console.log(`[COMPRESS] Compressed: ${originalStats.size} -> ${stats.size} bytes (${compressionRatio}% reduction)`);
+              
+              // Replace original with compressed version
+              await fs.unlink(videoPath);
+              await fs.rename(tempPath, videoPath);
+              
+              console.log(`✅ Video compressed and optimized: ${videoPath}`);
+              resolve();
+            } catch (err) {
+              console.error('[COMPRESS] Error replacing file:', err);
+              // Clean up temp file
+              fs.unlink(tempPath).catch(() => {});
+              reject(err);
+            }
+          })
+          .on('error', (err) => {
+            console.error('[COMPRESS] Error:', err);
+            // Clean up temp file
+            fs.unlink(tempPath).catch(() => {});
+            reject(err);
+          })
+          .run();
+      });
+    } catch (error) {
+      console.error('Error in compressAndOptimizeVideo:', error);
+      throw error;
+    }
+  }
+
+  // Optimize video for fast start playback (faststart only, no re-encoding)
   async optimizeVideoForFastStart(videoPath) {
     try {
-      // First, check if video is already optimized
-      const metadata = await ffprobe(videoPath);
-      if (metadata.format && metadata.format.tags && metadata.format.tags.faststart) {
-        console.log(`✅ Video already optimized: ${videoPath}`);
-        return;
-      }
-
-      // Check if video needs optimization by analyzing its structure
-      const needsOptimization = await this.checkVideoOptimizationNeeded(videoPath);
-      if (!needsOptimization) {
-        console.log(`✅ Video already has good structure: ${videoPath}`);
-        return;
-      }
-
       const tempPath = videoPath + '.faststart';
       
       return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
           .addOption('-movflags', '+faststart')
-          .addOption('-c', 'copy') // Copy without re-encoding to prevent quality loss
-          .addOption('-avoid_negative_ts', 'make_zero') // Fix timestamp issues
-          .addOption('-fflags', '+genpts') // Generate presentation timestamps
-          .addOption('-max_muxing_queue_size', '1024') // Prevent buffer issues
+          .addOption('-c', 'copy') // Copy without re-encoding
+          .addOption('-avoid_negative_ts', 'make_zero')
+          .addOption('-fflags', '+genpts')
+          .addOption('-max_muxing_queue_size', '1024')
           .output(tempPath)
           .on('start', (commandLine) => {
-            console.log(`[OPTIMIZE] Starting optimization: ${commandLine}`);
+            console.log(`[FASTSTART] ${commandLine}`);
           })
-          .on('progress', (progress) => {
-            if (progress.percent) {
-              console.log(`[OPTIMIZE] Progress: ${Math.round(progress.percent)}%`);
+          .on('end', async () => {
+            try {
+              await fs.unlink(videoPath);
+              await fs.rename(tempPath, videoPath);
+              console.log(`✅ Faststart applied: ${videoPath}`);
+              resolve();
+            } catch (err) {
+              console.error('[FASTSTART] Error:', err);
+              fs.unlink(tempPath).catch(() => {});
+              reject(err);
             }
           })
-          .on('end', () => {
-            // Verify the optimized file was created successfully
-            fs.access(tempPath)
-              .then(() => {
-                // Replace original with optimized version
-                return fs.rename(tempPath, videoPath);
-              })
-              .then(() => {
-                console.log(`✅ Video optimized for fast start: ${videoPath}`);
-                resolve();
-              })
-              .catch((err) => {
-                console.error('Error replacing video:', err);
-                // Clean up temp file if it exists
-                fs.unlink(tempPath).catch(() => {});
-                reject(err);
-              });
-          })
           .on('error', (err) => {
-            console.error('Error optimizing video:', err);
-            // Clean up temp file if it exists
+            console.error('[FASTSTART] Error:', err);
             fs.unlink(tempPath).catch(() => {});
             reject(err);
           })

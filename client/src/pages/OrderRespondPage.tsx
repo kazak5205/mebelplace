@@ -202,7 +202,7 @@ const OrderRespondPage: React.FC = () => {
                   className="w-full glass-input min-h-[120px] resize-none"
                   required
                 />
-                <p className="text-xs text-white/50 mt-1">
+                <p className="text-sm text-white/50 mt-1">
                   Чем подробнее опишете ваше предложение, тем больше шансов, что клиент выберет именно вас
                 </p>
               </div>

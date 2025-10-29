@@ -103,7 +103,7 @@ const OrderDetailPage: React.FC = () => {
           </motion.button>
           <div>
             <h1 className="text-3xl font-bold gradient-text">Детали заявки</h1>
-            <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mt-2 ${getStatusColor(order.status)}`}>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusColor(order.status)}`}>
               {getStatusText(order.status)}
             </span>
           </div>

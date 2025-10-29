@@ -57,7 +57,7 @@ const ForgotPasswordPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-purple-950/20 to-gray-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-purple-950/20 to-gray-950 px-4 md:px-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,7 +67,7 @@ const ForgotPasswordPage: React.FC = () => {
           {/* Header with Icon */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full mb-4">
-              <Lock className="text-white" size={32} />
+              <Lock className="text-white w-7 h-7" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Восстановление пароля</h2>
             <p className="text-gray-400 text-sm">Введите номер телефона для получения SMS кода</p>
@@ -77,19 +77,19 @@ const ForgotPasswordPage: React.FC = () => {
             <form onSubmit={handleSendCode} className="space-y-6">
               {/* Phone Number */}
               <div>
-                <label className="block text-white text-sm mb-2">Номер телефона</label>
+                <label className="block text-white text-sm md:text-base mb-2">Номер телефона</label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+7XXXXXXXXXX"
-                    className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
+                    className="w-full pl-10 pr-4 py-3 text-sm md:text-base bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
                     required
                   />
                 </div>
-                <p className="text-gray-500 text-xs mt-1">Формат: +7XXXXXXXXXX или 8XXXXXXXXXX</p>
+                <p className="text-gray-500 text-sm mt-1">Формат: +7XXXXXXXXXX или 8XXXXXXXXXX</p>
               </div>
 
               {/* Error Message */}
@@ -107,7 +107,7 @@ const ForgotPasswordPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-orange-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-orange-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Отправка...' : 'Отправить SMS код'}
               </button>
@@ -116,9 +116,9 @@ const ForgotPasswordPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-all border border-gray-700"
+                className="w-full py-3 text-base bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-all border border-gray-700"
               >
-                <ArrowLeft className="inline mr-2" size={16} />
+                <ArrowLeft className="inline mr-2 w-4 h-4" />
                 Вернуться к входу
               </button>
             </form>
@@ -131,7 +131,7 @@ const ForgotPasswordPage: React.FC = () => {
 
               {/* SMS Code */}
               <div>
-                <label className="block text-white text-sm mb-2">SMS код</label>
+                <label className="block text-white text-sm md:text-base mb-2">SMS код</label>
                 <input
                   type="text"
                   value={code}
@@ -145,15 +145,15 @@ const ForgotPasswordPage: React.FC = () => {
 
               {/* New Password */}
               <div>
-                <label className="block text-white text-sm mb-2">Новый пароль</label>
+                <label className="block text-white text-sm md:text-base mb-2">Новый пароль</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Минимум 6 символов"
-                    className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
+                    className="w-full pl-10 pr-4 py-3 text-sm md:text-base bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
                     required
                     minLength={6}
                   />
@@ -162,15 +162,15 @@ const ForgotPasswordPage: React.FC = () => {
 
               {/* Confirm Password */}
               <div>
-                <label className="block text-white text-sm mb-2">Подтвердите пароль</label>
+                <label className="block text-white text-sm md:text-base mb-2">Подтвердите пароль</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Повторите пароль"
-                    className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
+                    className="w-full pl-10 pr-4 py-3 text-sm md:text-base bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
                     required
                     minLength={6}
                   />
@@ -192,7 +192,7 @@ const ForgotPasswordPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-orange-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-orange-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Сброс пароля...' : 'Сбросить пароль'}
               </button>
@@ -201,9 +201,9 @@ const ForgotPasswordPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStep('phone')}
-                className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-all border border-gray-700"
+                className="w-full py-3 text-base bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-all border border-gray-700"
               >
-                <ArrowLeft className="inline mr-2" size={16} />
+                <ArrowLeft className="inline mr-2 w-4 h-4" />
                 Назад
               </button>
             </form>

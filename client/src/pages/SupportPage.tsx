@@ -354,7 +354,7 @@ const SupportPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-white">{ticket.subject}</h3>
                   <div className="flex items-center space-x-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(ticket.priority)} bg-white/10`}>
+                    <span className={`text-sm px-2 py-1 rounded-full ${getPriorityColor(ticket.priority)} bg-white/10`}>
                       {ticket.priority}
                     </span>
                     <div className={`flex items-center space-x-1 ${getStatusColor(ticket.status)}`}>

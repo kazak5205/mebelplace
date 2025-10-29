@@ -20,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext'
 import OrderButton from './OrderButton'
 import Header from './Header'
 import BottomNavigation from './BottomNavigation'
+import { getCompanyTypeLabel, getCompanyTypeColors } from '../utils/companyTypes'
 
 interface VideoPlayerProps {
   videos: Video[]
@@ -493,7 +494,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <>
       <Header />
-      <div ref={containerRef} className="fixed inset-0 bg-black z-40 overflow-hidden pt-4 pb-24">
+      <div ref={containerRef} className="fixed inset-0 bg-black z-40 overflow-hidden pt-4 pb-20">
         {/* Close Button - только если задан onClose */}
         {onClose && (
           <motion.button
@@ -511,7 +512,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute top-20 left-4 right-20 z-50"
+          className="absolute top-20 left-0 md:left-4 right-20 z-50"
         >
           <div className="relative w-full max-w-[350px]">
             <motion.input
@@ -582,8 +583,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
 
           {/* Video Info - Bottom Left - INSIDE video container */}
-          <div className="absolute bottom-32 left-4 right-20 z-40 max-w-[240px] sm:max-w-xs">
-            <div className="space-y-2">
+          <div className="absolute bottom-28 left-4 right-20 z-40 max-w-[240px] sm:max-w-xs">
+            <div className="space-y-3">
               {/* Title - Always Visible */}
               {currentVideo.title && (
                 <h3 className="text-white font-bold text-lg drop-shadow-lg">
@@ -592,17 +593,30 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
               
               {/* Author and Time */}
-              <button
-                onClick={() => {
-                  const authorId = currentVideo.authorId || currentVideo.author_id || currentVideo.masterId || currentVideo.master?.id
-                  if (authorId) {
-                    window.location.href = `/profile/${authorId}`
-                  }
-                }}
-                className="text-white font-semibold text-sm hover:text-blue-300 transition-colors drop-shadow-lg"
-              >
-                {currentVideo.companyName || currentVideo.company_name || currentVideo.username || currentVideo.master?.name || 'Автор'} • {formatTimeAgo(currentVideo.createdAt)}
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => {
+                    const authorId = currentVideo.authorId || currentVideo.author_id || currentVideo.masterId || currentVideo.master?.id
+                    if (authorId) {
+                      window.location.href = `/profile/${authorId}`
+                    }
+                  }}
+                  className="text-white font-semibold text-sm hover:text-blue-300 transition-colors drop-shadow-lg"
+                >
+                  {currentVideo.companyName || currentVideo.company_name || currentVideo.username || currentVideo.master?.name || 'Автор'}
+                </button>
+                
+                {/* Company Type Badge (только для мастеров) */}
+                {currentVideo.role === 'master' && (
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${getCompanyTypeColors((currentVideo as any).companyType || (currentVideo as any).company_type).bg} ${getCompanyTypeColors((currentVideo as any).companyType || (currentVideo as any).company_type).border} ${getCompanyTypeColors((currentVideo as any).companyType || (currentVideo as any).company_type).text} drop-shadow-lg`}>
+                    {getCompanyTypeLabel((currentVideo as any).companyType || (currentVideo as any).company_type)}
+                  </span>
+                )}
+                
+                <span className="text-white/70 text-sm drop-shadow-lg">
+                  • {formatTimeAgo(currentVideo.createdAt)}
+                </span>
+              </div>
               
               {/* Description */}
               {currentVideo.description && (
@@ -615,13 +629,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Order Button - Bottom Center - INSIDE video container, ABOVE navigation */}
           {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
-            <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-xs px-4">
+            <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-xs px-4">
               <OrderButton video={currentVideo} className="w-full" />
             </div>
           )}
 
           {/* Action Buttons - Right Side - Adapted for vertical format */}
-          <div className="absolute right-4 bottom-28 z-30 flex flex-col space-y-4">
+          <div className="absolute right-4 bottom-6 md:bottom-24 z-30 flex flex-col space-y-6">
             {/* Author Avatar - Above Like */}
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -734,7 +748,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
 
           {/* Navigation Arrows - Left Side - Moved left and up 30px */}
-          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 -translate-y-[30px] z-30 flex flex-col space-y-4">
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 -translate-y-[30px] z-30 flex flex-col space-y-6">
             {/* Previous Video Arrow */}
             <motion.button
               whileHover={currentIndex !== 0 ? { scale: 1.15, y: -2 } : {}}

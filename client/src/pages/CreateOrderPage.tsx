@@ -94,19 +94,19 @@ const CreateOrderPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-56">
+    <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-0 pb-32 sm:pb-56">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center space-x-4"
+        className="flex items-center space-x-3 sm:space-x-4"
       >
         <button
           onClick={() => navigate('/orders')}
           className="glass-button p-2"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
-        <h1 className="text-3xl font-bold gradient-text">Создать заявку</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold gradient-text">Создать заявку</h1>
       </motion.div>
 
       {/* Info Card */}
@@ -115,16 +115,16 @@ const CreateOrderPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <GlassCard className="p-6">
-          <div className="flex items-start space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FileText className="w-6 h-6 text-white" />
+        <GlassCard className="p-4 sm:p-6">
+          <div className="flex items-start space-x-3 sm:space-x-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-white mb-2">
+            <div className="flex-1">
+              <h2 className="text-base sm:text-lg font-bold text-white mb-2">
                 Как создать заявку
               </h2>
-              <ol className="text-white/70 text-sm leading-relaxed space-y-2 list-decimal list-inside">
+              <ol className="text-white/70 text-xs sm:text-sm leading-relaxed space-y-1.5 sm:space-y-2 list-decimal list-inside">
                 <li>Прикрепите фото мебели (из интернета или своё).</li>
                 <li>В описании укажите размеры, цвет и другие параметры.</li>
                 <li>Отправьте заявку — её увидят все мебельные компании.</li>
@@ -141,14 +141,14 @@ const CreateOrderPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         onSubmit={handleSubmit}
-        className="space-y-6"
+        className="space-y-4 sm:space-y-6"
       >
-        <GlassCard className="p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Основная информация</h2>
+        <GlassCard className="p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Основная информация</h2>
           
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-white/70 mb-2">
                 Название заявки *
               </label>
               <input
@@ -157,13 +157,13 @@ const CreateOrderPage: React.FC = () => {
                 value={formData.title}
                 onChange={handleInputChange}
                 required
-                className="glass-input w-full"
+                className="glass-input w-full text-sm sm:text-base"
                 placeholder="Например: Изготовление кухонного гарнитура"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-white/70 mb-2">
                 Описание *
               </label>
               <textarea
@@ -172,7 +172,7 @@ const CreateOrderPage: React.FC = () => {
                 onChange={handleInputChange}
                 required
                 rows={4}
-                className="glass-input w-full resize-none"
+                className="glass-input w-full resize-none text-sm sm:text-base"
                 placeholder="Подробно опишите, что вам нужно..."
               />
             </div>
@@ -180,23 +180,23 @@ const CreateOrderPage: React.FC = () => {
           </div>
         </GlassCard>
 
-        <GlassCard className="p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Местоположение</h2>
+        <GlassCard className="p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Местоположение</h2>
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-white/70 mb-2">
                   Регион *
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                  <MapPin className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
                   <select
                     name="region"
                     value={formData.region}
                     onChange={handleInputChange}
                     required
-                    className="glass-input w-full pl-12"
+                    className="glass-input w-full pl-10 sm:pl-12 text-sm sm:text-base"
                   >
                     <option value="">Выберите регион</option>
                     {regions.map(r => (
@@ -206,18 +206,18 @@ const CreateOrderPage: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-white/70 mb-2">
                   Город *
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                  <MapPin className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
                   <input
                     type="text"
                     name="location"
                     value={formData.location}
                     onChange={handleInputChange}
                     required
-                    className="glass-input w-full pl-12"
+                    className="glass-input w-full pl-10 sm:pl-12 text-sm sm:text-base"
                     placeholder="Алматы"
                   />
                 </div>
@@ -226,13 +226,13 @@ const CreateOrderPage: React.FC = () => {
           </div>
         </GlassCard>
 
-        <GlassCard className="p-6 mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">Фотографии</h2>
+        <GlassCard className="p-4 sm:p-6 mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Фотографии</h2>
           
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center">
-              <Upload className="w-12 h-12 text-white/60 mx-auto mb-4" />
-              <p className="text-white/70 mb-4">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="border-2 border-dashed border-white/20 rounded-lg p-4 sm:p-6 text-center">
+              <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-white/60 mx-auto mb-3 sm:mb-4" />
+              <p className="text-white/70 mb-3 sm:mb-4 text-xs sm:text-base">
                 Загрузите фотографии для лучшего понимания задачи
               </p>
               <input
@@ -246,14 +246,14 @@ const CreateOrderPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleLabelClick}
-                className="glass-button cursor-pointer relative z-[60]"
+                className="glass-button cursor-pointer relative z-[60] text-sm sm:text-base"
               >
                 Выбрать файлы
               </button>
             </div>
 
             {formData.images.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {formData.images.map((file, index) => (
                   <div key={index} className="aspect-square bg-white/10 rounded-lg overflow-hidden">
                     <img
@@ -268,11 +268,11 @@ const CreateOrderPage: React.FC = () => {
           </div>
         </GlassCard>
 
-        <div className="flex justify-end space-x-4 pt-6">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 sm:pt-6">
           <button
             type="button"
             onClick={() => navigate('/orders')}
-            className="glass-button"
+            className="glass-button text-sm sm:text-base w-full sm:w-auto"
           >
             Отмена
           </button>
@@ -282,7 +282,7 @@ const CreateOrderPage: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             disabled={loading}
-            className="glass-button bg-gradient-to-r from-orange-500 to-orange-600 disabled:opacity-50"
+            className="glass-button bg-gradient-to-r from-orange-500 to-orange-600 disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto"
           >
             {loading ? 'Создание...' : 'Создать заявку'}
           </motion.button>

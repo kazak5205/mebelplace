@@ -448,7 +448,7 @@ const ChatPage: React.FC = () => {
                       </div>
                       <div className="mt-2">
                         <p className="text-sm font-medium truncate">{message.metadata.videoTitle}</p>
-                        <p className="text-xs opacity-70">от {message.metadata.masterName}</p>
+                        <p className="text-sm opacity-70">от {message.metadata.masterName}</p>
                       </div>
                     </div>
                   )}
@@ -486,7 +486,7 @@ const ChatPage: React.FC = () => {
                         </svg>
                         <div className="flex-1">
                           <p className="text-sm font-medium">{message.file_name}</p>
-                          <p className="text-xs text-white/60">
+                          <p className="text-sm text-white/60">
                             {message.file_size ? `${(message.file_size / 1024 / 1024).toFixed(1)} MB` : ''}
                           </p>
                         </div>
@@ -505,7 +505,7 @@ const ChatPage: React.FC = () => {
                   {(message.type === 'text' || (message.content && !message.content.match(/^\[(Фото|Видео|Файл)/))) && (
                     <p className="text-sm">{message.content}</p>
                   )}
-                  <p className={`text-xs mt-1 ${
+                  <p className={`text-sm mt-1 ${
                     message.senderId === 'current-user' 
                       ? 'text-blue-100' 
                       : 'text-white/60'

@@ -259,7 +259,7 @@ const SupportTicketsPage: React.FC = () => {
                     <p className="text-white/70 text-sm mb-2 line-clamp-2">
                       {ticket.message}
                     </p>
-                    <div className="flex items-center space-x-4 text-xs text-white/50">
+                    <div className="flex items-center space-x-4 text-sm text-white/50">
                       <span>{getStatusText(ticket.status)}</span>
                       <span>{formatDate(ticket.created_at)}</span>
                     </div>
@@ -403,7 +403,7 @@ const SupportTicketsPage: React.FC = () => {
                           <p className="font-medium text-white text-sm">
                             {response.first_name} {response.last_name}
                           </p>
-                          <p className="text-xs text-white/50">
+                          <p className="text-sm text-white/50">
                             {formatDate(response.created_at)}
                           </p>
                         </div>

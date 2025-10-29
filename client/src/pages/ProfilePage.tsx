@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, Camera, X, Heart, Grid, Bookmark, Settings, LogOut, Play, Eye, MessageCircle, MoreHorizontal, Check, Globe, Trash2, HelpCircle, Edit } from 'lucide-react'
+import { User, Camera, X, Heart, Grid, Bookmark, Settings, LogOut, Play, Eye, MessageCircle, MoreHorizontal, Check, Globe, Trash2, HelpCircle, Edit, Building2, Hammer, Store } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { userService } from '../services/userService'
 import { videoService } from '../services/videoService'
 import { apiService } from '../services/api'
-import { Video } from '../types'
+import { Video, CompanyType } from '../types'
 
 type TabType = 'videos' | 'likes' | 'bookmarked' | 'private'
 
@@ -31,7 +31,8 @@ const ProfilePage: React.FC = () => {
     firstName: '',
     lastName: '',
     phone: '',
-    username: ''
+    username: '',
+    companyType: 'master' as CompanyType
   })
 
   useEffect(() => {
@@ -40,7 +41,8 @@ const ProfilePage: React.FC = () => {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         phone: user.phone || '',
-        username: user.username || ''
+        username: user.username || '',
+        companyType: (user.companyType || user.company_type || 'master') as CompanyType
       })
       
       loadFullUserData()
@@ -221,7 +223,8 @@ const ProfilePage: React.FC = () => {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         phone: user.phone || '',
-        username: user.username || ''
+        username: user.username || '',
+        companyType: user.companyType || 'master' as CompanyType
       })
     }
     setIsEditing(false)
@@ -427,17 +430,17 @@ const ProfilePage: React.FC = () => {
                 >
                   <div className="text-center">
                     <div className="text-lg font-bold text-white">{formatCount(fullUserData?.followingCount || 0)}</div>
-                    <div className="text-xs text-white/60">Подписки</div>
+                    <div className="text-sm text-white/60">Подписки</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-white">{formatCount(fullUserData?.subscribersCount || 0)}</div>
-                    <div className="text-xs text-white/60">Подписчики</div>
+                    <div className="text-sm text-white/60">Подписчики</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-white">
                       {formatCount(masterVideos.reduce((sum, v) => sum + Number(v.likesCount || v.likes || 0), 0))}
                     </div>
-                    <div className="text-xs text-white/60">Лайки</div>
+                    <div className="text-sm text-white/60">Лайки</div>
                   </div>
                 </motion.div>
               )}
@@ -465,7 +468,7 @@ const ProfilePage: React.FC = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsEditing(true)}
-                  className="flex-1 bg-white text-black font-semibold py-2 md:py-2.5 px-3 md:px-4 rounded-full text-xs md:text-sm"
+                  className="flex-1 bg-white text-black font-semibold py-2 md:py-2.5 px-3 md:px-4 rounded-full text-sm md:text-base"
                 >
                   Редактировать профиль
                 </motion.button>
@@ -606,7 +609,7 @@ const ProfilePage: React.FC = () => {
                         className="flex-1 py-2 px-4 rounded-lg font-medium bg-white/5 text-white/30 cursor-not-allowed relative"
                       >
                         Қазақша
-                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-sm font-bold px-1.5 py-0.5 rounded">
                           Скоро
                         </span>
                       </motion.button>
@@ -708,24 +711,87 @@ const ProfilePage: React.FC = () => {
                         placeholder="Введите имя пользователя"
                       />
                     </div>
-                    <p className="text-xs text-white/50 mt-1">Уникальное имя пользователя (латиница, цифры, _)</p>
+                    <p className="text-sm text-white/50 mt-1">Уникальное имя пользователя (латиница, цифры, _)</p>
                   </div>
 
                   {user.role === 'master' ? (
-                    <div>
-                      <label className="block text-sm font-medium text-white/70 mb-2">
-                        Название мебельной компании
-                      </label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-pink-500"
-                        placeholder="Например: Алматы Диван Люкс"
-                      />
-                      <p className="text-xs text-white/50 mt-1">Укажите название вашей мебельной мастерской или компании</p>
-                    </div>
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-white/70 mb-2">
+                          Название мебельной компании
+                        </label>
+                        <input
+                          type="text"
+                          name="firstName"
+                          value={formData.firstName}
+                          onChange={handleInputChange}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-pink-500"
+                          placeholder="Например: Алматы Диван Люкс"
+                        />
+                        <p className="text-sm text-white/50 mt-1">Укажите название вашей мебельной мастерской или компании</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-white/70 mb-2">
+                          Тип вашего бизнеса
+                        </label>
+                        <div className="grid grid-cols-1 gap-2">
+                          {/* Мастер */}
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, companyType: 'master' })}
+                            className={`p-3 rounded-xl border-2 transition-all text-left ${
+                              formData.companyType === 'master'
+                                ? 'bg-yellow-500/20 border-yellow-500'
+                                : 'bg-white/5 border-white/10 hover:border-yellow-500/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Hammer className={`w-5 h-5 ${formData.companyType === 'master' ? 'text-yellow-400' : 'text-white/60'}`} />
+                              <span className={`font-medium ${formData.companyType === 'master' ? 'text-yellow-400' : 'text-white'}`}>
+                                Мастер
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* Мебельная компания */}
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, companyType: 'company' })}
+                            className={`p-3 rounded-xl border-2 transition-all text-left ${
+                              formData.companyType === 'company'
+                                ? 'bg-orange-500/20 border-orange-500'
+                                : 'bg-white/5 border-white/10 hover:border-orange-500/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Building2 className={`w-5 h-5 ${formData.companyType === 'company' ? 'text-orange-400' : 'text-white/60'}`} />
+                              <span className={`font-medium ${formData.companyType === 'company' ? 'text-orange-400' : 'text-white'}`}>
+                                Мебельная компания
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* Мебельный магазин */}
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, companyType: 'shop' })}
+                            className={`p-3 rounded-xl border-2 transition-all text-left ${
+                              formData.companyType === 'shop'
+                                ? 'bg-red-500/20 border-red-500'
+                                : 'bg-white/5 border-white/10 hover:border-red-500/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Store className={`w-5 h-5 ${formData.companyType === 'shop' ? 'text-red-400' : 'text-white/60'}`} />
+                              <span className={`font-medium ${formData.companyType === 'shop' ? 'text-red-400' : 'text-white'}`}>
+                                Мебельный магазин
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -868,7 +934,7 @@ const ProfilePage: React.FC = () => {
                         {/* Overlay with stats */}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300">
                           <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="flex items-center justify-between text-white text-xs">
+                            <div className="flex items-center justify-between text-white text-sm">
                               <div className="flex items-center gap-1">
                                 <Eye className="w-3 h-3" />
                                 <span>{formatCount(video.viewsCount || 0)}</span>
@@ -948,7 +1014,7 @@ const ProfilePage: React.FC = () => {
                         
                         {/* Video stats overlay */}
                         <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                          <div className="flex items-center justify-between text-white text-xs">
+                          <div className="flex items-center justify-between text-white text-sm">
                             <div className="flex items-center space-x-2">
                               <div className="flex items-center space-x-1">
                                 <Eye className="w-3 h-3" />
@@ -1025,7 +1091,7 @@ const ProfilePage: React.FC = () => {
                         
                         {/* Video stats overlay */}
                         <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                          <div className="flex items-center justify-between text-white text-xs">
+                          <div className="flex items-center justify-between text-white text-sm">
                             <div className="flex items-center space-x-2">
                               <div className="flex items-center space-x-1">
                                 <Eye className="w-3 h-3" />

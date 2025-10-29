@@ -3,6 +3,7 @@ const multer = require('multer');
 const { pool } = require('../config/database');
 const { authenticateToken, requireRole, optionalAuth } = require('../middleware/auth');
 const videoService = require('../services/videoService');
+const { addVideoToQueue, getVideoProcessingStatus } = require('../services/videoQueue');
 const redisClient = require('../config/redis');
 const router = express.Router();
 
@@ -69,20 +70,29 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
     const video = await videoService.createVideo(videoData);
     console.log('[VIDEO UPLOAD] Video created:', video.id);
     
-    // Generate thumbnail immediately for fast preview
+    // 🎯 Добавляем видео в очередь обработки (max 2 параллельных задачи)
     try {
-      console.log('[VIDEO UPLOAD] Generating thumbnail...');
-      await videoService.generateThumbnail(req.file.path, video.id);
-      console.log('[VIDEO UPLOAD] Thumbnail generated');
-    } catch (error) {
-      console.error('[VIDEO UPLOAD] Error generating thumbnail:', error);
+      const queueInfo = await addVideoToQueue(video.id, req.file.path);
+      console.log('[VIDEO UPLOAD] ✅ Video added to processing queue:', queueInfo);
+      
+      video.processing_status = 'queued';
+      video.queue_position = queueInfo.position;
+    } catch (queueError) {
+      console.error('[VIDEO UPLOAD] ⚠️ Failed to add to queue, falling back to direct processing:', queueError);
+      
+      // Fallback: обработка напрямую если очередь не работает
+      (async () => {
+        try {
+          await videoService.compressAndOptimizeVideo(req.file.path);
+          await videoService.generateThumbnail(req.file.path, video.id);
+          await videoService.calculateDuration(req.file.path, video.id);
+        } catch (error) {
+          console.error('[VIDEO UPLOAD] ❌ Fallback processing failed:', error);
+        }
+      })();
     }
-    
-    // Calculate duration asynchronously
-    console.log('[VIDEO UPLOAD] Calculating duration...');
-    videoService.calculateDuration(req.file.path, video.id);
 
-    console.log('[VIDEO UPLOAD] Upload successful');
+    console.log('[VIDEO UPLOAD] Upload successful (processing in queue)');
     res.json({
       success: true,
       data: video,
@@ -96,6 +106,27 @@ router.post('/upload', authenticateToken, requireRole(['master', 'admin']), uplo
     res.status(500).json({
       success: false,
       message: 'Failed to upload video',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// GET /api/videos/:id/processing-status - Check video processing status
+router.get('/:id/processing-status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const status = await getVideoProcessingStatus(id);
+    
+    res.json({
+      success: true,
+      data: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[VIDEO STATUS] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get processing status',
       timestamp: new Date().toISOString()
     });
   }
