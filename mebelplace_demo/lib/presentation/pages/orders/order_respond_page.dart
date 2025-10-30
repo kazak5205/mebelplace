@@ -7,6 +7,7 @@ import '../../../data/models/order_model.dart';
 import '../../../data/models/order_response_model.dart';
 import '../../../data/datasources/api_service.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/app_providers.dart'; // ✅ Добавлен импорт провайдеров
 
 class OrderRespondPage extends ConsumerStatefulWidget {
   final String orderId;

@@ -6,6 +6,7 @@ import 'dart:io';
 import '../../../core/theme/app_theme.dart';
 import '../../../utils/haptic_helper.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/app_providers.dart'; // ✅ Добавлен импорт провайдеров
 
 /// TikTok-style экран создания заказа
 class CreateOrderPage extends ConsumerStatefulWidget {
