@@ -172,7 +172,7 @@ router.get('/tickets/:id', authenticateToken, async (req, res) => {
         u.first_name,
         u.last_name,
         u.avatar
-      FROM support_responses sr
+      FROM support_messages sr
       JOIN users u ON sr.user_id = u.id
       WHERE sr.ticket_id = $1
       ORDER BY sr.created_at ASC
@@ -228,7 +228,7 @@ router.post('/tickets/:id/responses', authenticateToken, async (req, res) => {
     }
 
     const result = await pool.query(
-      'INSERT INTO support_responses (ticket_id, user_id, message) VALUES ($1, $2, $3) RETURNING *',
+      'INSERT INTO support_messages (ticket_id, user_id, message) VALUES ($1, $2, $3) RETURNING *',
       [ticketId, userId, message]
     );
 

@@ -861,7 +861,7 @@ router.get('/support/tickets', authenticateToken, requireRole(['admin']), async 
         u.last_name,
         u.phone,
         admin_u.username as assigned_admin_username,
-        (SELECT COUNT(*) FROM support_responses WHERE ticket_id = st.id) as response_count
+        (SELECT COUNT(*) FROM support_messages WHERE ticket_id = st.id) as response_count
       FROM support_tickets st
       JOIN users u ON st.user_id = u.id
       LEFT JOIN users admin_u ON st.assigned_to = admin_u.id
@@ -942,9 +942,9 @@ router.post('/support/tickets/:id/response', authenticateToken, requireRole(['ad
       });
     }
 
-    // Вставляем ответ с is_admin_response = true
+    // Вставляем ответ с is_from_support = true
     const result = await pool.query(
-      'INSERT INTO support_responses (ticket_id, user_id, message, is_admin_response) VALUES ($1, $2, $3, true) RETURNING *',
+      'INSERT INTO support_messages (ticket_id, user_id, message, is_from_support) VALUES ($1, $2, $3, true) RETURNING *',
       [ticketId, adminId, message]
     );
 
