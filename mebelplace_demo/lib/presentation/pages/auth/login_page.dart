@@ -422,14 +422,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-        margin: EdgeInsets.all(16.w),
-      ),
+    // ✅ Красивый диалог ошибки
+    ErrorDialog.show(
+      context,
+      message: message,
     );
   }
 }

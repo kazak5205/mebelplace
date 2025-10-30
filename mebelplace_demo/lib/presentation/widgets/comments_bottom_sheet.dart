@@ -8,6 +8,7 @@ import '../../core/utils/image_helper.dart';
 import '../../data/models/video_model.dart';
 import '../../data/models/comment_model.dart';
 import '../providers/app_providers.dart' as providers;
+import 'error_dialog.dart';
 
 class CommentsBottomSheet extends ConsumerStatefulWidget {
   final VideoModel video;
@@ -302,11 +303,10 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
       _focusNode.unfocus();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Не удалось отправить комментарий'),
-            backgroundColor: Colors.red.shade600,
-          ),
+        // ✅ Красивый диалог ошибки
+        ErrorDialog.show(
+          context,
+          message: 'Не удалось отправить комментарий',
         );
       }
     } finally {

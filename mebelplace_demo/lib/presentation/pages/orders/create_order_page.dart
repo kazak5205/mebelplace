@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../utils/haptic_helper.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/app_providers.dart';
+import '../../widgets/error_dialog.dart';
 
 /// TikTok-style экран создания заказа
 class CreateOrderPage extends ConsumerStatefulWidget {
@@ -1045,15 +1046,10 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
 
   void _showError(String message) {
     HapticHelper.error();
-    // Как в вебе - простое уведомление
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-        margin: EdgeInsets.all(16.w),
-      ),
+    // ✅ Красивый диалог ошибки
+    ErrorDialog.show(
+      context,
+      message: message,
     );
   }
 }

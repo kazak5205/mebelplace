@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/repository_providers.dart';
+import '../../widgets/error_dialog.dart';
 
 class SmsVerificationPage extends ConsumerStatefulWidget {
   final String phoneNumber;
@@ -332,11 +333,9 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
     final code = _controllers.map((controller) => controller.text).join();
     
     if (code.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Введите полный код'),
-          backgroundColor: Colors.red.shade600,
-        ),
+      ErrorDialog.show(
+        context,
+        message: 'Введите полный код из 6 цифр',
       );
       return;
     }
@@ -355,21 +354,17 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
           // Токен уже сохранен в apiService
           // ref.read(authProvider.notifier).setUser(response.data!.user);
           
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Номер успешно подтвержден!'),
-              backgroundColor: Colors.green,
-            ),
+          SuccessDialog.show(
+            context,
+            message: response.message ?? 'Номер успешно подтвержден!',
           );
           
           // Переходим к следующему экрану
           Navigator.pushReplacementNamed(context, '/home');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Неверный код'),
-              backgroundColor: Colors.red.shade600,
-            ),
+          ErrorDialog.show(
+            context,
+            message: response.message ?? 'Неверный код. Попробуйте еще раз.',
           );
         }
         
@@ -379,11 +374,9 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка верификации: ${e.toString()}'),
-            backgroundColor: Colors.red.shade600,
-          ),
+        ErrorDialog.show(
+          context,
+          message: 'Не удалось проверить код',
         );
         setState(() {
           _isVerifying = false;
@@ -410,30 +403,24 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
           }
           _focusNodes[0].requestFocus();
           
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Новый код отправлен!'),
-              backgroundColor: Colors.green,
-            ),
+          SuccessDialog.show(
+            context,
+            message: response.message ?? 'Новый код отправлен!',
           );
           
           _startCountdown();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Ошибка отправки кода'),
-              backgroundColor: Colors.red.shade600,
-            ),
+          ErrorDialog.show(
+            context,
+            message: response.message ?? 'Не удалось отправить новый код',
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: ${e.toString()}'),
-            backgroundColor: Colors.red.shade600,
-          ),
+        ErrorDialog.show(
+          context,
+          message: 'Не удалось отправить новый код',
         );
       }
     }
