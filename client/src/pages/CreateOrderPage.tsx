@@ -12,19 +12,30 @@ const CreateOrderPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [_error, setError] = useState('')
   const [regions, setRegions] = useState<string[]>([])
+  const [categories, setCategories] = useState<Array<{id: string, name: string}>>([])
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    category: 'general',
     location: '',
     region: '',
     images: [] as File[]
   })
 
   useEffect(() => {
-    // Загружаем регионы
+    // Загружаем регионы и категории
     orderService.getRegions()
       .then(setRegions)
       .catch(() => setRegions([]))
+    
+    orderService.getCategories()
+      .then(setCategories)
+      .catch(() => setCategories([
+        { id: 'general', name: 'Общее' },
+        { id: 'furniture', name: 'Мебель' },
+        { id: 'repair', name: 'Ремонт' },
+        { id: 'design', name: 'Дизайн' }
+      ]))
   }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -67,6 +78,7 @@ const CreateOrderPage: React.FC = () => {
       const submitData = new FormData()
       submitData.append('title', formData.title)
       submitData.append('description', formData.description)
+      submitData.append('category', formData.category)
       submitData.append('city', formData.location)
       submitData.append('region', formData.region)
       
@@ -78,6 +90,7 @@ const CreateOrderPage: React.FC = () => {
       console.log('Creating order with data:', {
         title: formData.title,
         description: formData.description,
+        category: formData.category,
         location: formData.location,
         region: formData.region,
         imagesCount: formData.images.length
@@ -175,6 +188,33 @@ const CreateOrderPage: React.FC = () => {
                 className="glass-input w-full resize-none text-sm sm:text-base"
                 placeholder="Подробно опишите, что вам нужно..."
               />
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-white/70 mb-2">
+                Категория
+              </label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleInputChange}
+                className="glass-input w-full text-sm sm:text-base"
+              >
+                {categories.length > 0 ? (
+                  categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="general">Общее</option>
+                    <option value="furniture">Мебель</option>
+                    <option value="repair">Ремонт</option>
+                    <option value="design">Дизайн</option>
+                  </>
+                )}
+              </select>
             </div>
 
           </div>
