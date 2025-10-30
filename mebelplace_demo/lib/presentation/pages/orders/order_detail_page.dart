@@ -437,32 +437,40 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
   }
 
   Widget _buildActions(OrderModel order) {
+    // ✅ Проверяем: не показывать кнопку "Откликнуться" владельцу заказа
+    final authState = ref.watch(authProvider);
+    final currentUser = authState.user;
+    final isOwner = currentUser?.id == order.clientId;
+    final isMaster = currentUser?.role == 'master';
+
     return Row(
       children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pushNamed(context, '/order-respond', arguments: order.id);
-            },
-            icon: Icon(Icons.reply, size: 18.sp),
-            label: const Text('Откликнуться'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 16.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
+        // Кнопка "Откликнуться" только для мастеров и не для владельца
+        if (isMaster && !isOwner)
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, '/order-respond', arguments: order.id);
+              },
+              icon: Icon(Icons.reply, size: 18.sp),
+              label: const Text('Откликнуться'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
               ),
             ),
           ),
-        ),
         
-        SizedBox(width: 12.w),
+        if (isMaster && !isOwner) SizedBox(width: 12.w),
         
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
-              Navigator.pushNamed(context, '/chat', arguments: order.customerId);
+              Navigator.pushNamed(context, '/chat', arguments: order.clientId);
             },
             icon: Icon(Icons.message, size: 18.sp),
             label: const Text('Написать'),

@@ -25,18 +25,23 @@ class CustomBottomNavigation extends StatelessWidget {
       return _buildSimpleNavBar();
     }
 
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.bottomCenter,
-      children: [
-        // Основная навигация с вырезом
-        CustomPaint(
-          painter: _BottomNavBarPainter(),
-          child: SizedBox(
-            height: 70.h,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
+    return Container(
+      // ✅ УБРАНО: SafeArea снизу, чтобы navbar шёл до края экрана
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.bottomCenter,
+        children: [
+          // Основная навигация с вырезом
+          CustomPaint(
+            painter: _BottomNavBarPainter(),
+            child: SizedBox(
+              height: 70.h,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
                 _buildNavItem(
                   index: 0,
                   icon: currentIndex == 0 ? Icons.home_rounded : Icons.home_outlined,
@@ -48,14 +53,14 @@ class CustomBottomNavigation extends StatelessWidget {
                   icon: currentIndex == 1
                       ? (isMaster ? Icons.work_rounded : Icons.list_alt_rounded)
                       : (isMaster ? Icons.work_outline_rounded : Icons.list_alt_outlined),
-                  label: isMaster ? 'Заявки' : 'Мои заявки',
+                  label: isMaster ? 'Все заявки' : 'Мои заявки', // ✅ Синхронизировано с вебом
                   isActive: currentIndex == 1,
                 ),
                 SizedBox(width: 80.w), // Пространство для центральной кнопки
                 _buildNavItem(
                   index: 3,
                   icon: currentIndex == 3 ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
-                  label: 'Чаты',
+                  label: 'Мессенджер', // ✅ Синхронизировано с вебом
                   isActive: currentIndex == 3,
                 ),
                 _buildNavItem(
@@ -120,10 +125,13 @@ class CustomBottomNavigation extends StatelessWidget {
                   ),
                   SizedBox(height: 6.h),
                   Text(
-                    isMaster ? 'Видео' : 'Заказ',
+                    isMaster ? 'создать\nвидеорекламу' : 'заявка\nвсем', // ✅ Синхронизировано с вебом
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
                     style: TextStyle(
-                      fontSize: 11.sp,
+                      fontSize: 10.sp, // Уменьшен для 2х строк
                       fontWeight: FontWeight.w600,
+                      height: 1.1,
                       color: currentIndex == 2 ? AppColors.primary : Colors.white.withOpacity(0.6),
                     ),
                   ),
@@ -131,8 +139,9 @@ class CustomBottomNavigation extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 
