@@ -489,6 +489,9 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
           ),
         );
         
+        // ✅ ОБНОВЛЯЕМ список заказов после отклика (чтобы показать что откликнулись)
+        ref.read(orderProvider.notifier).loadOrders();
+        
         Navigator.pop(context);
       }
       

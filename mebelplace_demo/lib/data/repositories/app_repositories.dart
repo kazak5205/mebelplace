@@ -338,9 +338,11 @@ class OrderRepository {
       final token = await _localStorage.getToken();
       if (token == null) throw Exception('Not authenticated');
       
+      // ✅ ИСПРАВЛЕНО: Мастера видят ВСЕ заказы (всех статусов)
       final response = await _apiService.getOrderFeed({
         'page': page,
         'limit': limit,
+        'status': '', // Пустая строка = все статусы
       });
       
       if (response.success && response.data != null) {
@@ -371,7 +373,7 @@ class OrderRepository {
   Future<OrderModel> createOrder({
     required String title,
     required String description,
-    required String category,
+    String category = 'general', // ✅ Добавлено (как в вебе, по умолчанию 'general')
     String? location,
     String? region,
     double? budget,
@@ -379,6 +381,13 @@ class OrderRepository {
     List<String>? images,
   }) async {
     try {
+      print('🔵 OrderRepository: Creating order...');
+      print('   Title: $title');
+      print('   Description length: ${description.length}');
+      print('   Location: $location');
+      print('   Region: $region');
+      print('   Images: ${images?.length ?? 0}');
+      
       final token = await _localStorage.getToken();
       if (token == null) throw Exception('Not authenticated');
       
@@ -387,7 +396,7 @@ class OrderRepository {
       final response = await _apiService.createOrder(
         title,
         description,
-        category,
+        category, // ✅ Передаем category
         location,
         region,
         budget,
@@ -395,12 +404,22 @@ class OrderRepository {
         imageFiles,
       );
       
+      print('🟢 OrderRepository: Response success=${response.success}');
+      
       if (response.success && response.data != null) {
+        print('✅ OrderRepository: Order created with ID=${response.data!.id}');
         return response.data!;
       }
-      throw Exception(response.message ?? 'Failed to create order');
+      
+      final errorMsg = response.message ?? 'Failed to create order';
+      print('🔴 OrderRepository: Failed - $errorMsg');
+      throw Exception(errorMsg);
     } on DioException catch (e) {
+      print('❌ OrderRepository: DioException - ${e.message}');
       throw _handleDioError(e);
+    } catch (e) {
+      print('❌ OrderRepository: Unknown error - $e');
+      rethrow;
     }
   }
 
@@ -457,7 +476,12 @@ class OrderRepository {
 
   Future<List<OrderModel>> getUserOrders() async {
     try {
-      final response = await _apiService.getUserOrders();
+      // ✅ ИСПРАВЛЕНО: Запрашиваем ВСЕ статусы для клиента, не только pending
+      final response = await _apiService.getOrderFeed({
+        'page': 1,
+        'limit': 100, // Загружаем больше заказов
+        'status': '', // Пустая строка = все статусы (backend игнорирует пустой status)
+      });
       
       if (response.success && response.data != null) {
         return response.data!.orders;

@@ -26,21 +26,15 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
   List<File> _selectedImages = [];
   bool _isCreating = false;
   int _currentStep = 0;
-  String _selectedCategory = 'Кухни';
+  String _selectedCategory = 'general'; // ✅ Английский id (как в вебе)
   String _selectedRegion = 'Алматы';
-  String _selectedUrgency = 'Не срочно';
   
-  final List<String> _categories = [
-    'Кухни',
-    'Шкафы',
-    'Столы',
-    'Стулья',
-    'Кровати',
-    'Гостиные',
-    'Детская мебель',
-    'Офисная мебель',
-    'Декор',
-    'Другое',
+  // Категории загружаемые с API
+  List<Map<String, dynamic>> _categories = [
+    {'id': 'general', 'name': 'Общее'},
+    {'id': 'furniture', 'name': 'Мебель'},
+    {'id': 'repair', 'name': 'Ремонт'},
+    {'id': 'design', 'name': 'Дизайн'},
   ];
 
   final List<String> _regions = [
@@ -60,13 +54,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
     'Петропавловск',
   ];
 
-  final List<String> _urgencies = [
-    'Не срочно',
-    'В течение месяца',
-    'В течение недели',
-    'Срочно',
-  ];
-
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
 
@@ -82,6 +69,25 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
       curve: Curves.easeOut,
     );
     _fadeAnimationController.forward();
+    
+    // ✅ Загружаем категории из API (как в вебе)
+    _loadCategories();
+  }
+  
+  Future<void> _loadCategories() async {
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.getCategories();
+      
+      if (response.success && response.data != null && response.data!.isNotEmpty) {
+        setState(() {
+          _categories = response.data!;
+        });
+      }
+    } catch (e) {
+      print('Failed to load categories: $e');
+      // Используем дефолтные категории
+    }
   }
 
   @override
@@ -418,7 +424,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
             
             SizedBox(height: 24.h),
             
-            // Category
+            // ✅ Категория (как в вебе)
             Text(
               'Категория',
               style: TextStyle(
@@ -429,57 +435,43 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
             ),
             SizedBox(height: 12.h),
             
-            Wrap(
-              spacing: 8.w,
-              runSpacing: 8.h,
-              children: _categories.map((category) {
-                final isSelected = _selectedCategory == category;
-                return GestureDetector(
-                  onTap: () {
-                    HapticHelper.lightImpact();
-                    setState(() {
-                      _selectedCategory = category;
-                    });
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedCategory,
+                  isExpanded: true,
+                  dropdownColor: AppColors.dark,
+                  style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                  icon: Icon(Icons.arrow_drop_down, color: Colors.white.withOpacity(0.7)),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      HapticHelper.lightImpact();
+                      setState(() {
+                        _selectedCategory = newValue;
+                      });
+                    }
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: isSelected
-                          ? const LinearGradient(
-                              colors: [AppColors.primary, AppColors.secondary],
-                            )
-                          : null,
-                      color: isSelected ? null : Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.primary
-                            : Colors.white.withOpacity(0.2),
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      category,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                  items: _categories.map<DropdownMenuItem<String>>((cat) {
+                    return DropdownMenuItem<String>(
+                      value: cat['id'],
+                      child: Text(cat['name']),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
             
             SizedBox(height: 24.h),
             
-            // Urgency
+            // Регион
             Text(
-              'Срочность',
+              'Регион',
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -488,50 +480,36 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
             ),
             SizedBox(height: 12.h),
             
-            Wrap(
-              spacing: 8.w,
-              runSpacing: 8.h,
-              children: _urgencies.map((urgency) {
-                final isSelected = _selectedUrgency == urgency;
-                return GestureDetector(
-                  onTap: () {
-                    HapticHelper.lightImpact();
-                    setState(() {
-                      _selectedUrgency = urgency;
-                    });
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedRegion,
+                  isExpanded: true,
+                  dropdownColor: AppColors.dark,
+                  style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                  icon: Icon(Icons.arrow_drop_down, color: Colors.white.withOpacity(0.7)),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      HapticHelper.lightImpact();
+                      setState(() {
+                        _selectedRegion = newValue;
+                      });
+                    }
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: isSelected
-                          ? const LinearGradient(
-                              colors: [AppColors.secondary, AppColors.primary],
-                            )
-                          : null,
-                      color: isSelected ? null : Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.secondary
-                            : Colors.white.withOpacity(0.2),
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      urgency,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                  items: _regions.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           ],
         ),
@@ -748,51 +726,23 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
               children: [
                 Row(
                   children: [
+                    // 🔥 УДАЛЕНО: Категория и Срочность (не используются в вебе)
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 12.w,
                         vertical: 6.h,
                       ),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primary, AppColors.secondary],
-                        ),
+                        color: AppColors.primary.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: AppColors.primary),
                       ),
                       child: Text(
-                        _selectedCategory,
+                        _selectedRegion,
                         style: TextStyle(
                           fontSize: 11.sp,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 4.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _selectedUrgency == 'Срочно'
-                            ? Colors.red.withOpacity(0.2)
-                            : Colors.orange.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(
-                          color: _selectedUrgency == 'Срочно'
-                              ? Colors.red
-                              : Colors.orange,
-                        ),
-                      ),
-                      child: Text(
-                        _selectedUrgency,
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
-                          color: _selectedUrgency == 'Срочно'
-                              ? Colors.red
-                              : Colors.orange,
                         ),
                       ),
                     ),
@@ -1034,17 +984,17 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
     try {
       final orderRepository = ref.read(orderRepositoryProvider);
       
-      // Создаем заказ через реальное API
+      // Создаем заказ через реальное API (с category как в вебе)
+      print('🔷 UI: Attempting to create order...');
       await orderRepository.createOrder(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        category: _selectedCategory,
+        category: _selectedCategory, // ✅ Отправляем category (как в вебе!)
         location: _addressController.text.trim(),
         region: _selectedRegion,
-        // budget: removed - не используется на веб-версии
-        // urgency: _selectedUrgency, // TODO: Add to API if needed
         images: _selectedImages.isNotEmpty ? _selectedImages.map((f) => f.path).toList() : null,
       );
+      print('✅ UI: Order created successfully!');
       
       if (mounted) {
         HapticHelper.success();
@@ -1065,6 +1015,16 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
             ),
           ),
         );
+        
+        // ✅ ОБНОВЛЯЕМ список заказов после создания
+        final user = ref.read(authProvider).user;
+        if (user != null) {
+          if (user.role == 'master') {
+            ref.read(orderProvider.notifier).loadOrders(); // Все заказы для мастера
+          } else {
+            ref.read(orderProvider.notifier).loadUserOrders(); // Мои заказы для клиента
+          }
+        }
         
         Navigator.pop(context);
       }

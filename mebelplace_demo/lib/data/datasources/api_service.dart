@@ -817,7 +817,7 @@ class ApiService {
   Future<ApiResponse<OrderModel>> createOrder(
     String title,
     String description,
-    String category,
+    String category, // ✅ Добавлено
     String? location,
     String? region,
     double? budget,
@@ -825,13 +825,18 @@ class ApiService {
     List<File>? images,
   ) async {
     try {
+      _debugLog('📤 API: Creating order...');
+      _debugLog('   Title: $title');
+      _debugLog('   City: $location');
+      _debugLog('   Region: $region');
+      
       // ✅ ИСПОЛЬЗУЕМ РЕАЛЬНЫЙ ENDPOINT /orders/create (как веб-фронтенд!)
       final formData = FormData.fromMap({
         'title': title,
         'description': description,
-        'category': category,
-        if (location != null) 'city': location, // Бекенд ожидает 'city', а не 'location'
-        if (region != null) 'region': region,
+        'category': category, // ✅ Отправляем category (как в вебе!)
+        if (location != null && location.isNotEmpty) 'city': location, // Бекенд ожидает 'city', а не 'location'
+        if (region != null && region.isNotEmpty) 'region': region,
         if (budget != null) 'budget': budget,
         if (deadline != null) 'deadline': deadline.toIso8601String(),
       });
@@ -1473,6 +1478,44 @@ class ApiService {
         success: false,
         data: [],
         message: 'Ошибка загрузки видео мастера: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  // ✅ Получить категории заявок
+  Future<ApiResponse<List<Map<String, dynamic>>>> getCategories() async {
+    try {
+      _debugLog('📡 API: GET /orders/categories');
+      final response = await _dio.get('/orders/categories');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> categoriesJson = data['data'] ?? [];
+        final categories = categoriesJson.cast<Map<String, dynamic>>();
+        
+        _debugLog('✅ API: Loaded ${categories.length} categories');
+        
+        return ApiResponse<List<Map<String, dynamic>>>(
+          success: true,
+          data: categories,
+          message: data['message'],
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<Map<String, dynamic>>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки категорий',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Get categories error: $e');
+      return ApiResponse<List<Map<String, dynamic>>>(
+        success: false,
+        data: [],
+        message: 'Ошибка загрузки категорий: ${e.toString()}',
         timestamp: DateTime.now().toIso8601String(),
       );
     }
