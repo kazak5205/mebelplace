@@ -25,6 +25,10 @@ const userRoutes = require('./routes/users');
 const supportRoutes = require('./routes/support');
 const { initDatabase } = require('./config/database');
 const { setupSocket } = require('./config/socket');
+const path = require('path');
+const fs = require('fs').promises;
+const { pool } = require('./config/database');
+const videoService = require('./services/videoService');
 
 const app = express();
 const server = createServer(app);
@@ -191,6 +195,91 @@ initDatabase().then(() => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📱 Socket.IO ready for real-time communication`);
     console.log(`🎬 Video processing queue initialized (max 2 concurrent jobs)`);
+    // Background: regenerate missing thumbnails for recent videos (best-effort, non-blocking)
+    (async () => {
+      try {
+        console.log('[THUMBNAIL] Background check for missing thumbnails started');
+        const res = await pool.query(
+          "SELECT id, video_url FROM videos WHERE is_active = true AND thumbnail_url IS NULL ORDER BY created_at DESC LIMIT 20"
+        );
+        for (const row of res.rows) {
+          try {
+            const videoPath = path.join(__dirname, '..', row.video_url);
+            await fs.access(videoPath);
+            await videoService.generateThumbnail(videoPath, row.id);
+            console.log(`[THUMBNAIL] Regenerated for video ${row.id}`);
+          } catch (e) {
+            console.warn(`[THUMBNAIL] Skip video ${row.id}: ${e.message}`);
+          }
+        }
+      } catch (e) {
+        console.warn('[THUMBNAIL] Background regeneration failed:', e.message);
+      }
+    })();
+
+    // One-time reconciliation of denormalized comment counters
+    (async () => {
+      try {
+        console.log('[COMMENTS] Reconciling denormalized comment counters...')
+        await pool.query(`
+          UPDATE videos v
+          SET comments = COALESCE(sub.cnt, 0)
+          FROM (
+            SELECT video_id, COUNT(*)::int AS cnt
+            FROM video_comments
+            WHERE is_active = true
+            GROUP BY video_id
+          ) AS sub
+          WHERE v.id = sub.video_id
+        `);
+        console.log('[COMMENTS] Reconciliation completed')
+      } catch (e) {
+        console.warn('[COMMENTS] Reconciliation failed:', e.message)
+      }
+    })();
+
+    // Periodic regeneration of missing thumbnails (every 10 minutes)
+    setInterval(async () => {
+      try {
+        console.log('[THUMBNAIL] Periodic check for missing thumbnails started');
+        const res = await pool.query(
+          "SELECT id, video_url FROM videos WHERE is_active = true AND thumbnail_url IS NULL ORDER BY created_at DESC LIMIT 20"
+        );
+        for (const row of res.rows) {
+          try {
+            const videoPath = path.join(__dirname, '..', row.video_url);
+            await fs.access(videoPath);
+            await videoService.generateThumbnail(videoPath, row.id);
+            console.log(`[THUMBNAIL] Periodic regeneration done for video ${row.id}`);
+          } catch (e) {
+            console.warn(`[THUMBNAIL] Periodic skip video ${row.id}: ${e.message}`);
+          }
+        }
+      } catch (e) {
+        console.warn('[THUMBNAIL] Periodic regeneration failed:', e.message);
+      }
+    }, 10 * 60 * 1000);
+
+    // Periodic reconciliation of denormalized comment counters (every 10 minutes)
+    setInterval(async () => {
+      try {
+        console.log('[COMMENTS] Periodic reconciliation started')
+        await pool.query(`
+          UPDATE videos v
+          SET comments = COALESCE(sub.cnt, 0)
+          FROM (
+            SELECT video_id, COUNT(*)::int AS cnt
+            FROM video_comments
+            WHERE is_active = true
+            GROUP BY video_id
+          ) AS sub
+          WHERE v.id = sub.video_id
+        `);
+        console.log('[COMMENTS] Periodic reconciliation completed')
+      } catch (e) {
+        console.warn('[COMMENTS] Periodic reconciliation failed:', e.message)
+      }
+    }, 10 * 60 * 1000);
   });
 }).catch(err => {
   console.error('Failed to start server:', err);

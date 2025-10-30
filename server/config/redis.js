@@ -263,6 +263,42 @@ module.exports = {
   // Simple operations
   set: setWithTTL, // Always serialize objects properly
   setWithTTL, // Для обратной совместимости
+  // Tagged cache helpers
+  async setWithTags(key, value, ttlSeconds = null, tags = []) {
+    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+    if (ttlSeconds) {
+      await redis.set(key, serialized, 'EX', ttlSeconds);
+    } else {
+      await redis.set(key, serialized);
+    }
+    if (Array.isArray(tags) && tags.length > 0) {
+      for (const tag of tags) {
+        await redis.sadd(`cache:tag:${tag}`, key);
+      }
+    }
+    return true;
+  },
+  async invalidateTag(tag) {
+    try {
+      const setKey = `cache:tag:${tag}`;
+      const keys = await redis.smembers(setKey);
+      if (keys && keys.length > 0) {
+        await redis.del(...keys);
+      }
+      await redis.del(setKey);
+      return keys?.length || 0;
+    } catch (error) {
+      console.error(`Redis invalidateTag error for tag ${tag}:`, error);
+      throw error;
+    }
+  },
+  async invalidateTags(tags = []) {
+    let total = 0;
+    for (const tag of tags) {
+      total += await this.invalidateTag(tag);
+    }
+    return total;
+  },
   get,
   del,
   exists,
