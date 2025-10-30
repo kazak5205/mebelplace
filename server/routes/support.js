@@ -98,7 +98,8 @@ router.get('/tickets', authenticateToken, async (req, res) => {
         u.username,
         u.first_name,
         u.last_name,
-        u.avatar
+        u.avatar,
+        (SELECT COUNT(*) FROM support_messages WHERE ticket_id = st.id) as response_count
       FROM support_tickets st
       JOIN users u ON st.user_id = u.id
       ${whereClause}
