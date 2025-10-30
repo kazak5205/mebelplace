@@ -72,7 +72,19 @@ class OrderModel {
       updatedAt: json['updatedAt'] != null || json['updated_at'] != null
           ? DateTime.tryParse((json['updatedAt'] ?? json['updated_at']).toString())
           : null,
-      client: json['client'] != null ? UserModel.fromJson(json['client'] as Map<String, dynamic>) : null,
+      client: json['client'] != null 
+          ? UserModel.fromJson(json['client'] as Map<String, dynamic>)
+          : (json['client_username'] != null || json['client_first_name'] != null)
+              ? UserModel.fromJson({
+                  'id': json['client_id'],
+                  'username': json['client_username'],
+                  'firstName': json['client_first_name'],
+                  'lastName': json['client_last_name'],
+                  'avatar': json['client_avatar'],
+                  'phone': json['client_phone'],
+                  'role': 'user',
+                })
+              : null,
       responseCount: int.tryParse((json['responseCount'] ?? json['response_count'] ?? 0).toString()) ?? 0,
       hasMyResponse: json['hasMyResponse'] ?? json['has_my_response'] ?? false,
       responses: (json['responses'] as List<dynamic>?)
