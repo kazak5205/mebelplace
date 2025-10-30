@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Search
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Video } from '../types'
 import { videoService } from '../services/videoService'
 import { useSocket } from '../contexts/SocketContext'
@@ -36,6 +37,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onVideoChange 
 }) => {
   const { user, isClient } = useAuth()
+  const navigate = useNavigate()
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   // const [isMuted, setIsMuted] = useState(false) // Звук включён по умолчанию - не используется в текущей версии
   const [showComments, setShowComments] = useState(false)
@@ -49,6 +51,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [videoProgress, setVideoProgress] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
+  const [expandedDescription, setExpandedDescription] = useState(false)
   
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
@@ -75,11 +79,19 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     // Загружаем комментарии и статус лайка для текущего видео
     if (currentVideo) {
+      // Сбрасываем раскрытие описания при смене видео
+      setExpandedDescription(false)
+      // Инициализируем локальный счётчик комментариев для текущего видео
+      setCommentCounts(prev => ({
+        ...prev,
+        [currentVideo.id]: prev[currentVideo.id] ?? (currentVideo.commentCount as any) ?? 0
+      }))
       loadComments()
       recordView()
       loadVideoLikeStatus()
     }
   }, [currentVideo])
+
   
   // Загружаем статус лайка для текущего видео
   const loadVideoLikeStatus = async () => {
@@ -95,6 +107,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           likeCount: video.likes || video.like_count || 0
         }
       }))
+      // Также обновляем счётчик комментариев из API
+      if (video.comment_count != null) {
+        setCommentCounts(prev => ({
+          ...prev,
+          [currentVideo.id]: video.comment_count
+        }))
+      }
     } catch (error) {
       console.error('Failed to load video like status:', error)
     }
@@ -190,8 +209,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!currentVideo) return
     try {
       const response = await videoService.getComments(currentVideo.id)
-      // response уже является массивом комментариев согласно videoService
-      setComments(Array.isArray(response) ? response : [])
+      const list = Array.isArray((response as any)) ? (response as any) : response.comments || []
+      setComments(list)
+      // Обновляем счётчик комментариев с бэкенда, если доступен
+      if ((response as any)?.totals?.all != null) {
+        setCommentCounts(prev => ({
+          ...prev,
+          [currentVideo.id]: (response as any).totals.all
+        }))
+      } else if ((response as any)?.pagination?.total != null) {
+        // Фоллбек: хотя это только top-level, лучше чем 0
+        setCommentCounts(prev => ({
+          ...prev,
+          [currentVideo.id]: (response as any).pagination.total
+        }))
+      }
     } catch (error) {
       console.error('Failed to load comments:', error)
     }
@@ -224,17 +256,38 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     handleLike()
   }
 
+  const handleVideoSearch = (e: React.KeyboardEvent<HTMLInputElement> | React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim().length >= 2) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+    }
+  }
+
   const handleDragEnd = (_: any, info: PanInfo) => {
     const threshold = 50
     const velocity = info.velocity.y
+    const startY = info.point.y
 
+    // Если свайп начинается в нижней части (область описания) - раскрываем описание при свайпе вверх
+    const isInDescriptionArea = startY > window.innerHeight * 0.6
+    
     // Быстрый свайп или достаточное смещение
     if (velocity < -500 || info.offset.y < -threshold) {
-      // Свайп вверх - следующее видео
-      handleNextVideo()
+      // Свайп вверх в области описания - раскрываем описание
+      if (isInDescriptionArea && !expandedDescription) {
+        setExpandedDescription(true)
+      } else {
+        // Свайп вверх - следующее видео
+        handleNextVideo()
+      }
     } else if (velocity > 500 || info.offset.y > threshold) {
-      // Свайп вниз - предыдущее видео
-      handlePrevVideo()
+      // Свайп вниз в области описания - сворачиваем описание
+      if (isInDescriptionArea && expandedDescription) {
+        setExpandedDescription(false)
+      } else {
+        // Свайп вниз - предыдущее видео
+        handlePrevVideo()
+      }
     }
   }
 
@@ -373,13 +426,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     try {
       setIsSubmittingComment(true)
-      const comment = await videoService.addComment(currentVideo.id, newComment.trim())
-      setComments(prev => [comment, ...prev])
+      await videoService.addComment(currentVideo.id, newComment.trim())
       setNewComment('')
-      
+      // После добавления получаем актуальный список и счётчики
+      await loadComments()
       emit('video_comment', {
         videoId: currentVideo.id,
-        content: comment.content,
+        content: 'new_comment',
         parentId: null
       })
     } catch (error) {
@@ -507,31 +560,55 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </motion.button>
         )}
 
-        {/* Search Bar - TikTok style centered */}
-        <motion.div 
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute top-20 left-0 md:left-4 right-20 z-50"
-        >
-          <div className="relative w-full max-w-[350px]">
-            <motion.input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск"
-              whileFocus={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-              className="w-full bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder-white/50 px-5 py-3 pl-12 pr-5 rounded-xl text-sm font-medium focus:outline-none focus:bg-white/15 focus:border-white/30 transition-all shadow-lg"
-            />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-          </div>
-        </motion.div>
-
         {/* TikTok Style Layout - Vertical Video Player */}
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Main Video Container - Vertical Format (9:16) */}
           <div className="relative w-full md:max-w-lg mx-auto h-full">
+            {/* Search Bar inside video container */}
+            <motion.div 
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute top-6 left-0 right-0 z-[60] flex justify-center items-center px-4 pointer-events-none"
+            >
+              <div className="relative w-full max-w-[420px] mx-auto pointer-events-auto">
+                <motion.form onSubmit={handleVideoSearch} className="relative w-full" onClick={(e) => e.stopPropagation()}>
+                  <motion.input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      setSearchQuery(e.target.value)
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      e.stopPropagation()
+                      if (e.key === 'Enter') {
+                        handleVideoSearch(e)
+                      }
+                    }}
+                    placeholder="Поиск"
+                    whileFocus={{ scale: 1.02 }}
+                    transition={{ duration: 0.2 }}
+                    className="w-full bg-white/40 backdrop-blur-xl border border-white/40 text-white placeholder-white/70 px-5 py-3 pl-12 pr-12 rounded-xl text-sm font-medium focus:outline-none focus:bg-white/30 focus:border-white/40 transition-all shadow-lg pointer-events-auto"
+                  />
+                  <button
+                    type="submit"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleVideoSearch(e)
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors pointer-events-auto z-10"
+                    aria-label="Искать"
+                  >
+                    <Search className="w-4 h-4 text-white/70" />
+                  </button>
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/70 pointer-events-none" />
+                </motion.form>
+              </div>
+            </motion.div>
+
+            
             <AnimatePresence initial={false} mode="wait">
               <motion.div
                 drag="y"
@@ -582,18 +659,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </AnimatePresence>
           </div>
 
-          {/* Video Info - Bottom Left - INSIDE video container */}
-          <div className="absolute bottom-28 left-4 right-20 z-40 max-w-[240px] sm:max-w-xs">
-            <div className="space-y-3">
+          {/* Video Info - Bottom Center - inside video container width, expandable */}
+          <motion.div 
+            animate={{ bottom: expandedDescription ? '180px' : '112px' }}
+            transition={{ duration: 0.3 }}
+            className="absolute left-1/2 -translate-x-1/2 z-40 w-full px-6 max-w-[560px]"
+          >
+            <div className="space-y-3 text-center">
               {/* Title - Always Visible */}
               {currentVideo.title && (
-                <h3 className="text-white font-bold text-lg drop-shadow-lg">
+                <h3 className="text-white font-bold text-lg drop-shadow-lg text-center">
                   {currentVideo.title}
                 </h3>
               )}
               
               {/* Author and Time */}
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap justify-center">
                 <button
                   onClick={() => {
                     const authorId = currentVideo.authorId || currentVideo.author_id || currentVideo.masterId || currentVideo.master?.id
@@ -618,20 +699,29 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 </span>
               </div>
               
-              {/* Description */}
+              {/* Description - Expandable */}
               {currentVideo.description && (
-                <p className="text-white/90 text-sm line-clamp-2 drop-shadow-lg">
+                <motion.p 
+                  onClick={() => setExpandedDescription(!expandedDescription)}
+                  className={`text-white/90 text-sm drop-shadow-lg text-center cursor-pointer select-none ${expandedDescription ? '' : 'line-clamp-2'}`}
+                  animate={{ maxHeight: expandedDescription ? 'none' : '3rem' }}
+                  transition={{ duration: 0.3 }}
+                >
                   {currentVideo.description}
-                </p>
+                </motion.p>
               )}
             </div>
-          </div>
+          </motion.div>
 
-          {/* Order Button - Bottom Center - INSIDE video container, ABOVE navigation */}
+          {/* Order Button - Bottom Center - INSIDE video container, ABOVE navigation, moves up when description expanded */}
           {user && isClient && (currentVideo.masterId || currentVideo.authorId) !== user.id && (
-            <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-xs px-4">
+            <motion.div 
+              animate={{ bottom: expandedDescription ? '16px' : '96px' }}
+              transition={{ duration: 0.3 }}
+              className="absolute left-1/2 transform -translate-x-1/2 z-40 w-full max-w-xs px-4"
+            >
               <OrderButton video={currentVideo} className="w-full" />
-            </div>
+            </motion.div>
           )}
 
           {/* Action Buttons - Right Side - Adapted for vertical format */}
@@ -651,9 +741,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
                 {(currentVideo.avatar || currentVideo.master?.avatar) ? (
                   <img 
-                    src={`${currentVideo.avatar?.startsWith('http') ? currentVideo.avatar : `https://mebelplace.com.kz${currentVideo.avatar || currentVideo.master?.avatar}`}?t=${Date.now()}`}
+                    src={currentVideo.avatar?.startsWith('http') ? currentVideo.avatar : `https://mebelplace.com.kz${currentVideo.avatar || currentVideo.master?.avatar}`}
                     alt={currentVideo.username || currentVideo.master?.name || 'Avatar'}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                     onLoad={() => console.log('✅ Feed avatar loaded:', currentVideo.avatar || currentVideo.master?.avatar)}
                     onError={(e) => {
                       console.error('❌ Feed avatar failed:', currentVideo.avatar || currentVideo.master?.avatar, e.currentTarget.src);
@@ -708,7 +800,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <MessageCircle className="w-6 h-6 text-white" />
               </div>
               <span className="text-white font-semibold text-xs">
-                {formatCount(currentVideo.commentCount)}
+                {formatCount(commentCounts[currentVideo.id] ?? (currentVideo.commentCount as any) ?? 0)}
               </span>
             </motion.button>
 
@@ -828,7 +920,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <div className="px-4 pb-3 border-b border-white/10">
               <h3 className="text-white font-bold text-center">
                 {(() => {
-                  const totalCount = comments.reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0)
+                  const backendTotal = commentCounts[currentVideo.id]
+                  const totalCount = backendTotal ?? comments.reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0)
                   return `${totalCount} ${totalCount === 1 ? 'комментарий' : totalCount < 5 ? 'комментария' : 'комментариев'}`
                 })()}
               </h3>
@@ -849,9 +942,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                       <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
                         {comment.avatar ? (
                           <img 
-                            src={`${comment.avatar.startsWith('http') ? comment.avatar : `https://mebelplace.com.kz${comment.avatar}`}?t=${Date.now()}`} 
+                            src={comment.avatar.startsWith('http') ? comment.avatar : `https://mebelplace.com.kz${comment.avatar}`} 
                             alt={comment.username || 'Avatar'} 
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                             onLoad={() => console.log('✅ Comment avatar loaded:', comment.avatar)}
                             onError={(e) => {
                               console.error('❌ Comment avatar load failed:', comment.avatar, e.currentTarget.src)
@@ -945,9 +1040,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                                 <div className="w-7 h-7 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0 overflow-hidden">
                                   {reply.avatar ? (
                                     <img 
-                                      src={`${reply.avatar.startsWith('http') ? reply.avatar : `https://mebelplace.com.kz${reply.avatar}`}?t=${Date.now()}`}
+                                      src={reply.avatar.startsWith('http') ? reply.avatar : `https://mebelplace.com.kz${reply.avatar}`}
                                       alt={reply.username || 'Avatar'} 
                                       className="w-full h-full object-cover"
+                                      loading="lazy"
+                                      decoding="async"
                                       onLoad={() => console.log('✅ Reply avatar loaded:', reply.avatar)}
                                       onError={(e) => {
                                         console.error('❌ Reply avatar load failed:', reply.avatar)
@@ -999,23 +1096,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
             </div>
 
-            {/* Форма комментария - ЗАФИКСИРОВАНА ВНИЗУ */}
-            <div className="absolute bottom-0 left-0 right-0 px-4 py-3 pb-20 bg-black/95 backdrop-blur-xl border-t border-white/10 z-[110]">
+            {/* Форма комментария - ЗАФИКСИРОВАНА ВНИЗУ, в границах экрана */}
+            <div className="absolute bottom-0 left-0 right-0 px-2 md:px-4 py-2 md:py-3 pb-16 pb-safe bg-black/95 backdrop-blur-xl border-t border-white/10 z-[110] max-w-full overflow-hidden">
               {canComment ? (
-                <form onSubmit={handleSubmitComment} className="flex space-x-3">
+                <form onSubmit={handleSubmitComment} className="flex space-x-2 md:space-x-3 items-center w-full">
                   <input
                     type="text"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Добавить комментарий..."
-                    className="flex-1 bg-white/10 text-white placeholder-white/50 px-4 py-3 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                    className="flex-1 min-w-0 bg-white/10 text-white placeholder-white/50 px-3 md:px-4 py-2 md:py-2.5 rounded-full text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-white/30 max-w-[calc(100%-100px)]"
                     disabled={isSubmittingComment}
                   />
                   <motion.button
                     type="submit"
                     disabled={!newComment.trim() || isSubmittingComment}
                     whileTap={{ scale: 0.9 }}
-                    className="px-5 py-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 md:px-5 py-2 md:py-2.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap"
                   >
                     {isSubmittingComment ? '...' : 'Отправить'}
                   </motion.button>

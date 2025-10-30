@@ -5,6 +5,21 @@ const ffmpeg = require('fluent-ffmpeg');
 const { promisify } = require('util');
 const redisClient = require('../config/redis');
 
+// Configure ffmpeg/ffprobe binary paths explicitly (can be overridden by env)
+try {
+  const ffmpegPath = process.env.FFMPEG_PATH || '/usr/bin/ffmpeg';
+  const ffprobePath = process.env.FFPROBE_PATH || '/usr/bin/ffprobe';
+  if (ffmpeg && typeof ffmpeg.setFfmpegPath === 'function') {
+    ffmpeg.setFfmpegPath(ffmpegPath);
+  }
+  if (ffmpeg && typeof ffmpeg.setFfprobePath === 'function') {
+    ffmpeg.setFfprobePath(ffprobePath);
+  }
+  console.log(`[FFMPEG] Using ffmpeg at: ${ffmpegPath}, ffprobe at: ${ffprobePath}`);
+} catch (e) {
+  console.error('[FFMPEG] Failed to set binary paths:', e.message);
+}
+
 // Promisify ffmpeg.ffprobe
 const ffprobe = promisify(ffmpeg.ffprobe);
 
@@ -234,7 +249,7 @@ class VideoService {
         console.log(`[COMPRESS] Video already optimized, applying faststart only`);
         return this.optimizeVideoForFastStart(videoPath);
       }
-      
+
       const tempPath = videoPath + '.compressed';
       
       // Calculate scale filter for max 1080p
@@ -308,7 +323,7 @@ class VideoService {
               await fs.rename(tempPath, videoPath);
               
               console.log(`✅ Video compressed and optimized: ${videoPath}`);
-              resolve();
+                resolve();
             } catch (err) {
               console.error('[COMPRESS] Error replacing file:', err);
               // Clean up temp file
@@ -319,8 +334,8 @@ class VideoService {
           .on('error', (err) => {
             console.error('[COMPRESS] Error:', err);
             // Clean up temp file
-            fs.unlink(tempPath).catch(() => {});
-            reject(err);
+                fs.unlink(tempPath).catch(() => {});
+                reject(err);
           })
           .run();
       });
@@ -816,23 +831,34 @@ class VideoService {
         }
       }
 
-      // Get total comment count for pagination (only for top-level comments)
-      const countResult = await pool.query(
-        'SELECT COUNT(*) as total FROM video_comments WHERE video_id = $1 AND is_active = true AND parent_id IS NULL',
-        [videoId]
-      );
-      
-      const total = parseInt(countResult.rows[0].total);
+      // Get totals: top-level and all comments
+      const [topLevelCountResult, allCountResult] = await Promise.all([
+        pool.query(
+          'SELECT COUNT(*) as total FROM video_comments WHERE video_id = $1 AND is_active = true AND parent_id IS NULL',
+          [videoId]
+        ),
+        pool.query(
+          'SELECT COUNT(*) as total_all FROM video_comments WHERE video_id = $1 AND is_active = true',
+          [videoId]
+        )
+      ]);
+
+      const totalTopLevel = parseInt(topLevelCountResult.rows[0].total);
+      const totalAll = parseInt(allCountResult.rows[0].total_all);
 
       return {
         comments: topLevelComments,
         pagination: {
           page,
           limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasNext: page < Math.ceil(total / limit),
+          total: totalTopLevel,
+          totalPages: Math.ceil(totalTopLevel / limit),
+          hasNext: page < Math.ceil(totalTopLevel / limit),
           hasPrev: page > 1
+        },
+        totals: {
+          topLevel: totalTopLevel,
+          all: totalAll
         }
       };
     } catch (error) {

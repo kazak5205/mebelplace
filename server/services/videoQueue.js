@@ -28,6 +28,16 @@ videoQueue.process(2, async (job) => {
   console.log(`[VIDEO QUEUE] 🚀 Processing video ${videoId} (Job ${job.id})`);
   
   try {
+    // Mark as processing
+    try {
+      await require('../config/database').pool.query(
+        "UPDATE videos SET processing_status = 'processing' WHERE id = $1",
+        [videoId]
+      );
+    } catch (e) {
+      console.warn('[VIDEO QUEUE] Failed to set processing_status=processing:', e.message);
+    }
+
     // 1. Сжатие и оптимизация (самая тяжёлая операция)
     await job.progress(10);
     console.log(`[VIDEO QUEUE] Step 1/3: Compressing video ${videoId}...`);
@@ -49,6 +59,16 @@ videoQueue.process(2, async (job) => {
     await job.progress(100);
     console.log(`[VIDEO QUEUE] ✅ Duration calculated for ${videoId}`);
     
+    // Mark as completed
+    try {
+      await require('../config/database').pool.query(
+        "UPDATE videos SET processing_status = 'completed' WHERE id = $1",
+        [videoId]
+      );
+    } catch (e) {
+      console.warn('[VIDEO QUEUE] Failed to set processing_status=completed:', e.message);
+    }
+
     console.log(`[VIDEO QUEUE] ✅ Video ${videoId} processed successfully`);
     
     return { 
@@ -59,7 +79,16 @@ videoQueue.process(2, async (job) => {
     
   } catch (error) {
     console.error(`[VIDEO QUEUE] ❌ Error processing video ${videoId}:`, error);
-    
+    // Mark as failed
+    try {
+      await require('../config/database').pool.query(
+        "UPDATE videos SET processing_status = 'failed' WHERE id = $1",
+        [videoId]
+      );
+    } catch (e) {
+      console.warn('[VIDEO QUEUE] Failed to set processing_status=failed:', e.message);
+    }
+
     // Логируем ошибку, но не пробрасываем (чтобы не блокировать очередь)
     throw new Error(`Video processing failed: ${error.message}`);
   }

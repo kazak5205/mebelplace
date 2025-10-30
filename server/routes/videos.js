@@ -161,12 +161,11 @@ router.get('/feed', optionalAuth, async (req, res) => {
         avp.priority_order,
         avp.is_featured,
         COUNT(DISTINCT vl.id)::int as like_count,
-        COUNT(DISTINCT vc.id)::int as comment_count
+        v.comments::int as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN admin_video_priorities avp ON v.id = avp.video_id
       LEFT JOIN video_likes vl ON v.id = vl.video_id
-      LEFT JOIN video_comments vc ON v.id = vc.video_id AND vc.is_active = true
       WHERE v.is_active = true AND v.is_public = true
     `;
     
@@ -184,7 +183,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     }
 
     query += `
-      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, avp.priority_order, avp.is_featured
+      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, v.comments, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, avp.priority_order, avp.is_featured
       ORDER BY v.created_at DESC
     `;
 
@@ -205,12 +204,11 @@ router.get('/feed', optionalAuth, async (req, res) => {
         avp.priority_order,
         avp.is_featured,
         COUNT(DISTINCT vl.id)::int as like_count,
-        COUNT(DISTINCT vc.id)::int as comment_count
+        v.comments::int as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN admin_video_priorities avp ON v.id = avp.video_id
       LEFT JOIN video_likes vl ON v.id = vl.video_id
-      LEFT JOIN video_comments vc ON v.id = vc.video_id AND vc.is_active = true
       WHERE v.is_active = true AND v.is_public = true AND avp.is_featured = true
     `;
     
@@ -228,7 +226,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     }
 
     adminVideosQuery += `
-      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, avp.priority_order, avp.is_featured
+      GROUP BY v.id, v.title, v.description, v.video_url, v.thumbnail_url, v.duration, v.file_size, v.author_id, v.category, v.tags, v.views, v.likes, v.is_public, v.is_active, v.created_at, v.updated_at, v.comments, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, avp.priority_order, avp.is_featured
       ORDER BY avp.priority_order ASC, v.created_at DESC
     `;
 
@@ -309,8 +307,9 @@ router.get('/feed', optionalAuth, async (req, res) => {
       timestamp: new Date().toISOString()
     };
 
-    // ✅ Сохраняем в кэш (TTL 3 минуты)
-    await redisClient.setWithTTL(cacheKey, responseData, 180);
+    // ✅ Сохраняем в кэш с тегами (TTL 3 минуты)
+    const tags = Array.from(new Set(pageVideos.map(v => `video:${v.id}`)));
+    await redisClient.setWithTags(cacheKey, responseData, 180, tags);
 
     res.json(responseData);
 
@@ -403,6 +402,13 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
+    // Invalidate cache tags for this video
+    try {
+      await redisClient.invalidateTags([`video:${videoId}`]);
+    } catch (e) {
+      console.error('[CACHE] Failed to invalidate tags after like:', e.message);
+    }
+
   } catch (error) {
     console.error('Video like error:', error);
     res.status(500).json({
@@ -471,6 +477,16 @@ router.post('/:id/comment', authenticateToken, async (req, res) => {
 
     comment.user = userResult.rows[0];
 
+    // Инвалидация кэша по тегам для этого видео
+    try {
+      const tags = [`video:${videoId}`];
+      // Также можно инвалидировать канал автора
+      if (video?.author_id) tags.push(`author:${video.author_id}`);
+      await redisClient.invalidateTags(tags);
+    } catch (e) {
+      console.error('[CACHE] Failed to invalidate tags after comment:', e.message);
+    }
+
     res.json({
       success: true,
       data: comment,
@@ -535,9 +551,26 @@ router.get('/:id/comments', async (req, res) => {
       comment.replies = repliesResult.rows;
     }
 
+    // Totals (top-level and all comments)
+    const [topLevelCount, allCount] = await Promise.all([
+      pool.query('SELECT COUNT(*)::int AS total FROM video_comments WHERE video_id = $1 AND is_active = true AND parent_id IS NULL', [videoId]),
+      pool.query('SELECT COUNT(*)::int AS total_all FROM video_comments WHERE video_id = $1 AND is_active = true', [videoId])
+    ]);
+
     res.json({
       success: true,
-      data: result.rows,
+      data: {
+        comments: result.rows,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: topLevelCount.rows[0].total,
+        },
+        totals: {
+          topLevel: topLevelCount.rows[0].total,
+          all: allCount.rows[0].total_all
+        }
+      },
       message: 'Comments retrieved successfully',
       timestamp: new Date().toISOString()
     });
@@ -625,14 +658,13 @@ router.get('/trending', async (req, res) => {
         u.last_name as master_last_name,
         u.avatar as master_avatar,
         COUNT(DISTINCT vl.id) as likes_count,
-        COUNT(DISTINCT vc.id) as comments_count,
+        v.comments as comments_count,
         COUNT(DISTINCT vv.id) as views_count,
         COUNT(DISTINCT vb.id) as bookmarks_count,
         (COUNT(DISTINCT vl.id) * 0.7 + COUNT(DISTINCT vv.id) * 0.3) as trending_score
       FROM videos v
       JOIN users u ON v.author_id = u.id
       LEFT JOIN video_likes vl ON v.id = vl.video_id
-      LEFT JOIN video_comments vc ON v.id = vc.video_id
       LEFT JOIN video_views vv ON v.id = vv.video_id
       LEFT JOIN video_bookmarks vb ON v.id = vb.video_id
       WHERE v.is_active = true ${dateFilter}
@@ -674,14 +706,13 @@ router.get('/bookmarked', authenticateToken, async (req, res) => {
         u.last_name as master_last_name,
         u.avatar as master_avatar,
         COUNT(DISTINCT vl.id) as likes_count,
-        COUNT(DISTINCT vc.id) as comments_count,
+        v.comments as comments_count,
         COUNT(DISTINCT vv.id) as views_count,
         vb.created_at as bookmarked_at
       FROM video_bookmarks vb
       JOIN videos v ON vb.video_id = v.id
       JOIN users u ON v.author_id = u.id
       LEFT JOIN video_likes vl ON v.id = vl.video_id
-      LEFT JOIN video_comments vc ON v.id = vc.video_id
       LEFT JOIN video_views vv ON v.id = vv.video_id
       WHERE vb.user_id = $1 AND v.is_active = true
       GROUP BY v.id, u.id, u.username, u.first_name, u.last_name, u.avatar, vb.created_at
@@ -813,13 +844,12 @@ router.get('/master/:id', async (req, res) => {
         u.company_name,
         u.role,
         COUNT(DISTINCT vl.id)::int as like_count,
-        COUNT(DISTINCT vc.id)::int as comment_count
+        v.comments::int as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN video_likes vl ON v.id = vl.video_id
-      LEFT JOIN video_comments vc ON v.id = vc.video_id AND vc.is_active = true
       WHERE v.author_id = $1 AND v.is_active = true
-      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role
+      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, v.comments
       ORDER BY v.created_at DESC
     `, [masterId]);
 
@@ -858,13 +888,12 @@ router.get('/:id', optionalAuth, async (req, res) => {
         u.company_name,
         u.role,
         COUNT(DISTINCT vl.id)::int as like_count,
-        COUNT(DISTINCT vc.id)::int as comment_count
+        v.comments::int as comment_count
       FROM videos v
       LEFT JOIN users u ON v.author_id = u.id
       LEFT JOIN video_likes vl ON v.id = vl.video_id
-      LEFT JOIN video_comments vc ON v.id = vc.video_id AND vc.is_active = true
       WHERE v.id = $1 AND v.is_active = true
-      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role
+      GROUP BY v.id, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, v.comments
     `, [videoId]);
 
     if (result.rows.length === 0) {

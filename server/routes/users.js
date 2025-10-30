@@ -513,6 +513,19 @@ router.get('/:id', async (req, res) => {
       );
       user.subscribers_count = parseInt(subscribersResult.rows[0].count);
 
+      // Company type (if present in schema)
+      try {
+        const companyTypeRes = await pool.query(
+          'SELECT company_type FROM users WHERE id = $1',
+          [userId]
+        );
+        if (companyTypeRes.rows[0]) {
+          user.company_type = companyTypeRes.rows[0].company_type || null;
+        }
+      } catch (e) {
+        // ignore if column doesn't exist
+      }
+
       // Рейтинг и отзывы (если есть таблица reviews)
       try {
         const reviewsResult = await pool.query(

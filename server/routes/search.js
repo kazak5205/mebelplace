@@ -72,9 +72,12 @@ router.get('/', optionalAuth, async (req, res) => {
       searchConditions.push(`(
         v.title ILIKE $${++paramCount} 
         OR v.description ILIKE $${++paramCount}
-        OR $${++paramCount} = ANY(v.tags)
+        OR EXISTS (
+          SELECT 1 FROM unnest(v.tags) AS tag 
+          WHERE tag ILIKE $${++paramCount}
+        )
       )`);
-      params.push(`%${searchTerm}%`, `%${searchTerm}%`, searchTerm);
+      params.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
 
     if (type === 'channel' || type === 'all') {
@@ -125,9 +128,12 @@ router.get('/', optionalAuth, async (req, res) => {
       countSearchConditions.push(`(
         v.title ILIKE $${++countParamCount} 
         OR v.description ILIKE $${++countParamCount}
-        OR $${++countParamCount} = ANY(v.tags)
+        OR EXISTS (
+          SELECT 1 FROM unnest(v.tags) AS tag 
+          WHERE tag ILIKE $${++countParamCount}
+        )
       )`);
-      countParams.push(`%${searchTerm}%`, `%${searchTerm}%`, searchTerm);
+      countParams.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
 
     if (type === 'channel' || type === 'all') {
@@ -162,10 +168,53 @@ router.get('/', optionalAuth, async (req, res) => {
       }
     }
 
+    // Search for masters/channels separately if type is 'all' or 'channel'
+    let masters = [];
+    if (type === 'all' || type === 'channel') {
+      const mastersQuery = `
+        SELECT DISTINCT
+          u.id,
+          u.username,
+          u.avatar,
+          u.first_name,
+          u.last_name,
+          u.company_name,
+          u.role,
+          u.bio,
+          u.created_at,
+          COUNT(DISTINCT v.id) as video_count,
+          'channel' as result_type
+        FROM users u
+        LEFT JOIN videos v ON u.id = v.author_id AND v.is_active = true AND v.is_public = true
+        WHERE u.is_active = true 
+          AND u.role = 'master'
+          AND (
+            u.username ILIKE $1
+            OR u.first_name ILIKE $2
+            OR u.last_name ILIKE $3
+            OR u.company_name ILIKE $4
+          )
+        GROUP BY u.id, u.username, u.avatar, u.first_name, u.last_name, u.company_name, u.role, u.bio, u.created_at
+        ORDER BY video_count DESC, u.created_at DESC
+        LIMIT 10
+      `;
+      
+      const mastersParams = [
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`
+      ];
+      
+      const mastersResult = await pool.query(mastersQuery, mastersParams);
+      masters = mastersResult.rows;
+    }
+
     res.json({
       success: true,
       data: {
         videos: result.rows,
+        masters: masters || [],
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

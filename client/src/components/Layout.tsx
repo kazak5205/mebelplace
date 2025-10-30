@@ -33,7 +33,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {children}
+          <div className="max-w-screen-xl mx-auto px-4">
+            {children}
+          </div>
         </motion.div>
       </main>
       <BottomNavigation />

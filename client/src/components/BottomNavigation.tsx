@@ -17,7 +17,7 @@ const BottomNavigation: React.FC = () => {
   // Показываем навигацию для всех пользователей
   if (!user) {
     return (
-      <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-xl border-t border-white/10 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-xl border-t border-white/10 z-50 pb-safe">
         <div className="flex items-center justify-around py-2">
           <NavLink to="/" className="flex flex-col items-center space-y-1 p-2 text-white/70 hover:text-white transition-colors">
             <Home className="w-5 h-5" />
@@ -79,7 +79,7 @@ const BottomNavigation: React.FC = () => {
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-md border-t border-gray-800"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-md border-t border-gray-800 pb-safe"
     >
       <div className="flex items-center justify-around px-2 py-2 max-w-md mx-auto">
         {navItems.map((item) => {

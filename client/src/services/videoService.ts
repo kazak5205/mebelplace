@@ -27,7 +27,7 @@ export const videoService = {
   async getComments(videoId: string, params?: {
     page?: number
     limit?: number
-  }): Promise<any[]> {
+  }): Promise<{ comments: any[]; pagination: any; totals?: { topLevel: number; all: number } }> {
     return apiService.get(`/videos/${videoId}/comments`, params)
   },
 
@@ -59,8 +59,13 @@ export const videoService = {
     page?: number
     limit?: number
     category?: string
-  }): Promise<{ videos: any[]; pagination: any; search: any }> {
+  }): Promise<{ videos: any[]; masters: any[]; pagination: any; search: any }> {
     const response = await apiService.get('/search', params) as any
-    return response // apiService.get уже возвращает data.data
+    return {
+      videos: response.videos || [],
+      masters: response.masters || [],
+      pagination: response.pagination || {},
+      search: response.search || {}
+    }
   }
 }
