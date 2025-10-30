@@ -8,7 +8,6 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/image_helper.dart';
 import '../../data/models/video_model.dart';
 import '../../data/models/comment_model.dart';
-import '../providers/video_provider.dart';
 import '../providers/app_providers.dart' as providers;
 import '../widgets/tiktok_video_player.dart';
 import '../widgets/loading_widget.dart';
@@ -35,7 +34,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
     WidgetsBinding.instance.addObserver(this);
     // Load videos when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(videoProvider.notifier).loadVideos();
+      ref.read(providers.videoProvider.notifier).loadVideos();
     });
   }
 
@@ -127,7 +126,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
   @override
   Widget build(BuildContext context) {
     super.build(context); // Обязательно для AutomaticKeepAliveClientMixin
-    final videoState = ref.watch(videoProvider);
+    final videoState = ref.watch(providers.videoProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -142,10 +141,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
                       videos: videoState.videos,
                       onVideoChanged: (video) {
                         // Record view
-                        ref.read(videoProvider.notifier).recordView(video.id);
+                        ref.read(providers.videoProvider.notifier).recordView(video.id);
                       },
                       onLike: (video) {
-                        ref.read(videoProvider.notifier).likeVideo(video.id);
+                        ref.read(providers.videoProvider.notifier).likeVideo(video.id);
                       },
                       onShare: (video) {
                         _showShareDialog(video);
@@ -233,7 +232,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
           SizedBox(height: 32.h),
           ElevatedButton(
             onPressed: () {
-              ref.read(videoProvider.notifier).loadVideos();
+              ref.read(providers.videoProvider.notifier).loadVideos();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
