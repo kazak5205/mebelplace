@@ -304,8 +304,8 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка отправки комментария: $e'),
-            backgroundColor: Colors.red,
+            content: const Text('Не удалось отправить комментарий'),
+            backgroundColor: Colors.red.shade600,
           ),
         );
       }

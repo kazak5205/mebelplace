@@ -1,0 +1,20 @@
+* [33md5a388b[m[33m ([m[1;31morigin/app-store-preparation[m[33m)[m feat: Add company type selection for masters (yellow/orange/red)
+* [33mf1bd365[m Add company type selection for masters (Мастер/Мебельная компания/Мебельный магазин) with color-coded badges
+* [33mc3bf190[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mapp-store-preparation[m[33m)[m chore: remove React Native version - Flutter is the main mobile app
+* [33m997c776[m chore: trigger rebuild with routeObserver import
+* [33m11fc797[m fix: add missing import for routeObserver
+* [33me88e80c[m chore: bump version to 1.0.0+61
+* [33md40334b[m feat: add RouteAware for robust video pause - handles IndexedStack, pushed routes, and modals
+* [33m2a8c50c[m refactor: simplify video pause logic - use HomeScreen lifecycle instead of provider
+* [33m39057e0[m chore: bump version to 1.0.0+60
+* [33m2a94121[m feat: optimize video playback - preload 3 videos, buffer at 25%, pause on nav, expandable description, show thumbnail while loading/error
+* [33m53d67e8[m chore: bump version to 1.0.0+59
+* [33m647c0d9[m feat: improve welcome modal text - emphasize video ads for masters, add clearer instructions
+* [33m7dbf6df[m fix: improve UI navigation and video playback - fix FAB click zone, fix video URLs with ImageHelper, add video detail route, remove SafeArea bottom to prevent transparent bar
+* [33m2436bc4[m chore: update build number to 58 in codemagic.yaml
+* [33m9c612a6[m chore: bump version to 1.0.0+58
+* [33m7956ffa[m feat: change SMS code input from 4 to 6 digits
+* [33md7ce938[m chore: bump version to 1.0.0+56 for AAB release
+* [33m870bb57[m fix: add missing providers prefix for commentProvider in home_screen.dart
+* [33mb669741[m Update Flutter app: API service, home screen, profile screen and app providers
+* [33m7db0448[m chore: bump version to 1.0.0+57

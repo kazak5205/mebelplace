@@ -6,7 +6,7 @@ import 'dart:io';
 import '../../../core/theme/app_theme.dart';
 import '../../../utils/haptic_helper.dart';
 import '../../providers/repository_providers.dart';
-import '../../providers/app_providers.dart'; // ✅ Добавлен импорт провайдеров
+import '../../providers/app_providers.dart';
 
 /// TikTok-style экран создания заказа
 class CreateOrderPage extends ConsumerStatefulWidget {
@@ -1045,20 +1045,14 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
 
   void _showError(String message) {
     HapticHelper.error();
+    // Как в вебе - простое уведомление
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            SizedBox(width: 12.w),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
+        content: Text(message),
+        backgroundColor: Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+        margin: EdgeInsets.all(16.w),
       ),
     );
   }

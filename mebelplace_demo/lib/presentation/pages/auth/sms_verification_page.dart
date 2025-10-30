@@ -333,9 +333,9 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
     
     if (code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Введите полный код'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Введите полный код'),
+          backgroundColor: Colors.red.shade600,
         ),
       );
       return;
@@ -368,7 +368,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(response.message ?? 'Неверный код'),
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.red.shade600,
             ),
           );
         }
@@ -382,7 +382,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка верификации: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade600,
           ),
         );
         setState(() {
@@ -422,7 +422,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(response.message ?? 'Ошибка отправки кода'),
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.red.shade600,
             ),
           );
         }
@@ -432,7 +432,7 @@ class _SmsVerificationPageState extends ConsumerState<SmsVerificationPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade600,
           ),
         );
       }
