@@ -243,12 +243,12 @@ class ChatSocket {
     });
   }
   
-  // Обновление статуса пользователя в БД
-  async setUserOnline(userId, isActive) {
+  // Обновление онлайн-статуса пользователя в БД
+  async setUserOnline(userId, isOnline) {
     try {
       await pool.query(
-        'UPDATE users SET is_active = $1, last_seen = NOW() WHERE id = $2',
-        [isActive, userId]
+        'UPDATE users SET is_online = $1, last_seen = NOW() WHERE id = $2',
+        [isOnline, userId]
       );
     } catch (error) {
       console.error('Error updating user online status:', error);
