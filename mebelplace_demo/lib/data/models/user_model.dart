@@ -56,7 +56,49 @@ class UserModel {
     this.companyDescription,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
+  // ✅ Ручной парсинг для поддержки snake_case с бэкенда
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id'].toString(),
+      username: (json['username'] ?? '').toString(),
+      email: json['email']?.toString(),
+      phone: json['phone']?.toString(),
+      firstName: (json['firstName'] ?? json['first_name'])?.toString(),
+      lastName: (json['lastName'] ?? json['last_name'])?.toString(),
+      avatar: json['avatar']?.toString(),
+      role: (json['role'] ?? 'user').toString(),
+      isActive: json['isActive'] ?? json['is_active'],
+      isOnline: json['isOnline'] ?? json['is_online'],
+      lastSeen: json['lastSeen'] != null || json['last_seen'] != null
+          ? DateTime.tryParse((json['lastSeen'] ?? json['last_seen']).toString())
+          : null,
+      isVerified: json['isVerified'] ?? json['is_verified'],
+      createdAt: json['createdAt'] != null || json['created_at'] != null
+          ? DateTime.tryParse((json['createdAt'] ?? json['created_at']).toString())
+          : null,
+      updatedAt: json['updatedAt'] != null || json['updated_at'] != null
+          ? DateTime.tryParse((json['updatedAt'] ?? json['updated_at']).toString())
+          : null,
+      rating: json['rating'] != null ? double.tryParse(json['rating'].toString()) : null,
+      followersCount: json['followersCount'] != null || json['followers_count'] != null
+          ? int.tryParse((json['followersCount'] ?? json['followers_count'] ?? 0).toString())
+          : null,
+      subscribersCount: json['subscribersCount'] != null || json['subscribers_count'] != null
+          ? int.tryParse((json['subscribersCount'] ?? json['subscribers_count'] ?? 0).toString())
+          : null,
+      subscriptionsCount: json['subscriptionsCount'] != null || json['subscriptions_count'] != null
+          ? int.tryParse((json['subscriptionsCount'] ?? json['subscriptions_count'] ?? 0).toString())
+          : null,
+      ordersCount: json['ordersCount'] != null || json['orders_count'] != null
+          ? int.tryParse((json['ordersCount'] ?? json['orders_count'] ?? 0).toString())
+          : null,
+      bio: json['bio']?.toString(),
+      companyName: (json['companyName'] ?? json['company_name'])?.toString(),
+      companyAddress: (json['companyAddress'] ?? json['company_address'])?.toString(),
+      companyDescription: (json['companyDescription'] ?? json['company_description'])?.toString(),
+    );
+  }
+
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
 
   UserModel copyWith({

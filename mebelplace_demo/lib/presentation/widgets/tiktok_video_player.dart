@@ -342,23 +342,41 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       );
     }
 
+    final videoState = ref.watch(videoProvider);
+    
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Video PageView
-          PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            onPageChanged: _onPageChanged,
-            itemCount: widget.videos.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: _toggleControls,
-                onDoubleTap: _onDoubleTap,
-                child: _buildVideoItem(widget.videos[index]),
-              );
-            },
+          // ✅ Pull-to-refresh обертка
+          RefreshIndicator(
+            onRefresh: () => ref.read(videoProvider.notifier).refreshVideos(),
+            backgroundColor: Colors.white.withOpacity(0.9),
+            color: AppColors.primary,
+            child: PageView.builder(
+              controller: _pageController,
+              scrollDirection: Axis.vertical,
+              onPageChanged: (index) {
+                _currentIndex = index;
+                _videoController?.pause();
+                _initializeVideo();
+                widget.onVideoChanged?.call(widget.videos[index]);
+                
+                // ✅ Проверяем необходимость загрузки следующей страницы
+                final totalVideos = widget.videos.length;
+                if (index >= (totalVideos * 0.8).floor() && totalVideos > 0) {
+                  ref.read(videoProvider.notifier).loadMoreVideos();
+                }
+              },
+              itemCount: widget.videos.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: _toggleControls,
+                  onDoubleTap: _onDoubleTap,
+                  child: _buildVideoItem(widget.videos[index]),
+                );
+              },
+            ),
           ),
           
           // Overlay elements
@@ -366,6 +384,44 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
           _buildRightActions(),
           _buildBottomInfo(),
           _buildOrderButton(), // Новая кнопка заказа
+          
+          // ✅ Индикатор загрузки новых видео (пагинация)
+          if (videoState.isLoadingMore)
+            Positioned(
+              bottom: 100.h,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16.w,
+                        height: 16.w,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Text(
+                        'Загружаем ещё видео...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

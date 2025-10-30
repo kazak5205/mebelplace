@@ -22,18 +22,53 @@ class VideoNotifier extends StateNotifier<VideoState> {
 
   VideoNotifier(this._videoRepository) : super(VideoState.initial());
 
+  // ✅ Загрузка первой страницы (сброс)
   Future<void> loadVideos() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, currentPage: 1);
     try {
-      final videos = await _videoRepository.getVideos();
+      final videos = await _videoRepository.getVideoFeed(page: 1, limit: 20);
       state = state.copyWith(
         videos: videos,
         isLoading: false,
         error: null,
+        currentPage: 1,
+        hasMore: videos.length >= 20, // Если получили полную страницу - есть ещё
       );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  // ✅ Pull-to-refresh (перезагрузка с первой страницы)
+  Future<void> refreshVideos() async {
+    await loadVideos();
+  }
+
+  // ✅ Загрузка следующей страницы (пагинация)
+  Future<void> loadMoreVideos() async {
+    // Не загружаем если уже загружаем или нет больше данных
+    if (state.isLoadingMore || !state.hasMore) return;
+
+    state = state.copyWith(isLoadingMore: true);
+    try {
+      final nextPage = state.currentPage + 1;
+      final newVideos = await _videoRepository.getVideoFeed(page: nextPage, limit: 20);
+      
+      // Объединяем старые и новые видео
+      final allVideos = [...state.videos, ...newVideos];
+      
+      state = state.copyWith(
+        videos: allVideos,
+        isLoadingMore: false,
+        currentPage: nextPage,
+        hasMore: newVideos.length >= 20, // Если получили полную страницу - есть ещё
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoadingMore: false,
         error: e.toString(),
       );
     }
@@ -105,11 +140,17 @@ class VideoNotifier extends StateNotifier<VideoState> {
 class VideoState {
   final List<VideoModel> videos;
   final bool isLoading;
+  final bool isLoadingMore; // ✅ Для пагинации
+  final int currentPage; // ✅ Текущая страница
+  final bool hasMore; // ✅ Есть ли ещё видео
   final String? error;
 
   VideoState({
     required this.videos,
     required this.isLoading,
+    required this.isLoadingMore,
+    required this.currentPage,
+    required this.hasMore,
     this.error,
   });
 
@@ -117,6 +158,9 @@ class VideoState {
     return VideoState(
       videos: [],
       isLoading: false,
+      isLoadingMore: false,
+      currentPage: 1,
+      hasMore: true,
       error: null,
     );
   }
@@ -124,11 +168,17 @@ class VideoState {
   VideoState copyWith({
     List<VideoModel>? videos,
     bool? isLoading,
+    bool? isLoadingMore,
+    int? currentPage,
+    bool? hasMore,
     String? error,
   }) {
     return VideoState(
       videos: videos ?? this.videos,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      currentPage: currentPage ?? this.currentPage,
+      hasMore: hasMore ?? this.hasMore,
       error: error ?? this.error,
     );
   }

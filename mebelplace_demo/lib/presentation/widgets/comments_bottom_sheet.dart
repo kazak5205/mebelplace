@@ -230,9 +230,9 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
               color: AppColors.primary.withOpacity(0.2),
             ),
             child: ClipOval(
-              child: ImageHelper.hasValidImagePath(comment.userAvatar)
+              child: ImageHelper.hasValidImagePath(comment.avatar)
                   ? CachedNetworkImage(
-                      imageUrl: ImageHelper.getFullImageUrl(comment.userAvatar),
+                      imageUrl: ImageHelper.getFullImageUrl(comment.avatar!),
                       fit: BoxFit.cover,
                       placeholder: (context, url) => const Icon(Icons.person, color: Colors.white54),
                       errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.white54),
@@ -250,7 +250,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                 Row(
                   children: [
                     Text(
-                      comment.username,
+                      comment.displayName,
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w600,
