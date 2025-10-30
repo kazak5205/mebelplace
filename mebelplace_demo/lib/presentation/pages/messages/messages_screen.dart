@@ -207,7 +207,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     final otherUser = chat.otherUser;
     final otherUserName = otherUser?.displayName ?? 'Пользователь';
     final otherUserAvatar = otherUser?.avatar;
-    final isOnline = otherUser?.isActive ?? false;
+    final isOnline = otherUser?.isOnline ?? false;  // ✅ Используем правильное поле isOnline
     
     // Последнее сообщение и время
     final lastMessage = chat.lastMessage ?? 'Нет сообщений';

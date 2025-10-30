@@ -5,7 +5,8 @@ class ChatParticipant {
   final String? firstName;
   final String? lastName;
   final String? avatar;
-  final bool isActive;
+  final bool isActive;   // Статус аккаунта (активен/заблокирован)
+  final bool isOnline;   // Онлайн статус в чате
   final String? role;
   final String? name;
 
@@ -15,7 +16,8 @@ class ChatParticipant {
     this.firstName,
     this.lastName,
     this.avatar,
-    this.isActive = false,
+    this.isActive = true,   // По умолчанию аккаунт активен
+    this.isOnline = false,  // По умолчанию оффлайн
     this.role,
     this.name,
   });
@@ -27,7 +29,8 @@ class ChatParticipant {
       firstName: json['first_name'] ?? json['firstName'],
       lastName: json['last_name'] ?? json['lastName'],
       avatar: json['avatar']?.toString(),
-      isActive: json['is_active'] ?? json['isActive'] ?? false,
+      isActive: json['is_active'] ?? json['isActive'] ?? true,   // Статус аккаунта
+      isOnline: json['is_online'] ?? json['isOnline'] ?? false,  // Онлайн статус
       role: json['role']?.toString(),
       name: json['name']?.toString(),
     );
@@ -49,6 +52,7 @@ class ChatParticipant {
       'last_name': lastName,
       'avatar': avatar,
       'is_active': isActive,
+      'is_online': isOnline,
       'role': role,
       'name': name,
     };

@@ -12,7 +12,9 @@ class UserModel {
   final String? lastName;
   final String? avatar;
   final String role;
-  final bool? isActive;    // NULLABLE - сервер не всегда присылает
+  final bool? isActive;    // Статус аккаунта (активен/заблокирован)
+  final bool? isOnline;    // Онлайн статус в чате
+  final DateTime? lastSeen; // Время последней активности
   final bool? isVerified;  // NULLABLE - сервер не всегда присылает
   final DateTime? createdAt; // NULLABLE - может отсутствовать
   final DateTime? updatedAt;
@@ -38,6 +40,8 @@ class UserModel {
     this.avatar,
     required this.role,
     this.isActive,    // опционально
+    this.isOnline,    // опционально
+    this.lastSeen,    // опционально
     this.isVerified,  // опционально
     this.createdAt,   // опционально
     this.updatedAt,
@@ -65,6 +69,8 @@ class UserModel {
     String? avatar,
     String? role,
     bool? isActive,
+    bool? isOnline,
+    DateTime? lastSeen,
     bool? isVerified,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -88,6 +94,8 @@ class UserModel {
       avatar: avatar ?? this.avatar,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
+      isOnline: isOnline ?? this.isOnline,
+      lastSeen: lastSeen ?? this.lastSeen,
       isVerified: isVerified ?? this.isVerified,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
