@@ -90,7 +90,7 @@ const ChatPage: React.FC = () => {
           participants: prevChat.participants.map((p: any) => {
             const participantId = p.user_id || p.userId || p.id
             if (participantId === data.userId) {
-              return { ...p, is_active: data.isActive }
+              return { ...p, is_online: data.isOnline }
             }
             return p
           })
@@ -328,7 +328,7 @@ const ChatPage: React.FC = () => {
                 );
               })()}
             </button>
-            {(getOtherParticipant() as any)?.is_active && (
+            {(getOtherParticipant() as any)?.is_online && (
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900" />
             )}
           </div>
@@ -338,7 +338,7 @@ const ChatPage: React.FC = () => {
               {(getOtherParticipant() as any)?.name || (getOtherParticipant() as any)?.username}
             </h3>
             <p className="text-sm text-white/60">
-              {(getOtherParticipant() as any)?.is_active ? 'В сети' : 'Не в сети'}
+              {(getOtherParticipant() as any)?.is_online ? 'В сети' : 'Не в сети'}
             </p>
           </div>
 

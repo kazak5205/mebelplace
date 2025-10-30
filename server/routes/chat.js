@@ -225,6 +225,8 @@ router.get('/list', authenticateToken, async (req, res) => {
           u.last_name,
           u.avatar,
           u.is_active,
+          u.is_online,
+          u.last_seen,
           COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.username) as name
         FROM chat_participants cp
         INNER JOIN users u ON cp.user_id = u.id
@@ -309,6 +311,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
         u.last_name,
         u.avatar,
         u.is_active,
+        u.is_online,
+        u.last_seen,
         COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.username) as name
       FROM chat_participants cp
       INNER JOIN users u ON cp.user_id = u.id

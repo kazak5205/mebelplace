@@ -58,7 +58,7 @@ class ChatSocket {
       // Транслируем всем, что пользователь онлайн
       this.io.emit('user_status_changed', {
         userId: socket.userId,
-        isActive: true
+        isOnline: true
       });
 
       // Подключение к чату
@@ -225,7 +225,7 @@ class ChatSocket {
         // Транслируем всем, что пользователь оффлайн
         this.io.emit('user_status_changed', {
           userId: socket.userId,
-          isActive: false
+          isOnline: false
         });
         
         // Удаляем из списка печатающих (Redis)
