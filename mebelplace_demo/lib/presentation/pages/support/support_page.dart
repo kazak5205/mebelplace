@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/app_providers.dart';
 
 class SupportPage extends ConsumerStatefulWidget {
   const SupportPage({super.key});
