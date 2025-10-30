@@ -68,7 +68,7 @@ class OrderModel {
       deadline: json['deadline'] != null ? DateTime.tryParse(json['deadline'].toString()) : null,
       location: json['location']?.toString() ?? json['city']?.toString(), // ✅ Бэкенд использует 'city'
       images: (json['images'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      createdAt: DateTime.parse((json['createdAt'] ?? json['created_at']).toString()),
+      createdAt: DateTime.tryParse((json['createdAt'] ?? json['created_at'] ?? '').toString()) ?? DateTime.now(), // ✅ Защита от null
       updatedAt: json['updatedAt'] != null || json['updated_at'] != null
           ? DateTime.tryParse((json['updatedAt'] ?? json['updated_at']).toString())
           : null,
