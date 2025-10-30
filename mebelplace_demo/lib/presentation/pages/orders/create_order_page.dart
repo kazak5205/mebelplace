@@ -460,8 +460,8 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
                   },
                   items: _categories.map<DropdownMenuItem<String>>((cat) {
                     return DropdownMenuItem<String>(
-                      value: cat['id'],
-                      child: Text(cat['name']),
+                      value: cat['id'] as String,
+                      child: Text(cat['name'] as String),
                     );
                   }).toList(),
                 ),
