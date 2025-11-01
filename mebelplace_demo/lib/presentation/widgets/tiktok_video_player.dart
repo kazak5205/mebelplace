@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -183,8 +182,11 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     // Проверяем кеш (как на вебе - просто используем если есть)
     if (_controllerCache.containsKey(index)) {
       final cachedController = _controllerCache[index]!;
-      if (!cachedController.hasListeners) {
+      // Добавляем listener если его нет (проверяем через try-catch или просто добавляем)
+      try {
         cachedController.addListener(_videoListener);
+      } catch (_) {
+        // Listener уже добавлен - игнорируем
       }
       if (isCurrent) {
         setState(() {
@@ -294,34 +296,33 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     _previousController = null;
     _nextController = null;
     
-    // ✅ Устанавливаем текущий с немедленной инициализацией через scheduleMicrotask
+    // ✅ Устанавливаем текущий контроллер (как на вебе - просто setCurrentIndex)
     if (_controllerCache.containsKey(newIndex)) {
       final controller = _controllerCache[newIndex]!;
       setState(() {
         _currentController = controller;
       });
       
-      // ✅ Используем scheduleMicrotask для приоритета выполнения
-      scheduleMicrotask(() {
-        if (controller.value.isInitialized) {
-          if (mounted && _currentIndex == newIndex && _currentController == controller) {
+      // ✅ Играем сразу если инициализирован (как на вебе video.play())
+      if (controller.value.isInitialized) {
+        if (mounted && _currentIndex == newIndex && _currentController == controller) {
+          _playCurrentVideo();
+        }
+      } else {
+        // Если не инициализирован - инициализируем и играем
+        controller.initialize().then((_) {
+          // ✅ Проверяем актуальность ПОСЛЕ асинхронной инициализации
+          if (mounted && 
+              _currentIndex == newIndex && 
+              _currentController == controller &&
+              controller.value.isInitialized) {
+            setState(() {
+              _currentController = controller;
+            });
             _playCurrentVideo();
           }
-        } else {
-          controller.initialize().then((_) {
-            // ✅ Проверяем актуальность ПОСЛЕ асинхронной инициализации
-            if (mounted && 
-                _currentIndex == newIndex && 
-                _currentController == controller &&
-                controller.value.isInitialized) {
-              setState(() {
-                _currentController = controller;
-              });
-              _playCurrentVideo();
-            }
-          }).catchError((_) {});
-        }
-      });
+        }).catchError((_) {}); // Игнорируем ошибки как на вебе
+      }
       
       // Уведомляем о смене видео
       if (widget.onVideoChanged != null && newIndex < widget.videos.length) {
@@ -331,9 +332,6 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
           widget.onVideoChanged!(video);
         }
       }
-      setState(() {
-        _isBuffering = false;
-      });
     } else {
       // Инициализируем новый контроллер
       _initializeController(newIndex, isCurrent: true);
