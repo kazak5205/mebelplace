@@ -109,7 +109,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           // Информация о мастере
           _buildMasterInfo(response),
           
-          SizedBox(height: 16.h),
+          SizedBox(height: 8.h), // ✅ Уменьшен отступ
           
           // Сообщение мастера (без рамки)
           Text(
@@ -119,14 +119,16 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               fontSize: 14.sp,
               height: 1.4,
             ),
+            maxLines: 3, // ✅ Ограничиваем высоту текста
+            overflow: TextOverflow.ellipsis,
           ),
           
-          SizedBox(height: 16.h),
+          SizedBox(height: 8.h), // ✅ Уменьшен отступ
           
           // Цена и сроки
           _buildPriceAndTimeline(response),
           
-          SizedBox(height: 16.h),
+          SizedBox(height: 8.h), // ✅ Уменьшен отступ
           
           // Действия
           _buildActions(response, order),
@@ -323,7 +325,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
     
     // ✅ Кнопки только для клиента-владельца заявки (как на вебе строка 271)
     if (!isMaster && isClient && isOrderOwner) {
-      // Компактное расположение кнопок в одну строку
+      // Компактное расположение кнопок в одну строку с минимальным padding
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -335,20 +337,20 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h), // ✅ Уменьшен padding
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
               child: Text(
                 'Принять',
-                style: TextStyle(fontSize: 13.sp),
+                style: TextStyle(fontSize: 11.sp), // ✅ Уменьшен шрифт
                 textAlign: TextAlign.center,
               ),
             ),
           ),
           
-          SizedBox(width: 8.w),
+          SizedBox(width: 6.w), // ✅ Уменьшен отступ
           
           Expanded(
             child: OutlinedButton(
@@ -358,20 +360,20 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h), // ✅ Уменьшен padding
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
               child: Text(
                 'Написать',
-                style: TextStyle(fontSize: 13.sp),
+                style: TextStyle(fontSize: 11.sp), // ✅ Уменьшен шрифт
                 textAlign: TextAlign.center,
               ),
             ),
           ),
           
-          SizedBox(width: 8.w),
+          SizedBox(width: 6.w), // ✅ Уменьшен отступ
           
           Expanded(
             child: OutlinedButton(
@@ -381,14 +383,14 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h), // ✅ Уменьшен padding
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
               child: Text(
                 'Профиль',
-                style: TextStyle(fontSize: 13.sp),
+                style: TextStyle(fontSize: 11.sp), // ✅ Уменьшен шрифт
                 textAlign: TextAlign.center,
               ),
             ),

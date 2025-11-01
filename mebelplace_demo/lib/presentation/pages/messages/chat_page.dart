@@ -114,42 +114,14 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Future<void> _pickAndSendMedia() async {
     HapticHelper.lightImpact();
     
-    // Show source selection dialog
-    final source = await showDialog<ImageSource>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.dark,
-        title: Text(
-          'Выбрать источник',
-          style: TextStyle(color: Colors.white, fontSize: 18.sp),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.primary),
-              title: const Text('Галерея', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-              title: const Text('Камера', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-          ],
-        ),
-      ),
-    );
-    
-    if (source == null) return;
-    
+    // ✅ Оставляем только галерею, убираем выбор источника
     try {
       setState(() {
         _isUploadingFile = true;
       });
       
       final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: source);
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
       
       if (pickedFile != null) {
         final file = File(pickedFile.path);

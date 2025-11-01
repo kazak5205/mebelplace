@@ -209,23 +209,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
   }
 
   Widget _buildErrorState(String error) {
-    // Проверяем, является ли это ошибкой 500 (нет видео на сервере)
+    // ✅ Определяем тип ошибки для friendly сообщения
     final isNoVideos = error.contains('500') || error.contains('Server error') || error.contains('Failed to load videos');
+    final isNetworkError = error.contains('Failed host lookup') || error.contains('connection error') || error.contains('SocketException');
+    final isTimeoutError = error.contains('timeout') || error.contains('Time limit exceeded');
+    
+    // ✅ Friendly сообщения
+    String friendlyMessage = 'Что-то пошло не так';
+    String friendlyTitle = 'Ошибка загрузки';
+    IconData errorIcon = Icons.error_outline;
+    Color iconColor = Colors.red.withValues(alpha: 0.7);
+    
+    if (isNoVideos) {
+      friendlyTitle = 'Пока нет видео';
+      friendlyMessage = 'Станьте первым, кто загрузит мебельное видео!';
+      errorIcon = Icons.video_library_outlined;
+      iconColor = Colors.white.withValues(alpha: 0.5);
+    } else if (isNetworkError) {
+      friendlyMessage = 'Проблемы с интернетом\nПроверьте подключение';
+      errorIcon = Icons.wifi_off_rounded;
+    } else if (isTimeoutError) {
+      friendlyMessage = 'Слишком долгое ожидание\nПопробуйте еще раз';
+      errorIcon = Icons.schedule_rounded;
+    }
     
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            isNoVideos ? Icons.video_library_outlined : Icons.error_outline,
+            errorIcon,
             size: 80.sp,
-            color: isNoVideos 
-                ? Colors.white.withValues(alpha: 0.5) 
-                : Colors.red.withValues(alpha: 0.7),
+            color: iconColor,
           ),
           SizedBox(height: 24.h),
           Text(
-            isNoVideos ? 'Пока нет видео' : 'Ошибка загрузки',
+            friendlyTitle,
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w600,
@@ -236,9 +255,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 40.w),
             child: Text(
-              isNoVideos 
-                  ? 'Станьте первым, кто загрузит мебельное видео!' 
-                  : error,
+              friendlyMessage,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14.sp,
