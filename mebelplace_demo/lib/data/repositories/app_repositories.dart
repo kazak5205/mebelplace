@@ -22,24 +22,11 @@ class VideoRepository {
 
   Future<List<VideoModel>> getVideoFeed({int page = 1, int limit = 50}) async {
     try {
-      // Получаем текущего пользователя для определения параметров
-      final user = await _localStorage.getUser();
-      
+      // ✅ Без всяких фильтров и рекомендаций - просто все видео как на вебе
       final Map<String, dynamic> params = {
         'page': page,
         'limit': limit,
       };
-      
-      // ❌ УБРАЛИ exclude_author - на вебе мастера видят все видео, включая свои
-      // Если клиент - включаем рекомендации
-      if (user != null) {
-        if (user.role == 'user') {
-          params['recommendations'] = true;
-        }
-      } else {
-        // Если не авторизован - показываем рекомендации
-        params['recommendations'] = true;
-      }
       
       final response = await _apiService.getVideoFeed(params);
       

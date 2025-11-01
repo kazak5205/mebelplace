@@ -91,8 +91,8 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     );
     _fadeAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
-      reverseDuration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 200), // ✅ Быстрее для отсутствия лагов
+      reverseDuration: const Duration(milliseconds: 200),
     );
     _scaleAnimationController = AnimationController(
       vsync: this,
@@ -250,24 +250,26 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
   }
 
   void _onPageChanged(int index) {
-    // ✅ УБРАЛИ проверку на 300мс - она вызывала лаги при быстрых свайпах
     // Проверяем только валидность индекса
     if (index == _currentIndex || index < 0 || index >= widget.videos.length) {
       return;
     }
     
-    // Останавливаем предыдущее видео сразу (без задержки)
+    // Останавливаем предыдущее видео
     _currentController?.pause();
     
-    // Обновляем состояние сразу (без анимации задержки)
-    setState(() {
-      _currentIndex = index;
-      _isDescriptionExpanded = false;
-      _isBuffering = false; // ✅ Не показываем буфер при быстром переключении
+    // ✅ Плавный fade transition (быстрая анимация 200мс вместо 400мс)
+    _fadeAnimationController.forward(from: 0).then((_) {
+      if (mounted) {
+        setState(() {
+          _currentIndex = index;
+          _isDescriptionExpanded = false;
+          _isBuffering = false;
+        });
+        _updateControllers(index);
+        _fadeAnimationController.reverse();
+      }
     });
-    
-    // Обновляем контроллеры сразу
-    _updateControllers(index);
   }
 
   void _updateControllers(int newIndex) {
