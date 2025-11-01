@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           transition={{ duration: 0.3 }}
         >
           <div className="max-w-screen-xl mx-auto px-4">
-            {children}
+          {children}
           </div>
         </motion.div>
       </main>

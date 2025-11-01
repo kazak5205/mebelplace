@@ -270,54 +270,54 @@ const OrderResponsesPage: React.FC = () => {
                     {/* Кнопки показываются только для клиента (владельца заявки), но НЕ для мастеров */}
                     {!isMaster && isClient && isOrderOwner && (
                       <>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={async () => {
-                            try {
-                              console.log('🔍 Creating chat with master:', response.master?.id)
-                              console.log('🔍 Master object:', response.master)
-                              if (!response.master?.id && !response.masterId) {
-                                console.error('❌ No master ID found!')
-                                alert('Ошибка: ID мастера не найден')
-                                return
-                              }
-                              const masterId = response.master?.id || response.masterId
-                              const chat = await chatService.createChatWithUser(masterId)
-                              console.log('🔍 Chat created:', chat)
-                              navigate(`/chat/${chat.id}`)
-                            } catch (e) {
-                              console.error('Failed to start chat:', e)
-                              alert('Ошибка при создании чата')
-                            }
-                          }}
-                          className="glass-button px-4 py-2 text-sm"
-                        >
-                          Написать мастеру
-                        </motion.button>
-                        
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleAcceptResponse(response.id)}
-                          disabled={acceptingResponse === response.id}
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                        >
-                          {acceptingResponse === response.id ? (
-                            <>
-                              <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full"
-                              />
-                              <span>Принимаем...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Check className="w-4 h-4" />
-                              <span>Принять предложение</span>
-                            </>
-                          )}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={async () => {
+                        try {
+                          console.log('🔍 Creating chat with master:', response.master?.id)
+                          console.log('🔍 Master object:', response.master)
+                          if (!response.master?.id && !response.masterId) {
+                            console.error('❌ No master ID found!')
+                            alert('Ошибка: ID мастера не найден')
+                            return
+                          }
+                          const masterId = response.master?.id || response.masterId
+                          const chat = await chatService.createChatWithUser(masterId)
+                          console.log('🔍 Chat created:', chat)
+                          navigate(`/chat/${chat.id}`)
+                        } catch (e) {
+                          console.error('Failed to start chat:', e)
+                          alert('Ошибка при создании чата')
+                        }
+                      }}
+                      className="glass-button px-4 py-2 text-sm"
+                    >
+                      Написать мастеру
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleAcceptResponse(response.id)}
+                      disabled={acceptingResponse === response.id}
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    >
+                      {acceptingResponse === response.id ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full"
+                          />
+                          <span>Принимаем...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          <span>Принять предложение</span>
+                        </>
+                      )}
                         </motion.button>
                       </>
                     )}

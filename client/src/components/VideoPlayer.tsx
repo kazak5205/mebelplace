@@ -270,23 +270,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     // Если свайп начинается в нижней части (область описания) - раскрываем описание при свайпе вверх
     const isInDescriptionArea = startY > window.innerHeight * 0.6
-    
+
     // Быстрый свайп или достаточное смещение
     if (velocity < -500 || info.offset.y < -threshold) {
       // Свайп вверх в области описания - раскрываем описание
       if (isInDescriptionArea && !expandedDescription) {
         setExpandedDescription(true)
       } else {
-        // Свайп вверх - следующее видео
-        handleNextVideo()
+      // Свайп вверх - следующее видео
+      handleNextVideo()
       }
     } else if (velocity > 500 || info.offset.y > threshold) {
       // Свайп вниз в области описания - сворачиваем описание
       if (isInDescriptionArea && expandedDescription) {
         setExpandedDescription(false)
       } else {
-        // Свайп вниз - предыдущее видео
-        handlePrevVideo()
+      // Свайп вниз - предыдущее видео
+      handlePrevVideo()
       }
     }
   }
@@ -565,17 +565,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           {/* Main Video Container - Vertical Format (9:16) */}
           <div className="relative w-full md:max-w-lg mx-auto h-full">
             {/* Search Bar inside video container */}
-            <motion.div 
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="absolute top-6 left-0 right-0 z-[60] flex justify-center items-center px-4 pointer-events-none"
-            >
+        >
               <div className="relative w-full max-w-[420px] mx-auto pointer-events-auto">
                 <motion.form onSubmit={handleVideoSearch} className="relative w-full" onClick={(e) => e.stopPropagation()}>
-                  <motion.input
-                    type="text"
-                    value={searchQuery}
+            <motion.input
+              type="text"
+              value={searchQuery}
                     onChange={(e) => {
                       e.stopPropagation()
                       setSearchQuery(e.target.value)
@@ -587,11 +587,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                         handleVideoSearch(e)
                       }
                     }}
-                    placeholder="Поиск"
-                    whileFocus={{ scale: 1.02 }}
-                    transition={{ duration: 0.2 }}
+              placeholder="Поиск"
+              whileFocus={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
                     className="w-full bg-white/40 backdrop-blur-xl border border-white/40 text-white placeholder-white/70 px-5 py-3 pl-12 pr-12 rounded-xl text-sm font-medium focus:outline-none focus:bg-white/30 focus:border-white/40 transition-all shadow-lg pointer-events-auto"
-                  />
+            />
                   <button
                     type="submit"
                     onClick={(e) => {
@@ -605,8 +605,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   </button>
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/70 pointer-events-none" />
                 </motion.form>
-              </div>
-            </motion.div>
+          </div>
+        </motion.div>
 
             
             <AnimatePresence initial={false} mode="wait">
