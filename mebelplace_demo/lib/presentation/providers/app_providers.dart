@@ -27,7 +27,8 @@ class VideoNotifier extends StateNotifier<VideoState> {
   Future<void> loadVideos() async {
     state = state.copyWith(isLoading: true, currentPage: 1);
     try {
-      var videos = await _videoRepository.getVideoFeed(page: 1, limit: 20);
+      // ✅ Увеличиваем limit до 50 (как в репозитории по умолчанию) - показываем больше видео
+      var videos = await _videoRepository.getVideoFeed(page: 1, limit: 50);
       
       // ❌ УБРАЛИ фильтрацию - на вебе мастера видят все видео, включая свои
       
@@ -36,7 +37,7 @@ class VideoNotifier extends StateNotifier<VideoState> {
         isLoading: false,
         error: null,
         currentPage: 1,
-        hasMore: videos.length >= 20, // Если получили полную страницу - есть ещё
+        hasMore: videos.length >= 50, // Если получили полную страницу - есть ещё
       );
     } catch (e) {
       state = state.copyWith(
@@ -59,7 +60,8 @@ class VideoNotifier extends StateNotifier<VideoState> {
     state = state.copyWith(isLoadingMore: true);
     try {
       final nextPage = state.currentPage + 1;
-      var newVideos = await _videoRepository.getVideoFeed(page: nextPage, limit: 20);
+      // ✅ Увеличиваем limit до 50 для загрузки большего количества видео
+      var newVideos = await _videoRepository.getVideoFeed(page: nextPage, limit: 50);
       
       // ❌ УБРАЛИ фильтрацию - на вебе мастера видят все видео, включая свои
       
@@ -70,7 +72,7 @@ class VideoNotifier extends StateNotifier<VideoState> {
         videos: allVideos,
         isLoadingMore: false,
         currentPage: nextPage,
-        hasMore: newVideos.length >= 20, // Если получили полную страницу - есть ещё
+        hasMore: newVideos.length >= 50, // Если получили полную страницу - есть ещё
       );
     } catch (e) {
       state = state.copyWith(

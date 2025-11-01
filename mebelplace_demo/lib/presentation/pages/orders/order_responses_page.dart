@@ -539,7 +539,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(context); // Закрываем диалог
               
               // ✅ РЕАЛЬНОЕ ПРИНЯТИЕ ЧЕРЕЗ API
               try {
@@ -569,9 +569,36 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                   return;
                 }
                 
+                // ✅ Показываем индикатор загрузки
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          ),
+                          SizedBox(width: 16),
+                          Text('Принимаем предложение...'),
+                        ],
+                      ),
+                      duration: Duration(seconds: 30),
+                    ),
+                  );
+                }
+                
                 final apiService = ref.read(apiServiceProvider);
                 final request = AcceptRequest(responseId: response.id.trim());
+                
+                // ✅ Вызываем API
                 final apiResponse = await apiService.acceptResponse(widget.orderId.trim(), request);
+                
+                // ✅ Закрываем индикатор загрузки
+                if (mounted) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                }
                 
                 if (apiResponse.success && apiResponse.data != null) {
                   if (mounted) {
@@ -593,16 +620,20 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                       SnackBar(
                         content: Text(apiResponse.message ?? 'Ошибка принятия отклика'),
                         backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 5),
                       ),
                     );
                   }
                 }
               } catch (e) {
+                // ✅ Закрываем индикатор загрузки при ошибке
                 if (mounted) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Ошибка: ${e.toString()}'),
+                      content: Text('Ошибка: ${e.toString().replaceAll('Exception: ', '')}'),
                       backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 5),
                     ),
                   );
                 }

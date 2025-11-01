@@ -65,8 +65,7 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
   late AnimationController _fadeAnimationController;
   late AnimationController _scaleAnimationController;
   
-  // Задержка между свайпами (минимум 300мс)
-  DateTime? _lastSwipeTime;
+  // ✅ Убрали _lastSwipeTime - больше не ограничиваем задержку между свайпами
   
   // Map для кеширования контроллеров
   final Map<int, VideoPlayerController> _controllerCache = {};
@@ -251,32 +250,24 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
   }
 
   void _onPageChanged(int index) {
-    final now = DateTime.now();
-    
-    // Проверка задержки между свайпами (минимум 300мс)
-    if (_lastSwipeTime != null && now.difference(_lastSwipeTime!) < const Duration(milliseconds: 300)) {
-      // Игнорируем слишком частые свайпы
+    // ✅ УБРАЛИ проверку на 300мс - она вызывала лаги при быстрых свайпах
+    // Проверяем только валидность индекса
+    if (index == _currentIndex || index < 0 || index >= widget.videos.length) {
       return;
     }
-    _lastSwipeTime = now;
     
-    if (index != _currentIndex && index >= 0 && index < widget.videos.length) {
-      // Останавливаем предыдущее видео
-      _currentController?.pause();
-      
-      // Плавный fade + scale transition
-      _fadeAnimationController.forward(from: 0).then((_) {
-        if (mounted) {
-          setState(() {
-            _currentIndex = index;
-            _isDescriptionExpanded = false;
-            _isBuffering = true;
-          });
-          _updateControllers(index);
-          _fadeAnimationController.reverse();
-        }
-      });
-    }
+    // Останавливаем предыдущее видео сразу (без задержки)
+    _currentController?.pause();
+    
+    // Обновляем состояние сразу (без анимации задержки)
+    setState(() {
+      _currentIndex = index;
+      _isDescriptionExpanded = false;
+      _isBuffering = false; // ✅ Не показываем буфер при быстром переключении
+    });
+    
+    // Обновляем контроллеры сразу
+    _updateControllers(index);
   }
 
   void _updateControllers(int newIndex) {
