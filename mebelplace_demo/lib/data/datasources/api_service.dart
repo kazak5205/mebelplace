@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
@@ -1093,6 +1094,7 @@ class ApiService {
       _debugLog('   Order ID: "$cleanOrderId"');
       _debugLog('   Response ID: "$responseId"');
       
+      // ✅ Явный таймаут для этого запроса (15 секунд)
       final response = await _dio.post(
         '/orders/$cleanOrderId/accept',
         data: {
@@ -1102,7 +1104,18 @@ class ApiService {
           headers: {
             'Content-Type': 'application/json',
           },
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 15),
         ),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw DioException(
+            requestOptions: RequestOptions(path: '/orders/$cleanOrderId/accept'),
+            type: DioExceptionType.receiveTimeout,
+            error: 'Request timeout after 15 seconds',
+          );
+        },
       );
       
       if (response.statusCode == 200) {

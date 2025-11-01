@@ -177,7 +177,10 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     final video = widget.videos[index];
     final videoUrl = ImageHelper.getFullImageUrl(video.videoUrl);
     
-    if (videoUrl.isEmpty) return;
+    if (videoUrl.isEmpty) {
+      debugPrint('❌ [VideoPlayer] Video URL is empty for index $index');
+      return;
+    }
     
     // Проверяем кеш
     if (_controllerCache.containsKey(index)) {
@@ -188,24 +191,39 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       if (isCurrent) {
         setState(() {
           _currentController = cachedController;
+          _isBuffering = !cachedController.value.isInitialized;
         });
         if (cachedController.value.isInitialized) {
           _playCurrentVideo();
         } else {
-          cachedController.initialize().then((_) {
+          // Повторная инициализация для кешированного контроллера
+          try {
+            await cachedController.initialize();
             if (mounted && _currentController == cachedController) {
+              setState(() {
+                _isBuffering = false;
+              });
               _playCurrentVideo();
             }
-          }).catchError((_) {});
+          } catch (e) {
+            debugPrint('❌ [VideoPlayer] Failed to initialize cached controller: $e');
+            if (mounted) {
+              setState(() {
+                _isBuffering = false;
+              });
+            }
+          }
         }
       }
       return;
     }
     
+    debugPrint('🎬 [VideoPlayer] Initializing video $index: $videoUrl');
+    
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(videoUrl),
       videoPlayerOptions: VideoPlayerOptions(
-        mixWithOthers: true, // ✅ Разрешаем микширование звука с другими приложениями
+        mixWithOthers: true,
         allowBackgroundPlayback: false,
       ),
     );
@@ -215,12 +233,28 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     
     _controllerCache[index] = controller;
     
+    if (isCurrent) {
+      setState(() {
+        _currentController = controller;
+        _isBuffering = true;
+      });
+    }
+    
     try {
-      await controller.initialize();
+      // ✅ Инициализация с таймаутом
+      await controller.initialize().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Video initialization timeout after 10 seconds');
+        },
+      );
+      
+      debugPrint('✅ [VideoPlayer] Video $index initialized successfully');
       
       if (mounted && isCurrent && controller.value.isInitialized) {
         setState(() {
           _currentController = controller;
+          _isBuffering = false;
         });
         _playCurrentVideo();
         // Уведомляем о смене видео (только один раз для этого видео)
@@ -230,10 +264,20 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
         }
       }
     } catch (e) {
-      // Ошибка инициализации - просто удаляем контроллер
+      debugPrint('❌ [VideoPlayer] Failed to initialize video $index: $e');
+      
+      // Ошибка инициализации - удаляем контроллер и очищаем состояние
       if (_controllerCache[index] == controller) {
         _controllerCache.remove(index);
+        controller.removeListener(_videoListener);
         controller.dispose();
+      }
+      
+      if (mounted && isCurrent) {
+        setState(() {
+          _isBuffering = false;
+          // Оставляем _currentController, но видео не будет воспроизводиться
+        });
       }
     }
   }
