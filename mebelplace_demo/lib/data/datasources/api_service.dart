@@ -541,9 +541,19 @@ class ApiService {
           return fixedJson;
         }).toList();
         
-        final videos = fixedVideosJson.map((json) => VideoModel.fromJson(json)).toList();
+        // ✅ Безопасный парсинг - пропускаем видео с ошибками, но не падаем
+        final videos = <VideoModel>[];
+        for (var json in fixedVideosJson) {
+          try {
+            videos.add(VideoModel.fromJson(json));
+          } catch (e) {
+            _debugLog('⚠️ API: Failed to parse video: $e');
+            _debugLog('   Video JSON keys: ${json.keys.join(", ")}');
+            // Пропускаем это видео, продолжаем с остальными
+          }
+        }
         
-        _debugLog('🎥 API: Loaded ${videos.length} videos from server');
+        _debugLog('🎥 API: Loaded ${videos.length} videos from server (${fixedVideosJson.length} total, ${fixedVideosJson.length - videos.length} failed)');
         if (videos.isNotEmpty) {
           _debugLog('   ✅ First video avatar URL: ${videos.first.avatar}');
           _debugLog('   ✅ First video username: ${videos.first.username}');

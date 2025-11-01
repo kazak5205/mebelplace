@@ -30,12 +30,25 @@ class VideoRepository {
       
       final response = await _apiService.getVideoFeed(params);
       
+      // ✅ Если успешно получили данные - возвращаем их
       if (response.success && response.data != null) {
         return response.data!.videos;
       }
+      
+      // Если не success, но есть data - возвращаем что есть (может быть пустой массив)
+      if (response.data != null) {
+        return response.data!.videos;
+      }
+      
+      // Только если совсем нет данных - ошибка
       throw Exception(response.message ?? 'Failed to load videos');
     } on DioException catch (e) {
       throw _handleDioError(e);
+    } catch (e) {
+      // ✅ Логируем ошибку для отладки, но не выбрасываем если данные пришли
+      print('⚠️ VideoRepository: Error loading videos: $e');
+      // Если это ошибка парсинга, но API вернул 200 - пробуем вернуть пустой массив
+      rethrow;
     }
   }
 
