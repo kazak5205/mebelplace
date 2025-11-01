@@ -177,12 +177,9 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     final video = widget.videos[index];
     final videoUrl = ImageHelper.getFullImageUrl(video.videoUrl);
     
-    if (videoUrl.isEmpty) {
-      debugPrint('❌ [VideoPlayer] Video URL is empty for index $index');
-      return;
-    }
+    if (videoUrl.isEmpty) return;
     
-    // Проверяем кеш
+    // Проверяем кеш (как на вебе - просто используем если есть)
     if (_controllerCache.containsKey(index)) {
       final cachedController = _controllerCache[index]!;
       if (!cachedController.hasListeners) {
@@ -191,35 +188,22 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       if (isCurrent) {
         setState(() {
           _currentController = cachedController;
-          _isBuffering = !cachedController.value.isInitialized;
         });
         if (cachedController.value.isInitialized) {
           _playCurrentVideo();
         } else {
-          // Повторная инициализация для кешированного контроллера
-          try {
-            await cachedController.initialize();
+          // Просто инициализируем и играем (как на вебе - без таймаутов)
+          cachedController.initialize().then((_) {
             if (mounted && _currentController == cachedController) {
-              setState(() {
-                _isBuffering = false;
-              });
               _playCurrentVideo();
             }
-          } catch (e) {
-            debugPrint('❌ [VideoPlayer] Failed to initialize cached controller: $e');
-            if (mounted) {
-              setState(() {
-                _isBuffering = false;
-              });
-            }
-          }
+          }).catchError((_) {}); // Игнорируем ошибки как на вебе
         }
       }
       return;
     }
     
-    debugPrint('🎬 [VideoPlayer] Initializing video $index: $videoUrl');
-    
+    // Создаём контроллер (как на вебе - просто <video src="...">)
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(videoUrl),
       videoPlayerOptions: VideoPlayerOptions(
@@ -228,58 +212,28 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       ),
     );
     
-    // Добавляем listener для отслеживания состояния
     controller.addListener(_videoListener);
-    
     _controllerCache[index] = controller;
     
     if (isCurrent) {
       setState(() {
         _currentController = controller;
-        _isBuffering = true;
       });
     }
     
-    try {
-      // ✅ Инициализация с таймаутом
-      await controller.initialize().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw TimeoutException('Video initialization timeout after 10 seconds');
-        },
-      );
-      
-      debugPrint('✅ [VideoPlayer] Video $index initialized successfully');
-      
+    // Инициализируем и играем (как на вебе - autoPlay, без таймаутов)
+    controller.initialize().then((_) {
       if (mounted && isCurrent && controller.value.isInitialized) {
         setState(() {
           _currentController = controller;
-          _isBuffering = false;
         });
         _playCurrentVideo();
-        // Уведомляем о смене видео (только один раз для этого видео)
         if (widget.onVideoChanged != null && _lastNotifiedVideoId != video.id) {
           _lastNotifiedVideoId = video.id;
           widget.onVideoChanged!(video);
         }
       }
-    } catch (e) {
-      debugPrint('❌ [VideoPlayer] Failed to initialize video $index: $e');
-      
-      // Ошибка инициализации - удаляем контроллер и очищаем состояние
-      if (_controllerCache[index] == controller) {
-        _controllerCache.remove(index);
-        controller.removeListener(_videoListener);
-        controller.dispose();
-      }
-      
-      if (mounted && isCurrent) {
-        setState(() {
-          _isBuffering = false;
-          // Оставляем _currentController, но видео не будет воспроизводиться
-        });
-      }
-    }
+    }).catchError((_) {}); // Игнорируем ошибки как на вебе video.play().catch(() => {})
   }
 
   void _playCurrentVideo() {

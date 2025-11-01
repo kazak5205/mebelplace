@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -570,62 +569,10 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                   return;
                 }
                 
-                // ✅ Показываем индикатор загрузки
-                ScaffoldMessengerState? messenger;
-                if (mounted) {
-                  messenger = ScaffoldMessenger.of(context);
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Row(
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          ),
-                          SizedBox(width: 16),
-                          Text('Принимаем предложение...'),
-                        ],
-                      ),
-                      duration: Duration(seconds: 20), // ✅ Уменьшили до 20 секунд
-                    ),
-                  );
-                }
-                
+                // Как на вебе - просто вызов API без индикаторов и таймаутов
                 final apiService = ref.read(apiServiceProvider);
                 final request = AcceptRequest(responseId: response.id.trim());
-                
-                // ✅ Вызываем API с обработкой таймаута
-                ApiResponse<AcceptResponse> apiResponse;
-                try {
-                  apiResponse = await apiService.acceptResponse(widget.orderId.trim(), request);
-                } on TimeoutException catch (e) {
-                  // ✅ Закрываем индикатор загрузки при таймауте
-                  if (mounted && messenger != null) {
-                    messenger.hideCurrentSnackBar();
-                  }
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Превышено время ожидания. Проверьте соединение.'),
-                        backgroundColor: Colors.red,
-                        duration: Duration(seconds: 5),
-                      ),
-                    );
-                  }
-                  return;
-                } catch (e) {
-                  // ✅ Закрываем индикатор загрузки при ошибке
-                  if (mounted && messenger != null) {
-                    messenger.hideCurrentSnackBar();
-                  }
-                  rethrow; // Пробрасываем дальше в основной catch
-                }
-                
-                // ✅ Закрываем индикатор загрузки
-                if (mounted) {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                }
+                final apiResponse = await apiService.acceptResponse(widget.orderId.trim(), request);
                 
                 if (apiResponse.success && apiResponse.data != null) {
                   if (mounted) {
