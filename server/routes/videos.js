@@ -234,18 +234,15 @@ router.get('/feed', optionalAuth, async (req, res) => {
     const adminVideos = adminResult.rows;
 
     // Create the mixed feed: every 5th video is admin-selected
+    // ✅ Формируем полный массив всех доступных видео
     const mixedVideos = [];
     let adminVideoIndex = 0;
     let regularVideoIndex = 0;
     const regularVideos = allVideos.filter(video => !video.is_featured);
 
-    // Calculate how many videos we need for this page
-    const startIndex = offset;
-    const endIndex = offset + parseInt(limit);
+    // Generate the complete mixed feed (not just for current page)
     let currentIndex = 0;
-
-    // Generate the mixed feed
-    while (currentIndex < endIndex) {
+    while (true) {
       // Every 5th position (0, 4, 9, 14, etc.) should be an admin video
       if (currentIndex % 5 === 4 && adminVideoIndex < adminVideos.length) {
         // Insert admin video
@@ -266,8 +263,29 @@ router.get('/feed', optionalAuth, async (req, res) => {
       currentIndex++;
     }
 
-    // Get only the videos for this page
-    const pageVideos = mixedVideos.slice(startIndex, endIndex);
+    // ✅ Правильная пагинация: берём нужный фрагмент через slice после формирования всего массива
+    const pageVideos = mixedVideos.slice(offset, offset + parseInt(limit));
+
+    // 🐛 DEBUG: Check video feed data
+    console.log(`[FEED DEBUG] Total videos in DB: ${allVideos.length}`);
+    console.log(`[FEED DEBUG] Regular videos: ${regularVideos.length}`);
+    console.log(`[FEED DEBUG] Admin videos: ${adminVideos.length}`);
+    console.log(`[FEED DEBUG] Mixed videos total: ${mixedVideos.length}`);
+    console.log(`[FEED DEBUG] Page videos count: ${pageVideos.length}`);
+    console.log(`[FEED DEBUG] Request params: page=${page}, limit=${limit}, offset=${offset}`);
+
+    if (pageVideos.length > 0) {
+      console.log('[FEED DEBUG] First video data:', {
+        id: pageVideos[0].id,
+        username: pageVideos[0].username,
+        avatar: pageVideos[0].avatar,
+        firstName: pageVideos[0].first_name,
+        lastName: pageVideos[0].last_name,
+        hasAvatar: !!pageVideos[0].avatar
+      });
+    } else {
+      console.log('[FEED DEBUG] ⚠️ No videos returned for this page!');
+    }
 
     // Get user's likes for each video (if authenticated)
     if (req.user) {
@@ -278,18 +296,6 @@ router.get('/feed', optionalAuth, async (req, res) => {
         );
         video.is_liked = likeResult.rows.length > 0;
       }
-    }
-
-    // 🐛 DEBUG: Check avatar data before sending
-    if (pageVideos.length > 0) {
-      console.log('[FEED DEBUG] First video data:', {
-        id: pageVideos[0].id,
-        username: pageVideos[0].username,
-        avatar: pageVideos[0].avatar,
-        firstName: pageVideos[0].first_name,
-        lastName: pageVideos[0].last_name,
-        hasAvatar: !!pageVideos[0].avatar
-      });
     }
 
     const responseData = {

@@ -416,7 +416,7 @@ router.get('/me', async (req, res) => {
       // Получаем пользователя из БД с полями компании
       const result = await pool.query(
         `SELECT id, email, username, first_name, last_name, phone, avatar, role, is_active, is_verified, 
-         company_name, company_address, company_description, created_at 
+         company_name, company_address, company_description, company_type, created_at 
          FROM users WHERE id = $1 AND is_active = true`,
         [decoded.userId]
       );
@@ -449,6 +449,7 @@ router.get('/me', async (req, res) => {
         userData.companyName = user.company_name;
         userData.companyAddress = user.company_address;
         userData.companyDescription = user.company_description;
+        userData.companyType = user.company_type;
       } else {
         userData.firstName = user.first_name;
         userData.lastName = user.last_name;
@@ -489,20 +490,17 @@ router.put('/profile', authenticateToken, avatarUpload.single('avatar'), async (
   try {
     // ✅ req.user уже доступен из authenticateToken middleware
     const userId = req.user.id;
-    const { firstName, lastName, phone, bio, companyName, companyAddress, companyDescription, companyType } = req.body;
+    const { username, phone, bio, companyName, companyAddress, companyDescription, companyType } = req.body;
       
       // Формируем запрос на обновление только тех полей, которые переданы
       const updates = [];
       const values = [];
       let paramCount = 0;
 
-      if (firstName !== undefined && firstName !== '') {
-        updates.push(`first_name = $${++paramCount}`);
-        values.push(firstName);
-      }
-      if (lastName !== undefined && lastName !== '') {
-        updates.push(`last_name = $${++paramCount}`);
-        values.push(lastName);
+      // Обновление username (только для мастеров, так как firstName/lastName убраны)
+      if (username !== undefined && username !== '') {
+        updates.push(`username = $${++paramCount}`);
+        values.push(username);
       }
     if (phone !== undefined && phone !== '') {
       updates.push(`phone = $${++paramCount}`);
@@ -557,7 +555,7 @@ router.put('/profile', authenticateToken, avatarUpload.single('avatar'), async (
       SET ${updates.join(', ')}
       WHERE id = $${++paramCount} AND is_active = true
       RETURNING id, email, username, first_name, last_name, phone, avatar, role, bio, 
-                company_name, company_address, company_description, is_verified, created_at, updated_at
+                company_name, company_address, company_description, company_type, is_verified, created_at, updated_at
     `, values);
 
       if (result.rows.length === 0) {
@@ -588,6 +586,7 @@ router.put('/profile', authenticateToken, avatarUpload.single('avatar'), async (
       userData.companyName = user.company_name;
       userData.companyAddress = user.company_address;
       userData.companyDescription = user.company_description;
+      userData.companyType = user.company_type;
     } else {
       userData.firstName = user.first_name;
       userData.lastName = user.last_name;

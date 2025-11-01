@@ -834,15 +834,15 @@ class VideoService {
       // Get totals: top-level and all comments
       const [topLevelCountResult, allCountResult] = await Promise.all([
         pool.query(
-          'SELECT COUNT(*) as total FROM video_comments WHERE video_id = $1 AND is_active = true AND parent_id IS NULL',
-          [videoId]
+        'SELECT COUNT(*) as total FROM video_comments WHERE video_id = $1 AND is_active = true AND parent_id IS NULL',
+        [videoId]
         ),
         pool.query(
           'SELECT COUNT(*) as total_all FROM video_comments WHERE video_id = $1 AND is_active = true',
           [videoId]
         )
       ]);
-
+      
       const totalTopLevel = parseInt(topLevelCountResult.rows[0].total);
       const totalAll = parseInt(allCountResult.rows[0].total_all);
 
