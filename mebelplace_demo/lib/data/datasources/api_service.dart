@@ -51,17 +51,13 @@ class ApiService {
         _debugLog('📥 API Response: ${response.statusCode} ${response.requestOptions.path}');
         
         // ✅ ТРАНСФОРМАЦИЯ snake_case → camelCase (как веб-фронтенд!)
-        if (response.data != null) {
-          // Логируем структуру ПЕРЕД трансформацией
-          if (response.data is Map) {
-            _debugLog('   Keys (before transform): ${(response.data as Map).keys.take(10).join(", ")}');
-          }
-          
-          response.data = snakeToCamel(response.data);
-          
-          // Логируем структуру ПОСЛЕ трансформации
-          if (response.data is Map) {
-            _debugLog('   Keys (after transform): ${(response.data as Map).keys.take(10).join(", ")}');
+        // Трансформируем ТОЛЬКО response.data.data, а не весь response.data!
+        if (response.data != null && response.data is Map) {
+          final data = response.data as Map;
+          if (data.containsKey('data') && data['data'] != null) {
+            _debugLog('   Keys (before transform): ${data.keys.take(10).join(", ")}');
+            data['data'] = snakeToCamel(data['data']);
+            _debugLog('   Keys (after transform): ${data.keys.take(10).join(", ")}');
           }
         }
         return handler.next(response);
@@ -1082,10 +1078,32 @@ class ApiService {
     AcceptRequest request,
   ) async {
     try {
-      _debugLog('📡 API: POST /orders/$orderId/accept');
-      final response = await _dio.post('/orders/$orderId/accept', data: {
-        'responseId': request.responseId,
-      });
+      // Проверка и очистка ID
+      final cleanOrderId = orderId.trim();
+      final responseId = request.responseId.trim();
+      
+      if (cleanOrderId.isEmpty) {
+        throw Exception('ID заказа не может быть пустым');
+      }
+      if (responseId.isEmpty) {
+        throw Exception('ID отклика не может быть пустым');
+      }
+      
+      _debugLog('📡 API: POST /orders/$cleanOrderId/accept');
+      _debugLog('   Order ID: "$cleanOrderId"');
+      _debugLog('   Response ID: "$responseId"');
+      
+      final response = await _dio.post(
+        '/orders/$cleanOrderId/accept',
+        data: {
+          'responseId': responseId,
+        },
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
       
       if (response.statusCode == 200) {
         final data = response.data['data'] ?? response.data;
@@ -1109,6 +1127,22 @@ class ApiService {
           timestamp: DateTime.now().toIso8601String(),
         );
       }
+    } on DioException catch (e) {
+      _debugLog('❌ API: Accept response DioException');
+      _debugLog('   Status: ${e.response?.statusCode}');
+      _debugLog('   Message: ${e.message}');
+      _debugLog('   Error data: ${e.response?.data}');
+      
+      // Более понятное сообщение для пользователя
+      if (e.response?.statusCode == 500) {
+        throw Exception('Ошибка сервера при принятии отклика. Попробуйте позже.');
+      } else if (e.response?.statusCode == 404) {
+        throw Exception('Отклик не найден');
+      } else if (e.response?.statusCode == 400) {
+        final errorMsg = e.response?.data?['message'] ?? 'Некорректные данные';
+        throw Exception(errorMsg);
+      }
+      throw Exception('Ошибка принятия отклика: ${e.message ?? 'Неизвестная ошибка'}');
     } catch (e) {
       _debugLog('❌ API: Accept response error: $e');
       throw Exception('Ошибка принятия: ${e.toString()}');

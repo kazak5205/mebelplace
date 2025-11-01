@@ -556,9 +556,22 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                   return;
                 }
                 
+                // Проверка orderId
+                if (widget.orderId.isEmpty) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Ошибка: ID заказа не найден'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                  return;
+                }
+                
                 final apiService = ref.read(apiServiceProvider);
-                final request = AcceptRequest(responseId: response.id);
-                final apiResponse = await apiService.acceptResponse(widget.orderId, request);
+                final request = AcceptRequest(responseId: response.id.trim());
+                final apiResponse = await apiService.acceptResponse(widget.orderId.trim(), request);
                 
                 if (apiResponse.success && apiResponse.data != null) {
                   if (mounted) {
