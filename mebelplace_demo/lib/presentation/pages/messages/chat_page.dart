@@ -15,6 +15,7 @@ import '../../providers/repository_providers.dart';
 import '../../providers/socket_provider.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/tiktok_video_player.dart';
+import '../../widgets/custom_bottom_navigation.dart';
 import '../../../utils/haptic_helper.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -216,9 +217,26 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
     final isSocketConnected = ref.watch(socketConnectionProvider);
+    final currentUser = ref.watch(authProvider).user;
+    final currentNavIndex = ref.watch(currentNavigationIndexProvider);
+    
+    // ✅ Функция навигации для bottomNavigationBar
+    void handleNavigation(int index) {
+      if (index == currentNavIndex) {
+        Navigator.pop(context); // Если нажимаем на текущий таб - возвращаемся
+      } else if (index == 3) {
+        // Мессенджер - возвращаемся и показываем список чатов
+        Navigator.pop(context);
+      } else {
+        // Другой таб - возвращаемся и переключаем
+        Navigator.pop(context);
+        // Навигация произойдет через MainNavigation
+      }
+    }
     
     return Scaffold(
       backgroundColor: AppColors.dark,
+      extendBody: true, // ✅ Позволяет контенту идти под навигацию
       appBar: AppBar(
         backgroundColor: AppColors.dark,
         elevation: 0,
@@ -265,6 +283,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           // Поле ввода сообщения
           _buildMessageInput(),
         ],
+      ),
+      bottomNavigationBar: CustomBottomNavigation(
+        currentIndex: 3, // ✅ Всегда активен таб "Мессенджер"
+        onTap: handleNavigation,
+        user: currentUser,
       ),
     );
   }
@@ -355,7 +378,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 children: [
                   if (!isMe) ...[
                     Text(
-                      message.senderName ?? 'Пользователь',
+                      message.sender?.displayName ?? message.senderName ?? 'Пользователь', // ✅ Используем displayName (companyName для мастеров)
                       style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 12.sp,
@@ -363,6 +386,34 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       ),
                     ),
                     SizedBox(height: 4.h),
+                  ],
+                  
+                  // ✅ Отображение изображений
+                  if (message.type == 'image' && message.filePath != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.r),
+                      child: CachedNetworkImage(
+                        imageUrl: ImageHelper.getFullImageUrl(message.filePath!),
+                        width: double.infinity,
+                        height: 200.h,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          width: double.infinity,
+                          height: 200.h,
+                          color: Colors.black54,
+                          child: const Center(
+                            child: CircularProgressIndicator(color: Colors.white54),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          width: double.infinity,
+                          height: 200.h,
+                          color: Colors.black54,
+                          child: Icon(Icons.image, size: 48.sp, color: Colors.white54),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
                   ],
                   
                   // Превью видео, если есть metadata (как на вебе строка 422-454)

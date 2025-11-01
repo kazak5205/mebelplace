@@ -543,6 +543,19 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
               
               // ✅ РЕАЛЬНОЕ ПРИНЯТИЕ ЧЕРЕЗ API
               try {
+                // ✅ Проверяем что ID есть
+                if (response.id.isEmpty) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Ошибка: ID отклика не найден'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                  return;
+                }
+                
                 final apiService = ref.read(apiServiceProvider);
                 final request = AcceptRequest(responseId: response.id);
                 final apiResponse = await apiService.acceptResponse(widget.orderId, request);
@@ -555,15 +568,17 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                         backgroundColor: Colors.green,
                       ),
                     );
-                    // Обновить заказ
+                    // Обновить заказ и отклики
                     ref.read(orderProvider.notifier).loadUserOrders();
+                    ref.read(orderProvider.notifier).loadOrderResponses(widget.orderId);
+                    // Возвращаемся назад после успешного принятия
                     Navigator.pop(context);
                   }
                 } else {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(apiResponse.message ?? 'Ошибка принятия'),
+                        content: Text(apiResponse.message ?? 'Ошибка принятия отклика'),
                         backgroundColor: Colors.red,
                       ),
                     );

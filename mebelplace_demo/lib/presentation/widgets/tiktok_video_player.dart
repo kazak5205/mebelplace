@@ -70,6 +70,8 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
   
   // Map для кеширования контроллеров
   final Map<int, VideoPlayerController> _controllerCache = {};
+  // Map для отслеживания попыток retry
+  final Map<int, int> _retryCounts = {};
   
   // Отслеживаем последнее видео, для которого вызвали onVideoChanged (чтобы избежать двойных вызовов)
   String? _lastNotifiedVideoId;
@@ -263,16 +265,35 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
         }
       }
     } catch (e) {
-      // Ошибка инициализации
+      // Ошибка инициализации - пробуем еще раз через 1 секунду (максимум 3 попытки)
       if (mounted && isCurrent) {
         setState(() {
           _isBuffering = false;
         });
-      }
-      // Удаляем неинициализированный контроллер из кеша
-      if (_controllerCache[index] == controller) {
-        _controllerCache.remove(index);
-        controller.dispose();
+        
+        // ✅ Retry логика для текущего видео
+        final retryCount = _retryCounts[index] ?? 0;
+        if (retryCount < 3) {
+          _retryCounts[index] = retryCount + 1;
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted && index == _currentIndex) {
+              _initializeController(index, isCurrent: true).catchError((_) {});
+            }
+          });
+        } else {
+          // После 3 попыток удаляем из кеша
+          _retryCounts.remove(index);
+          if (_controllerCache[index] == controller) {
+            _controllerCache.remove(index);
+            controller.dispose();
+          }
+        }
+      } else {
+        // Для не текущих видео просто удаляем при ошибке
+        if (_controllerCache[index] == controller) {
+          _controllerCache.remove(index);
+          controller.dispose();
+        }
       }
     }
   }
