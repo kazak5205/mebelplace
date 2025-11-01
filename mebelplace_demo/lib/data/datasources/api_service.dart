@@ -1107,20 +1107,37 @@ class ApiService {
       );
       
       if (response.statusCode == 200) {
+        // ✅ Как на вебе - просто берем data напрямую
         final data = response.data['data'] ?? response.data;
-        final order = OrderModel.fromJson(data['order'] ?? data);
-        // Сервер возвращает chat: { id: chatId }
-        final chatId = data['chatId'] ?? data['chat_id'] ?? 
-                       (data['chat'] is Map ? data['chat']['id']?.toString() : '');
         
-        _debugLog('✅ API: Response accepted, chatId: $chatId');
-        
-        return ApiResponse<AcceptResponse>(
-          success: true,
-          data: AcceptResponse(order: order, chatId: chatId),
-          message: response.data['message'],
-          timestamp: DateTime.now().toIso8601String(),
-        );
+        // ✅ Простой парсинг как на вебе (apiService.post возвращает response.data.data)
+        if (data is Map && data['order'] is Map) {
+          final order = OrderModel.fromJson(data['order'] as Map<String, dynamic>);
+          
+          // ✅ Извлекаем chatId как на вебе result.chat.id
+          String chatId = '';
+          if (data['chat'] is Map) {
+            chatId = data['chat']['id']?.toString() ?? '';
+          } else if (data['chatId'] != null) {
+            chatId = data['chatId'].toString();
+          } else if (data['chat_id'] != null) {
+            chatId = data['chat_id'].toString();
+          }
+          
+          return ApiResponse<AcceptResponse>(
+            success: true,
+            data: AcceptResponse(order: order, chatId: chatId),
+            message: response.data['message'],
+            timestamp: DateTime.now().toIso8601String(),
+          );
+        } else {
+          // Если структура неправильная - возвращаем ошибку (как на вебе просто не сработает типизация)
+          return ApiResponse<AcceptResponse>(
+            success: false,
+            message: 'Неверная структура ответа сервера',
+            timestamp: DateTime.now().toIso8601String(),
+          );
+        }
       } else {
         return ApiResponse<AcceptResponse>(
           success: false,
@@ -1134,14 +1151,22 @@ class ApiService {
       _debugLog('   Message: ${e.message}');
       _debugLog('   Error data: ${e.response?.data}');
       
-      // Более понятное сообщение для пользователя
+      // ✅ Как на вебе - используем сообщение от сервера
+      if (e.response?.data != null && e.response!.data is Map) {
+        final errorData = e.response!.data as Map;
+        final serverMessage = errorData['message']?.toString();
+        if (serverMessage != null && serverMessage.isNotEmpty) {
+          throw Exception(serverMessage);
+        }
+      }
+      
+      // Если сообщения нет - стандартная обработка
       if (e.response?.statusCode == 500) {
         throw Exception('Ошибка сервера при принятии отклика. Попробуйте позже.');
       } else if (e.response?.statusCode == 404) {
         throw Exception('Отклик не найден');
       } else if (e.response?.statusCode == 400) {
-        final errorMsg = e.response?.data?['message'] ?? 'Некорректные данные';
-        throw Exception(errorMsg);
+        throw Exception('Некорректные данные');
       }
       throw Exception('Ошибка принятия отклика: ${e.message ?? 'Неизвестная ошибка'}');
     } catch (e) {

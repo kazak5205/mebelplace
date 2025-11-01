@@ -576,17 +576,31 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                 
                 if (apiResponse.success && apiResponse.data != null) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(apiResponse.message ?? 'Предложение принято!'),
-                        backgroundColor: Colors.green,
-                      ),
+                    // ✅ Как на вебе - ЛОКАЛЬНОЕ обновление состояния (НЕ перезагрузка!)
+                    // setOrder((prev: any) => ({ ...prev, status: 'accepted' }))
+                    ref.read(orderProvider.notifier).updateOrderStatusLocally(
+                      widget.orderId,
+                      'accepted',
                     );
-                    // Обновить заказ и отклики
-                    ref.read(orderProvider.notifier).loadUserOrders();
-                    ref.read(orderProvider.notifier).loadOrderResponses(widget.orderId);
-                    // Возвращаемся назад после успешного принятия
-                    Navigator.pop(context);
+                    
+                    // ✅ Удаляем принятый отклик из локального списка
+                    // setResponses(prev => prev.filter(r => r.id !== responseId))
+                    ref.read(orderProvider.notifier).removeOrderResponseLocally(response.id);
+                    
+                    // ✅ Переходим в созданный чат (как на вебе navigate(`/chat/${result.chat.id}`))
+                    final chatId = apiResponse.data!.chatId;
+                    if (chatId != null && chatId.isNotEmpty) {
+                      Navigator.pushNamed(context, '/chat', arguments: chatId);
+                    } else {
+                      // Если chatId нет - просто показываем сообщение (как на вебе alert)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(apiResponse.message ?? 'Чат создан, но не удалось перейти. Проверьте мессенджер.'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      Navigator.pop(context);
+                    }
                   }
                 } else {
                   if (mounted) {

@@ -519,6 +519,32 @@ class OrderNotifier extends StateNotifier<OrderState> {
       );
     }
   }
+
+  // ✅ Локальное обновление статуса заказа (как setOrder на вебе)
+  void updateOrderStatusLocally(String orderId, String status) {
+    if (state.currentOrder?.id == orderId) {
+      state = state.copyWith(
+        currentOrder: state.currentOrder?.copyWith(status: status),
+      );
+    }
+    // Также обновляем в списке заказов
+    final updatedOrders = state.orders.map((order) {
+      if (order.id == orderId) {
+        return order.copyWith(status: status);
+      }
+      return order;
+    }).toList();
+    state = state.copyWith(orders: updatedOrders);
+  }
+
+  // ✅ Удаление отклика из локального списка (как setResponses на вебе)
+  void removeOrderResponseLocally(String responseId) {
+    state = state.copyWith(
+      orderResponses: state.orderResponses
+          .where((r) => r.id != responseId)
+          .toList(),
+    );
+  }
 }
 
 class OrderState {

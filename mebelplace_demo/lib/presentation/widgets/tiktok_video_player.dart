@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -223,7 +224,12 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     
     // Инициализируем и играем (как на вебе - autoPlay, без таймаутов)
     controller.initialize().then((_) {
-      if (mounted && isCurrent && controller.value.isInitialized) {
+      // ✅ Проверяем актуальность ПОСЛЕ асинхронной инициализации
+      if (mounted && 
+          _currentIndex == index && // ⬅️ Проверяем что индекс не изменился
+          _currentController == controller && // ⬅️ Проверяем что контроллер актуален
+          isCurrent &&
+          controller.value.isInitialized) {
         setState(() {
           _currentController = controller;
         });
@@ -256,15 +262,20 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     // Останавливаем предыдущее видео
     _currentController?.pause();
     
-    // ✅ Плавный fade transition (быстрая анимация 200мс вместо 400мс)
-    _fadeAnimationController.forward(from: 0).then((_) {
+    // ✅ СИНХРОННОЕ обновление состояния (как setCurrentIndex на вебе)
+    setState(() {
+      _currentIndex = index;
+      _isDescriptionExpanded = false;
+      _isBuffering = false;
+    });
+    
+    // ✅ Обновляем контроллеры СРАЗУ (без задержки)
+    _updateControllers(index);
+    
+    // ✅ Визуальная анимация отдельно (не блокирует логику)
+    _fadeAnimationController.forward(from: 0);
+    Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) {
-        setState(() {
-          _currentIndex = index;
-          _isDescriptionExpanded = false;
-          _isBuffering = false;
-        });
-        _updateControllers(index);
         _fadeAnimationController.reverse();
       }
     });
@@ -283,20 +294,35 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     _previousController = null;
     _nextController = null;
     
-    // Устанавливаем текущий
+    // ✅ Устанавливаем текущий с немедленной инициализацией через scheduleMicrotask
     if (_controllerCache.containsKey(newIndex)) {
+      final controller = _controllerCache[newIndex]!;
       setState(() {
-        _currentController = _controllerCache[newIndex]!;
+        _currentController = controller;
       });
-      if (_currentController!.value.isInitialized) {
-        _playCurrentVideo();
-      } else {
-        _currentController!.initialize().then((_) {
-          if (mounted && _currentController == _controllerCache[newIndex]) {
+      
+      // ✅ Используем scheduleMicrotask для приоритета выполнения
+      scheduleMicrotask(() {
+        if (controller.value.isInitialized) {
+          if (mounted && _currentIndex == newIndex && _currentController == controller) {
             _playCurrentVideo();
           }
-        }).catchError((_) {});
-      }
+        } else {
+          controller.initialize().then((_) {
+            // ✅ Проверяем актуальность ПОСЛЕ асинхронной инициализации
+            if (mounted && 
+                _currentIndex == newIndex && 
+                _currentController == controller &&
+                controller.value.isInitialized) {
+              setState(() {
+                _currentController = controller;
+              });
+              _playCurrentVideo();
+            }
+          }).catchError((_) {});
+        }
+      });
+      
       // Уведомляем о смене видео
       if (widget.onVideoChanged != null && newIndex < widget.videos.length) {
         final video = widget.videos[newIndex];
@@ -313,22 +339,20 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       _initializeController(newIndex, isCurrent: true);
     }
     
-    // Предзагрузка соседних
-    if (newIndex > 0) {
-      final prevIndex = newIndex - 1;
-      if (_controllerCache.containsKey(prevIndex)) {
-        _previousController = _controllerCache[prevIndex];
-      } else {
-        _initializeController(prevIndex, isCurrent: false);
-      }
-    }
-    
-    if (newIndex < widget.videos.length - 1) {
-      final nextIndex = newIndex + 1;
-      if (_controllerCache.containsKey(nextIndex)) {
-        _nextController = _controllerCache[nextIndex];
-      } else {
-        _initializeController(nextIndex, isCurrent: false);
+    // ✅ Агрессивная предзагрузка ±2 видео (как TikTok)
+    for (int offset = -2; offset <= 2; offset++) {
+      if (offset == 0) continue; // Пропускаем текущее
+      
+      final targetIndex = newIndex + offset;
+      if (targetIndex >= 0 && targetIndex < widget.videos.length) {
+        if (_controllerCache.containsKey(targetIndex)) {
+          // Уже загружено
+          if (offset == -1) _previousController = _controllerCache[targetIndex];
+          if (offset == 1) _nextController = _controllerCache[targetIndex];
+        } else {
+          // Загружаем в фоне
+          _initializeController(targetIndex, isCurrent: false);
+        }
       }
     }
   }
