@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -30,7 +31,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     // Загружаем заказы
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = ref.read(authProvider).user;
@@ -125,7 +126,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
                 fontWeight: FontWeight.w600,
               ),
               tabs: const [
-                Tab(text: 'Активные'),
+                Tab(text: 'Новые'),
+                Tab(text: 'Отвеченные'),
                 Tab(text: 'В работе'),
                 Tab(text: 'Завершенные'),
               ],
@@ -136,7 +138,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildOrdersList('active'),
+                  _buildOrdersList('new'),
+                  _buildOrdersList('answered'),
                   _buildOrdersList('in_progress'),
                   _buildOrdersList('completed'),
                 ],
@@ -220,10 +223,16 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
     // Фильтруем заказы по статусу
     final filteredOrders = orders.where((order) {
       switch (status) {
-        case 'active':
-          return order.status == 'pending' || order.status == 'active';
+        case 'new':
+          // Новые: без откликов в активных статусах
+          final active = order.status == 'pending' || order.status == 'active';
+          return active && (order.responseCount == null || order.responseCount == 0);
+        case 'answered':
+          // Отвеченные: есть отклики в активных статусах
+          final active = order.status == 'pending' || order.status == 'active';
+          return active && (order.responseCount != null && order.responseCount! > 0);
         case 'in_progress':
-          return order.status == 'in_progress' || order.status == 'processing';
+          return order.status == 'in_progress' || order.status == 'processing' || order.status == 'accepted';
         case 'completed':
           return order.status == 'completed' || order.status == 'done';
         default:
@@ -333,6 +342,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
       time: _formatTime(order.createdAt),
       responseCount: order.responseCount, // ✅ Реальное количество откликов из API
       orderId: order.id,
+      hasMyResponse: order.hasMyResponse, // ✅ Передаём статус своего отклика
     );
   }
 
@@ -395,6 +405,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
     required String time,
     required int responseCount,
     required String orderId,
+    required bool hasMyResponse,
   }) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
@@ -424,23 +435,28 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
         } : null,
         deleteColor: Colors.red,
         archiveColor: Colors.orange,
-        child: Container(
-        margin: EdgeInsets.only(bottom: 16.h),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withOpacity(0.1),
-              Colors.white.withOpacity(0.05),
-            ],
-          ),
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.1),
-          ),
-        ),
-        child: Material(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+            child: Container(
+              margin: EdgeInsets.only(bottom: 16.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 32,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Material(
           color: Colors.transparent,
             child: InkWell(
             onTap: () {
@@ -544,13 +560,67 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen>
                       ],
                     ],
                   ),
+                  
+                  // Кнопка "Просмотреть отклики" для всех (как на вебе строка 365)
+                  if (responseCount > 0) ...[
+                    SizedBox(height: 12.h),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/order-responses', arguments: orderId);
+                      },
+                      icon: Icon(Icons.visibility, size: 18.sp),
+                      label: Text('Отклики ($responseCount)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                    ),
+                  ],
+                  
+                  // ✅ Status "Отклик отправлен" для мастера (как на вебе строка 385-392)
+                  if (isMaster && hasMyResponse && status == 'new' && responseCount == 0) ...[
+                    SizedBox(height: 12.h),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 16.sp,
+                          ),
+                          SizedBox(width: 6.w),
+                          Text(
+                            'Отклик отправлен',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.green,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
         ),
       ),
-    ),
+          ),
+        ),
+      ),
     );
   }
 

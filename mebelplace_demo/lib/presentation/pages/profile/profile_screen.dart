@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/image_helper.dart';
 import '../../providers/app_providers.dart';
@@ -21,22 +22,93 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  
+  // ✅ Локальное состояние для видео мастера (как на вебе)
+  List<VideoModel> _masterVideos = [];
+  bool _isLoadingMasterVideos = false;
+  
+  // Состояние для разных вкладок (как на вебе)
+  List<VideoModel> _likedVideos = [];
+  bool _isLoadingLikedVideos = false;
+  List<VideoModel> _bookmarkedVideos = [];
+  bool _isLoadingBookmarkedVideos = false;
+  
+  // Текущая активная вкладка (только для мастера)
+  int _activeTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    final user = ref.read(authProvider).user;
+    // Для мастера 3 вкладки (videos, likes, bookmarked), для клиента 2 (заказы, избранное)
+    final tabCount = user?.role == 'master' ? 3 : 2;
+    _tabController = TabController(length: tabCount, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {
+          _activeTabIndex = _tabController.index;
+        });
+        // Загружаем данные при смене вкладки
+        _loadTabData(_tabController.index);
+      }
+    });
     
     // Загружаем данные при открытии профиля
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = ref.read(authProvider).user;
-      if (user != null) {
-        if (user.role == 'master') {
-          ref.read(videoProvider.notifier).loadMasterVideos(user.id);
+      final currentUser = ref.read(authProvider).user;
+      if (currentUser != null) {
+        if (currentUser.role == 'master') {
+          _loadMasterVideos(currentUser.id);
+          // Загружаем также лайкнутые и избранные для мастера
+          ref.read(videoProvider.notifier).loadLikedVideos();
+          ref.read(videoProvider.notifier).loadBookmarkedVideos();
+        } else {
+          // Для клиента загружаем подписки (мои мастера) и избранное
+          ref.read(masterProvider.notifier).loadSubscriptions(currentUser.id);
+          ref.read(videoProvider.notifier).loadBookmarkedVideos();
         }
         ref.read(orderProvider.notifier).loadOrders();
       }
     });
+  }
+
+  void _loadTabData(int index) {
+    final user = ref.read(authProvider).user;
+    if (user == null || user.role != 'master') return;
+    
+    switch (index) {
+      case 0: // videos
+        _loadMasterVideos(user.id);
+        break;
+      case 1: // likes
+        ref.read(videoProvider.notifier).loadLikedVideos();
+        break;
+      case 2: // bookmarked
+        ref.read(videoProvider.notifier).loadBookmarkedVideos();
+        break;
+    }
+  }
+  
+  // ✅ Отдельная загрузка своих видео для мастера (как на вебе)
+  Future<void> _loadMasterVideos(String masterId) async {
+    setState(() => _isLoadingMasterVideos = true);
+    try {
+      final videoRepository = ref.read(videoRepositoryProvider);
+      final videos = await videoRepository.getMasterVideos(masterId);
+      if (mounted) {
+        setState(() {
+          _masterVideos = videos;
+          _isLoadingMasterVideos = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _masterVideos = [];
+          _isLoadingMasterVideos = false;
+        });
+      }
+    }
   }
 
   @override
@@ -243,26 +315,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 
                 SizedBox(height: 8.h),
                 
-                // Role badge
+                // Role badge - показываем тип компании для мастера
                 Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 12.w,
                     vertical: 6.h,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isMaster
-                          ? [AppColors.primary, AppColors.secondary]
-                          : [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
-                    ),
                     borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: isMaster 
+                          ? _getCompanyTypeBorderColor(user.companyType)
+                          : const Color(0xFF7C3AED),
+                      width: 1,
+                    ),
+                    color: isMaster
+                        ? _getCompanyTypeBgColor(user.companyType)
+                        : const Color(0xFF8B5CF6).withValues(alpha: 0.2),
                   ),
                   child: Text(
-                    isMaster ? 'Мастер' : 'Клиент',
+                    isMaster ? _getCompanyTypeLabel(user.companyType) : 'Клиент',
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: isMaster 
+                          ? _getCompanyTypeTextColor(user.companyType)
+                          : Colors.white,
                     ),
                   ),
                 ),
@@ -324,7 +402,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 
                 SizedBox(height: 24.h),
                 
-                // Tabs
+                // Tabs - для мастера 3 вкладки (videos, likes, bookmarked), для клиента 2 (заказы, избранное)
                 TabBar(
                   controller: _tabController,
                   indicatorColor: AppColors.primary,
@@ -335,35 +413,54 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
                   ),
-                  tabs: [
-                    Tab(
-                      icon: Icon(
-                        isMaster
-                            ? Icons.video_library_outlined
-                            : Icons.shopping_bag_outlined,
-                        size: 24.sp,
-                      ),
-                    ),
-                    Tab(
-                      icon: Icon(
-                        Icons.favorite_border_rounded,
-                        size: 24.sp,
-                      ),
-                    ),
-                  ],
+                  tabs: isMaster
+                      ? [
+                          // Для мастера: videos, likes, bookmarked (как на вебе)
+                          Tab(
+                            icon: Icon(Icons.video_library_outlined, size: 24.sp),
+                            text: 'Видео',
+                          ),
+                          Tab(
+                            icon: Icon(Icons.favorite_border_rounded, size: 24.sp),
+                            text: 'Лайки',
+                          ),
+                          Tab(
+                            icon: Icon(Icons.bookmark_border_rounded, size: 24.sp),
+                            text: 'Сохранено',
+                          ),
+                        ]
+                      : [
+                          // Для клиента: заказы, избранное
+                          Tab(
+                            icon: Icon(Icons.shopping_bag_outlined, size: 24.sp),
+                            text: 'Заказы',
+                          ),
+                          Tab(
+                            icon: Icon(Icons.bookmark_border_rounded, size: 24.sp),
+                            text: 'Избранное',
+                          ),
+                        ],
                 ),
               ],
             ),
           ),
           
-          // Tab content
+          // Tab content - для мастера 3 вкладки, для клиента 2
           SliverFillRemaining(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildVideosGrid(isMaster),
-                _buildLikesGrid(),
-              ],
+              children: isMaster
+                  ? [
+                      // Для мастера: videos, likes, bookmarked
+                      _buildVideosGrid(isMaster: true),
+                      _buildLikedVideosGrid(),
+                      _buildBookmarkedVideosGrid(),
+                    ]
+                  : [
+                      // Для клиента: заказы, избранное
+                      _buildOrdersGrid(),
+                      _buildBookmarkedVideosGrid(),
+                    ],
             ),
           ),
         ],
@@ -443,9 +540,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  Widget _buildVideosGrid(bool isMaster) {
+  Widget _buildVideosGrid({required bool isMaster}) {
     final user = ref.watch(authProvider).user;
     if (user == null) return const SizedBox.shrink();
+    
+    // ✅ Используем локальное состояние для мастера (как на вебе)
+    if (isMaster && _isLoadingMasterVideos) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
     
     return GridView.builder(
       padding: EdgeInsets.all(2.w),
@@ -456,11 +560,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         childAspectRatio: 9 / 16,
       ),
       itemCount: isMaster 
-          ? ref.watch(videoProvider).videos.where((v) => v.authorId == user.id).length
+          ? _masterVideos.length
           : ref.watch(orderProvider).orders.where((o) => o.clientId == user.id).length,
       itemBuilder: (context, index) {
         final items = isMaster 
-            ? ref.watch(videoProvider).videos.where((v) => v.authorId == user.id).toList()
+            ? _masterVideos
             : ref.watch(orderProvider).orders.where((o) => o.clientId == user.id).toList();
         
         if (isMaster) {
@@ -483,10 +587,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (video.thumbnailUrl != null)
+                  if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
                     CachedNetworkImage(
                       imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[900],
+                        child: const Icon(
+                          Icons.video_library_outlined,
+                          color: Colors.white54,
+                          size: 40,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[900],
+                        child: const Icon(
+                          Icons.video_library_outlined,
+                          color: Colors.white54,
+                          size: 40,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      color: Colors.grey[900],
+                      child: const Icon(
+                        Icons.video_library_outlined,
+                        color: Colors.white54,
+                        size: 40,
+                      ),
                     ),
                   Positioned(
                     bottom: 4,
@@ -535,6 +664,284 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           );
         }
+      },
+    );
+  }
+
+  // Для клиента - заказы
+  Widget _buildOrdersGrid() {
+    final user = ref.watch(authProvider).user;
+    if (user == null) return const SizedBox.shrink();
+    
+    final orders = ref.watch(orderProvider).orders.where((o) => o.clientId == user.id).toList();
+    
+    if (orders.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.shopping_bag_outlined, size: 64.sp, color: Colors.white.withOpacity(0.3)),
+              SizedBox(height: 16.h),
+              Text(
+                'У вас пока нет заказов',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 16.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return ListView.builder(
+      padding: EdgeInsets.all(16.w),
+      itemCount: orders.length,
+      itemBuilder: (context, index) {
+        final order = orders[index];
+        return Container(
+          margin: EdgeInsets.only(bottom: 12.h),
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              order.title,
+              style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              order.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14.sp),
+            ),
+            trailing: Icon(Icons.chevron_right, color: Colors.white.withOpacity(0.4)),
+            onTap: () {
+              Navigator.pushNamed(context, '/order-detail', arguments: order.id);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // Лайкнутые видео (для мастера)
+  Widget _buildLikedVideosGrid() {
+    final videoState = ref.watch(videoProvider);
+    
+    if (videoState.isLoading) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+    
+    if (videoState.error != null) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Text(
+            'Ошибка загрузки: ${videoState.error}',
+            style: TextStyle(color: Colors.red.withOpacity(0.8), fontSize: 14.sp),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    
+    if (videoState.videos.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.favorite_border, size: 64.sp, color: Colors.white.withOpacity(0.3)),
+              SizedBox(height: 16.h),
+              Text(
+                'У вас пока нет лайкнутых видео',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 16.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return GridView.builder(
+      padding: EdgeInsets.all(2.w),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 2.w,
+        crossAxisSpacing: 2.w,
+        childAspectRatio: 9 / 16,
+      ),
+      itemCount: videoState.videos.length,
+      itemBuilder: (context, index) {
+        final video = videoState.videos[index];
+        return GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/video-detail', arguments: video.id);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.darkSurface,
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
+                  CachedNetworkImage(
+                    imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[900],
+                      child: const Icon(Icons.video_library_outlined, color: Colors.white54, size: 40),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[900],
+                      child: const Icon(Icons.video_library_outlined, color: Colors.white54, size: 40),
+                    ),
+                  )
+                else
+                  Container(
+                    color: Colors.grey[900],
+                    child: const Icon(Icons.video_library_outlined, color: Colors.white54, size: 40),
+                  ),
+                Positioned(
+                  bottom: 4,
+                  left: 4,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.favorite, color: Colors.red, size: 12.sp),
+                        SizedBox(width: 4.w),
+                        Text(
+                          '${video.likesCount ?? 0}',
+                          style: TextStyle(color: Colors.white, fontSize: 10.sp),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Сохраненные видео (для мастера и клиента)
+  Widget _buildBookmarkedVideosGrid() {
+    final videoState = ref.watch(videoProvider);
+    
+    if (videoState.isLoading) {
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+    
+    if (videoState.error != null) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Text(
+            'Ошибка загрузки: ${videoState.error}',
+            style: TextStyle(color: Colors.red.withOpacity(0.8), fontSize: 14.sp),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    
+    if (videoState.videos.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.bookmark_border, size: 64.sp, color: Colors.white.withOpacity(0.3)),
+              SizedBox(height: 16.h),
+              Text(
+                'У вас пока нет сохраненных видео',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 16.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return GridView.builder(
+      padding: EdgeInsets.all(2.w),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 2.w,
+        crossAxisSpacing: 2.w,
+        childAspectRatio: 9 / 16,
+      ),
+      itemCount: videoState.videos.length,
+      itemBuilder: (context, index) {
+        final video = videoState.videos[index];
+        return GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/video-detail', arguments: video.id);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.darkSurface,
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
+                  CachedNetworkImage(
+                    imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[900],
+                      child: const Icon(Icons.video_library_outlined, color: Colors.white54, size: 40),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[900],
+                      child: const Icon(Icons.video_library_outlined, color: Colors.white54, size: 40),
+                    ),
+                  )
+                else
+                  Container(
+                    color: Colors.grey[900],
+                    child: const Icon(Icons.video_library_outlined, color: Colors.white54, size: 40),
+                  ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Icon(Icons.bookmark, color: AppColors.primary, size: 16.sp),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
@@ -1147,23 +1554,145 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ],
                 ),
                 SizedBox(height: 16.h),
-                // TODO: Загрузить список мастеров с API
-                Container(
-                  padding: EdgeInsets.all(20.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'У вас пока нет подписок на мастеров',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
-                        fontSize: 14.sp,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                // Список мастеров с API
+                Builder(
+                  builder: (context) {
+                    final masterState = ref.watch(masterProvider);
+                    
+                    if (masterState.isLoading) {
+                      return Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    if (masterState.error != null) {
+                      return Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Ошибка загрузки: ${masterState.error}',
+                            style: TextStyle(
+                              color: Colors.red.withOpacity(0.8),
+                              fontSize: 14.sp,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    if (masterState.masters.isEmpty) {
+                      return Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'У вас пока нет подписок на мастеров',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 14.sp,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    return Column(
+                      children: masterState.masters.take(5).map((master) {
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, '/master-profile', arguments: master.id);
+                          },
+                          child: Container(
+                            margin: EdgeInsets.only(bottom: 12.h),
+                            padding: EdgeInsets.all(12.w),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20.r,
+                                  backgroundColor: AppColors.primary,
+                                  backgroundImage: master.avatar != null
+                                      ? NetworkImage(ImageHelper.getFullImageUrl(master.avatar!))
+                                      : null,
+                                  child: master.avatar == null
+                                      ? Text(
+                                          master.displayName.isNotEmpty 
+                                              ? master.displayName[0].toUpperCase()
+                                              : 'M',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16.sp,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        // Показываем название компании для мастеров, или имя+фамилия, или username
+                                        master.isMaster && master.companyName != null && master.companyName!.isNotEmpty
+                                            ? master.companyName!
+                                            : (master.firstName != null && master.lastName != null
+                                                ? '${master.firstName} ${master.lastName}'
+                                                : master.username),
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      if (master.username != null)
+                                        Text(
+                                          '@${master.username}',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.6),
+                                            fontSize: 12.sp,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.white.withOpacity(0.4),
+                                  size: 20.sp,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
                 ),
               ],
             ),
@@ -1192,22 +1721,135 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ],
                 ),
                 SizedBox(height: 16.h),
-                Container(
-                  padding: EdgeInsets.all(20.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'У вас пока нет избранных видео',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
-                        fontSize: 14.sp,
+                // Список избранных видео с API
+                Builder(
+                  builder: (context) {
+                    final videoState = ref.watch(videoProvider);
+                    
+                    if (videoState.isLoading) {
+                      return Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    if (videoState.error != null) {
+                      return Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Ошибка загрузки: ${videoState.error}',
+                            style: TextStyle(
+                              color: Colors.red.withOpacity(0.8),
+                              fontSize: 14.sp,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    if (videoState.videos.isEmpty) {
+                      return Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'У вас пока нет избранных видео',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 14.sp,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    // Сетка избранных видео (2 колонки как на вебе)
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 2.w,
+                        crossAxisSpacing: 2.w,
+                        childAspectRatio: 9 / 16,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                      itemCount: videoState.videos.length,
+                      itemBuilder: (context, index) {
+                        final video = videoState.videos[index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/home',
+                            );
+                            // TODO: Navigate to specific video
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.darkSurface,
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                              ),
+                            ),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
+                                  CachedNetworkImage(
+                                    imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      color: Colors.grey[900],
+                                      child: const Icon(
+                                        Icons.video_library_outlined,
+                                        color: Colors.white54,
+                                        size: 40,
+                                      ),
+                                    ),
+                                    errorWidget: (context, url, error) => Container(
+                                      color: Colors.grey[900],
+                                      child: const Icon(
+                                        Icons.video_library_outlined,
+                                        color: Colors.white54,
+                                        size: 40,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Container(
+                                    color: Colors.grey[900],
+                                    child: const Icon(
+                                      Icons.video_library_outlined,
+                                      color: Colors.white54,
+                                      size: 40,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ],
             ),
@@ -1229,5 +1871,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       text,
       subject: 'Профиль на MebelPlace',
     );
+  }
+
+  // ✅ Company Type Helper методы (как на вебе companyTypes.ts)
+  String _getCompanyTypeLabel(String? type) {
+    if (type == null) return 'Мастер';
+    switch (type) {
+      case 'company':
+        return 'Мебельная компания';
+      case 'shop':
+        return 'Мебельный магазин';
+      case 'master':
+      default:
+        return 'Мастер';
+    }
+  }
+
+  Color _getCompanyTypeBgColor(String? type) {
+    if (type == null) return Colors.yellow.withValues(alpha: 0.2);
+    switch (type) {
+      case 'company':
+        return Colors.orange.withValues(alpha: 0.2);
+      case 'shop':
+        return Colors.red.withValues(alpha: 0.2);
+      case 'master':
+      default:
+        return Colors.yellow.withValues(alpha: 0.2);
+    }
+  }
+
+  Color _getCompanyTypeTextColor(String? type) {
+    if (type == null) return Colors.yellow[400]!;
+    switch (type) {
+      case 'company':
+        return Colors.orange[400]!;
+      case 'shop':
+        return Colors.red[400]!;
+      case 'master':
+      default:
+        return Colors.yellow[400]!;
+    }
+  }
+
+  Color _getCompanyTypeBorderColor(String? type) {
+    if (type == null) return Colors.yellow.withValues(alpha: 0.3);
+    switch (type) {
+      case 'company':
+        return Colors.orange.withValues(alpha: 0.3);
+      case 'shop':
+        return Colors.red.withValues(alpha: 0.3);
+      case 'master':
+      default:
+        return Colors.yellow.withValues(alpha: 0.3);
+    }
   }
 }

@@ -1,9 +1,12 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/order_response_model.dart';
+import '../../../data/models/order_model.dart';
 import '../../../data/datasources/api_service.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/repository_providers.dart';
@@ -25,9 +28,10 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
   @override
   void initState() {
     super.initState();
-    // Загружаем отклики на заявку
+    // Загружаем отклики на заявку и заказ
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(orderProvider.notifier).loadOrderResponses(widget.orderId);
+      ref.read(orderProvider.notifier).loadOrderDetail(widget.orderId);
     });
   }
 
@@ -58,11 +62,11 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           ? const Center(child: LoadingWidget())
           : orderState.error != null
               ? _buildErrorWidget(orderState.error!)
-              : _buildResponsesList(orderState.orderResponses),
+              : _buildResponsesList(orderState.orderResponses, orderState.currentOrder),
     );
   }
 
-  Widget _buildResponsesList(List<OrderResponse> responses) {
+  Widget _buildResponsesList(List<OrderResponse> responses, OrderModel? order) {
     if (responses.isEmpty) {
       return _buildEmptyState();
     }
@@ -71,24 +75,35 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
       padding: EdgeInsets.all(16.w),
       itemCount: responses.length,
       itemBuilder: (context, index) {
-        return _buildResponseCard(responses[index], index);
+        return _buildResponseCard(responses[index], index, order);
       },
     );
   }
 
-  Widget _buildResponseCard(OrderResponse response, int index) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
+  Widget _buildResponseCard(OrderResponse response, int index, OrderModel? order) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+        child: Container(
+          margin: EdgeInsets.only(bottom: 16.h),
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 32,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Информация о мастере
@@ -96,8 +111,15 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           
           SizedBox(height: 16.h),
           
-          // Предложение мастера
-          _buildProposal(response),
+          // Сообщение мастера (без рамки)
+          Text(
+            response.message,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 14.sp,
+              height: 1.4,
+            ),
+          ),
           
           SizedBox(height: 16.h),
           
@@ -107,10 +129,12 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
           SizedBox(height: 16.h),
           
           // Действия
-          _buildActions(response),
+          _buildActions(response, order),
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms, delay: (index * 100).ms).slideY(
+    ),
+      ),
+        ).animate().fadeIn(duration: 300.ms, delay: (index * 100).ms).slideY(
       begin: 0.2,
       end: 0,
       curve: Curves.easeOut,
@@ -120,15 +144,29 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
   Widget _buildMasterInfo(OrderResponse response) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 24.r,
-          backgroundColor: AppColors.primary,
-          backgroundImage: response.masterAvatar != null 
-            ? NetworkImage(response.masterAvatar!)
-            : null,
-          child: response.masterAvatar == null 
-            ? Icon(Icons.person, size: 24.sp, color: Colors.white)
-            : null,
+        GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/master-profile', arguments: response.masterId);
+          },
+          child: CircleAvatar(
+            radius: 24.r,
+            backgroundColor: AppColors.primary,
+            backgroundImage: response.masterAvatar != null 
+              ? NetworkImage(response.masterAvatar!)
+              : null,
+            child: response.masterAvatar == null 
+              ? Text(
+                  response.masterName != null && response.masterName!.isNotEmpty
+                      ? response.masterName![0].toUpperCase()
+                      : 'M',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : null,
+          ),
         ),
         
         SizedBox(width: 12.w),
@@ -138,7 +176,7 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                response.masterName ?? 'Мастер ${response.masterId}',
+                response.master?.displayName ?? response.masterName ?? 'Мастер ${response.masterId}',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16.sp,
@@ -146,204 +184,239 @@ class _OrderResponsesPageState extends ConsumerState<OrderResponsesPage> {
                 ),
               ),
               SizedBox(height: 4.h),
-              Text(
-                'Мастер • ${response.masterRating?.toStringAsFixed(1) ?? '5.0'} ⭐',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 12.sp,
-                ),
+              Row(
+                children: [
+                  Icon(Icons.star, color: Colors.yellow, size: 16.sp),
+                  SizedBox(width: 4.w),
+                  Text(
+                    _formatRating(response.masterRating ?? response.master?.rating),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                  if (_getReviewsCount(response) > 0) ...[
+                    SizedBox(width: 8.w),
+                    Text(
+                      '•',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      '${_getReviewsCount(response)} ${_pluralizeReviews(_getReviewsCount(response))}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
         ),
         
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-          decoration: BoxDecoration(
-            color: response.status == 'accepted' 
-              ? Colors.green.withValues(alpha: 0.2)
-              : Colors.orange.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(
-              color: response.status == 'accepted' 
-                ? Colors.green.withValues(alpha: 0.5)
-                : Colors.orange.withValues(alpha: 0.5),
+        // Дата справа
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              'Предложено',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 12.sp,
+              ),
             ),
-          ),
-          child: Text(
-            response.status == 'accepted' ? 'Принят' : 'Ожидает',
-            style: TextStyle(
-              color: response.status == 'accepted' 
-                ? Colors.green
-                : Colors.orange,
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w600,
+            SizedBox(height: 4.h),
+            Text(
+              _formatTime(response.createdAt),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 12.sp,
+              ),
             ),
-          ),
+          ],
         ),
       ],
     );
   }
+  
+  String _formatTime(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    
+    if (diff.inHours < 1) {
+      return 'только что';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}ч назад';
+    } else {
+      return '${date.day}.${date.month}';
+    }
+  }
 
-  Widget _buildProposal(OrderResponse response) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.05),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Предложение мастера',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            response.message,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 14.sp,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
+  String _formatRating(double? rating) {
+    if (rating == null || rating <= 0) {
+      return '—'; // Если рейтинга нет, показываем прочерк
+    }
+    return rating.toStringAsFixed(1);
+  }
+
+  int _getReviewsCount(OrderResponse response) {
+    // Пытаемся получить количество отзывов из master объекта или из response
+    // TODO: Добавить reviewsCount в OrderResponse модель, когда бэкенд будет возвращать это поле
+    // Пока что возвращаем 0, так как бэкенд не отправляет это поле
+    return 0;
+  }
+
+  String _pluralizeReviews(int count) {
+    if (count % 10 == 1 && count % 100 != 11) {
+      return 'отзыв';
+    } else if ([2, 3, 4].contains(count % 10) && ![12, 13, 14].contains(count % 100)) {
+      return 'отзыва';
+    } else {
+      return 'отзывов';
+    }
   }
 
   Widget _buildPriceAndTimeline(OrderResponse response) {
-    return Row(
+    return Wrap(
+      spacing: 16.w,
+      runSpacing: 8.h,
       children: [
-        Expanded(
-          child: _buildInfoItem(
-            Icons.attach_money,
-            'Цена',
-            '${response.price?.toStringAsFixed(0) ?? '0'} ₸',
-            AppColors.primary,
+        if (response.price != null && response.price! > 0)
+          Text(
+            'Цена: ${response.price!.toStringAsFixed(0)} ₸',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        
-        SizedBox(width: 16.w),
-        
-        Expanded(
-          child: _buildInfoItem(
-            Icons.schedule,
-            'Срок',
-            response.deadline != null ? 'До ${response.deadline!.day}.${response.deadline!.month}' : 'Не указан',
-            Colors.blue,
+        if (response.deadline != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.schedule, color: Colors.white.withValues(alpha: 0.7), size: 16.sp),
+              SizedBox(width: 4.w),
+              Text(
+                DateFormat('dd.MM.yyyy').format(response.deadline!),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 14.sp,
+                ),
+              ),
+            ],
           ),
-        ),
       ],
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String label, String value, Color color) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
+  Widget _buildActions(OrderResponse response, OrderModel? order) {
+    final authState = ref.watch(authProvider);
+    final currentUser = authState.user;
+    final isOrderOwner = currentUser != null && order != null && currentUser.id == order.clientId;
+    final isClient = currentUser?.role == 'user';
+    final isMaster = currentUser?.role == 'master';
+    
+    // ✅ Кнопки только для клиента-владельца заявки (как на вебе строка 271)
+    if (!isMaster && isClient && isOrderOwner) {
+      // Компактное расположение кнопок в одну строку
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 16.sp,
-          ),
-          SizedBox(width: 8.w),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 10.sp,
-                  ),
+            child: ElevatedButton(
+              onPressed: () {
+                _showAcceptDialog(response);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
-                Text(
-                  value,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+              ),
+              child: Text(
+                'Принять',
+                style: TextStyle(fontSize: 13.sp),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          
+          SizedBox(width: 8.w),
+          
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/chat', arguments: response.masterId);
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
-              ],
+              ),
+              child: Text(
+                'Написать',
+                style: TextStyle(fontSize: 13.sp),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          
+          SizedBox(width: 8.w),
+          
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/master-profile', arguments: response.masterId);
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: Text(
+                'Профиль',
+                style: TextStyle(fontSize: 13.sp),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActions(OrderResponse response) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
+      );
+    } else {
+      // Для мастера и других пользователей показываем только "Профиль мастера"
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          OutlinedButton(
             onPressed: () {
-              _showAcceptDialog(response);
+              Navigator.pushNamed(context, '/master-profile', arguments: response.masterId);
             },
-            icon: Icon(Icons.check, size: 16.sp),
-            label: const Text('Принять'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 12.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-            ),
-          ),
-        ),
-        
-        SizedBox(width: 12.w),
-        
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {
-              Navigator.pushNamed(context, '/chat', arguments: response.masterId);
-            },
-            icon: Icon(Icons.message, size: 16.sp),
-            label: const Text('Написать'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
               side: const BorderSide(color: AppColors.primary),
-              padding: EdgeInsets.symmetric(vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.r),
               ),
             ),
+            child: const Text('Профиль мастера'),
           ),
-        ),
-        
-        SizedBox(width: 12.w),
-        
-        IconButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/master-profile', arguments: response.masterId);
-          },
-          icon: Icon(Icons.person, color: Colors.white.withValues(alpha: 0.7)),
-        ),
-      ],
-    );
+        ],
+      );
+    }
   }
 
   Widget _buildEmptyState() {

@@ -29,6 +29,7 @@ class UserModel {
   final String? companyName;        // Название компании (для мастеров)
   final String? companyAddress;     // Адрес компании
   final String? companyDescription; // Описание компании
+  final String? companyType;        // Тип компании (master/company/shop)
 
   const UserModel({
     required this.id,
@@ -54,6 +55,7 @@ class UserModel {
     this.companyName,
     this.companyAddress,
     this.companyDescription,
+    this.companyType,
   });
 
   // ✅ Ручной парсинг для поддержки snake_case с бэкенда
@@ -79,24 +81,47 @@ class UserModel {
       updatedAt: json['updatedAt'] != null || json['updated_at'] != null
           ? DateTime.tryParse((json['updatedAt'] ?? json['updated_at']).toString())
           : null,
-      rating: json['rating'] != null ? double.tryParse(json['rating'].toString()) : null,
+      rating: json['rating'] != null ? _parseDouble(json['rating']) : null,
       followersCount: json['followersCount'] != null || json['followers_count'] != null
-          ? int.tryParse((json['followersCount'] ?? json['followers_count'] ?? 0).toString())
+          ? _parseIntNullable(json['followersCount'] ?? json['followers_count'])
           : null,
       subscribersCount: json['subscribersCount'] != null || json['subscribers_count'] != null
-          ? int.tryParse((json['subscribersCount'] ?? json['subscribers_count'] ?? 0).toString())
+          ? _parseIntNullable(json['subscribersCount'] ?? json['subscribers_count'])
           : null,
       subscriptionsCount: json['subscriptionsCount'] != null || json['subscriptions_count'] != null
-          ? int.tryParse((json['subscriptionsCount'] ?? json['subscriptions_count'] ?? 0).toString())
+          ? _parseIntNullable(json['subscriptionsCount'] ?? json['subscriptions_count'])
           : null,
       ordersCount: json['ordersCount'] != null || json['orders_count'] != null
-          ? int.tryParse((json['ordersCount'] ?? json['orders_count'] ?? 0).toString())
+          ? _parseIntNullable(json['ordersCount'] ?? json['orders_count'])
           : null,
       bio: json['bio']?.toString(),
       companyName: (json['companyName'] ?? json['company_name'])?.toString(),
       companyAddress: (json['companyAddress'] ?? json['company_address'])?.toString(),
       companyDescription: (json['companyDescription'] ?? json['company_description'])?.toString(),
+      companyType: (json['companyType'] ?? json['company_type'])?.toString(),
     );
+  }
+
+  // Helper для безопасного парсинга int
+  static int? _parseIntNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
+  }
+
+  // Helper для безопасного парсинга double
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
@@ -125,6 +150,7 @@ class UserModel {
     String? companyName,
     String? companyAddress,
     String? companyDescription,
+    String? companyType,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -150,6 +176,7 @@ class UserModel {
       companyName: companyName ?? this.companyName,
       companyAddress: companyAddress ?? this.companyAddress,
       companyDescription: companyDescription ?? this.companyDescription,
+      companyType: companyType ?? this.companyType,
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/repository_providers.dart';
+import '../../../data/datasources/api_service.dart';
 
 class SupportPage extends ConsumerStatefulWidget {
   const SupportPage({super.key});
@@ -19,16 +20,68 @@ class _SupportPageState extends ConsumerState<SupportPage> {
   final _emailController = TextEditingController();
   final _messageController = TextEditingController();
   
-  String _selectedCategory = 'Техническая поддержка';
+  String _selectedCategory = 'general';
   bool _isSending = false;
+  bool _isLoading = true;
   
-  final List<String> _categories = [
-    'Техническая поддержка',
-    'Вопросы по заказам',
-    'Проблемы с оплатой',
-    'Предложения по улучшению',
-    'Другое',
-  ];
+  // Информация о поддержке с API (как на вебе)
+  SupportInfo? _supportInfo;
+  List<SupportTicket> _tickets = [];
+  
+  final Map<String, String> _categories = {
+    'general': 'Общие вопросы',
+    'technical': 'Техническая поддержка',
+    'billing': 'Биллинг',
+    'feature_request': 'Запрос функции',
+    'bug_report': 'Сообщение об ошибке',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    // Загружаем информацию о поддержке и тикеты (как на вебе)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSupportInfo();
+      _loadTickets();
+    });
+  }
+
+  Future<void> _loadSupportInfo() async {
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.getSupportInfo();
+      if (response.success && response.data != null) {
+        setState(() {
+          _supportInfo = response.data;
+          _isLoading = false;
+        });
+      } else {
+        // Если endpoint не существует, используем fallback
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // Если endpoint не существует (404), используем fallback
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadTickets() async {
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.getSupportTickets();
+      if (response.success && response.data != null) {
+        setState(() {
+          _tickets = response.data!;
+        });
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
 
   @override
   void dispose() {
@@ -90,6 +143,14 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             
             // Контактная информация
             _buildContactInfo(),
+            
+            SizedBox(height: 24.h),
+            
+            // Список тикетов (как на вебе)
+            if (_tickets.isNotEmpty) ...[
+              _buildTicketsSection(),
+              SizedBox(height: 24.h),
+            ],
             
             SizedBox(height: 40.h),
           ],
@@ -350,10 +411,10 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
           ),
           dropdownColor: AppColors.dark,
-          items: _categories.map((category) {
+          items: _categories.entries.map((entry) {
             return DropdownMenuItem<String>(
-              value: category,
-              child: Text(category),
+              value: entry.key,
+              child: Text(entry.value),
             );
           }).toList(),
           onChanged: (value) {
@@ -391,30 +452,59 @@ class _SupportPageState extends ConsumerState<SupportPage> {
           
           SizedBox(height: 16.h),
           
-          _buildQuickActionItem(
-            icon: Icons.phone,
-            title: 'Позвонить',
-            subtitle: '+7 (775) 990-56-23',
-            onTap: () => _makePhoneCall('+77759905623'),
-          ),
-          
-          SizedBox(height: 12.h),
-          
-          _buildQuickActionItem(
-            icon: Icons.email,
-            title: 'Написать на email',
-            subtitle: 'support@mebelplace.com.kz',
-            onTap: () => _sendEmail('support@mebelplace.com.kz'),
-          ),
-          
-          SizedBox(height: 12.h),
-          
-          _buildQuickActionItem(
-            icon: Icons.chat,
-            title: 'Онлайн чат',
-            subtitle: 'Доступен с 9:00 до 18:00',
-            onTap: () => _openChat(),
-          ),
+          // Используем данные из API вместо хардкода (как на вебе)
+          if (_supportInfo != null) ...[
+            _buildQuickActionItem(
+              icon: Icons.phone,
+              title: 'Позвонить',
+              subtitle: _supportInfo!.supportPhone['formatted'] ?? _supportInfo!.supportPhone['phone'] ?? '+7 (775) 990-56-23',
+              onTap: () => _makePhoneCall(_supportInfo!.supportPhone['phone'] ?? '+77759905623'),
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            _buildQuickActionItem(
+              icon: Icons.email,
+              title: 'Написать на email',
+              subtitle: _supportInfo!.supportEmail['email'] ?? 'support@mebelplace.com.kz',
+              onTap: () => _sendEmail(_supportInfo!.supportEmail['email'] ?? 'support@mebelplace.com.kz'),
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            _buildQuickActionItem(
+              icon: Icons.chat,
+              title: 'Онлайн чат',
+              subtitle: _supportInfo!.supportHours['schedule'] ?? 'Доступен с 9:00 до 18:00',
+              onTap: () => _openChat(),
+            ),
+          ] else ...[
+            // Fallback если API не вернул данные
+            _buildQuickActionItem(
+              icon: Icons.phone,
+              title: 'Позвонить',
+              subtitle: '+7 (775) 990-56-23',
+              onTap: () => _makePhoneCall('+77759905623'),
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            _buildQuickActionItem(
+              icon: Icons.email,
+              title: 'Написать на email',
+              subtitle: 'support@mebelplace.com.kz',
+              onTap: () => _sendEmail('support@mebelplace.com.kz'),
+            ),
+            
+            SizedBox(height: 12.h),
+            
+            _buildQuickActionItem(
+              icon: Icons.chat,
+              title: 'Онлайн чат',
+              subtitle: 'Доступен с 9:00 до 18:00',
+              onTap: () => _openChat(),
+            ),
+          ],
         ],
       ),
     ).animate().fadeIn(duration: 500.ms, delay: 400.ms).slideY(
@@ -691,6 +781,213 @@ class _SupportPageState extends ConsumerState<SupportPage> {
     Navigator.pushNamed(context, '/messages');
   }
 
+  Widget _buildTicketsSection() {
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.support_agent, color: AppColors.primary, size: 24.sp),
+              SizedBox(width: 8.w),
+              Text(
+                'Мои тикеты',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          
+          SizedBox(height: 16.h),
+          
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _tickets.length,
+            itemBuilder: (context, index) {
+              final ticket = _tickets[index];
+              return Container(
+                margin: EdgeInsets.only(bottom: 12.h),
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            ticket.subject,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        _buildStatusChip(ticket.status),
+                      ],
+                    ),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: [
+                        _buildPriorityChip(ticket.priority),
+                        SizedBox(width: 8.w),
+                        Text(
+                          _categories[ticket.category] ?? ticket.category,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          _formatDate(ticket.createdAt),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 500.ms, delay: 800.ms).slideY(
+      begin: 0.3,
+      end: 0,
+      curve: Curves.easeOut,
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color statusColor;
+    String statusText;
+    IconData statusIcon;
+    
+    switch (status.toLowerCase()) {
+      case 'open':
+        statusColor = Colors.yellow;
+        statusText = 'Открыт';
+        statusIcon = Icons.circle_outlined;
+        break;
+      case 'in_progress':
+        statusColor = Colors.blue;
+        statusText = 'В работе';
+        statusIcon = Icons.access_time;
+        break;
+      case 'resolved':
+        statusColor = Colors.green;
+        statusText = 'Решен';
+        statusIcon = Icons.check_circle;
+        break;
+      case 'closed':
+        statusColor = Colors.grey;
+        statusText = 'Закрыт';
+        statusIcon = Icons.close;
+        break;
+      default:
+        statusColor = Colors.white;
+        statusText = status;
+        statusIcon = Icons.circle;
+    }
+    
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: statusColor.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(statusIcon, size: 12.sp, color: statusColor),
+          SizedBox(width: 4.w),
+          Text(
+            statusText,
+            style: TextStyle(
+              color: statusColor,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriorityChip(String priority) {
+    Color priorityColor;
+    
+    switch (priority.toLowerCase()) {
+      case 'low':
+        priorityColor = Colors.green;
+        break;
+      case 'medium':
+        priorityColor = Colors.yellow;
+        break;
+      case 'high':
+        priorityColor = Colors.orange;
+        break;
+      case 'urgent':
+        priorityColor = Colors.red;
+        break;
+      default:
+        priorityColor = Colors.grey;
+    }
+    
+    return Container(
+      width: 8.w,
+      height: 8.w,
+      decoration: BoxDecoration(
+        color: priorityColor,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+      
+      if (difference.inDays == 0) {
+        if (difference.inHours == 0) {
+          return '${difference.inMinutes}м назад';
+        }
+        return '${difference.inHours}ч назад';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays}д назад';
+      } else {
+        return '${date.day}.${date.month}.${date.year}';
+      }
+    } catch (e) {
+      return dateString;
+    }
+  }
+
   Future<void> _sendMessage() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -704,14 +1001,17 @@ class _SupportPageState extends ConsumerState<SupportPage> {
       // Отправка через реальный API
       final apiService = ref.read(apiServiceProvider);
       
-      // Формируем сообщение с контактной информацией
-      final fullMessage = 'Имя: ${_nameController.text}\n'
-          'Email: ${_emailController.text}\n\n'
-          '${_messageController.text}';
-      
+      // Отправляем как на вебе: subject, message, priority, category
+      final subjectText = _messageController.text.length > 50 
+          ? _messageController.text.substring(0, 50) + '...'
+          : _messageController.text;
       final response = await apiService.sendSupportMessage(
-        subject: _selectedCategory,
-        message: fullMessage,
+        subject: subjectText,
+        message: 'Имя: ${_nameController.text}\n'
+            'Email: ${_emailController.text}\n\n'
+            '${_messageController.text}',
+        category: _selectedCategory,
+        priority: 'medium', // По умолчанию средний приоритет (как на вебе)
       );
       
       if (mounted) {
@@ -728,8 +1028,11 @@ class _SupportPageState extends ConsumerState<SupportPage> {
           _emailController.clear();
           _messageController.clear();
           setState(() {
-            _selectedCategory = 'Техническая поддержка';
+            _selectedCategory = 'general';
           });
+          
+          // Перезагружаем тикеты после отправки (как на вебе)
+          _loadTickets();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

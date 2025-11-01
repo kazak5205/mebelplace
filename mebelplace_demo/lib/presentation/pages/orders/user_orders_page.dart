@@ -263,12 +263,6 @@ class _UserOrdersPageState extends ConsumerState<UserOrdersPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.attach_money,
-                          color: AppColors.primary,
-                          size: 14.sp,
-                        ),
-                        SizedBox(width: 4.w),
                         Text(
                           '${order.price} ₸',
                           style: TextStyle(

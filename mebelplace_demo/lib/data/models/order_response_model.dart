@@ -41,9 +41,10 @@ class OrderResponse {
       orderId: (json['orderId'] ?? json['order_id'] ?? '').toString(),
       masterId: (json['masterId'] ?? json['master_id'] ?? '').toString(),
       message: (json['message'] ?? '').toString(),
-      price: json['price'] != null ? double.tryParse(json['price'].toString()) : null,
-      deadline: json['deadline'] != null ? DateTime.tryParse(json['deadline'].toString()) : null,
-      status: (json['status'] ?? 'pending').toString(),
+      price: _parseDoubleNullable(json['price'] ?? json['proposedPrice']),
+      deadline: json['deadline'] != null ? DateTime.tryParse(json['deadline'].toString()) :
+                (json['estimatedTime'] != null ? DateTime.tryParse(json['estimatedTime'].toString()) : null),
+      status: json['status']?.toString() ?? 'pending', // Статус определяется на клиенте
       createdAt: DateTime.tryParse((json['createdAt'] ?? json['created_at'] ?? '').toString()) ?? DateTime.now(),
       master: json['master'] != null
           ? UserModel.fromJson(json['master'] as Map<String, dynamic>)
@@ -61,10 +62,21 @@ class OrderResponse {
       masterName: (json['masterName'] ?? json['master_username'])?.toString(),
       masterAvatar: (json['masterAvatar'] ?? json['master_avatar'])?.toString(),
       masterExperience: json['masterExperience']?.toString(),
-      masterRating: json['masterRating'] != null ? double.tryParse(json['masterRating'].toString()) : null,
+      masterRating: _parseDoubleNullable(json['masterRating']),
     );
   }
 
   Map<String, dynamic> toJson() => _$OrderResponseToJson(this);
+
+  // Helper для безопасного парсинга nullable double
+  static double? _parseDoubleNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
+  }
 }
 

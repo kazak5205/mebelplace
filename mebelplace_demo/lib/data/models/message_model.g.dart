@@ -21,6 +21,7 @@ MessageModel _$MessageModelFromJson(Map<String, dynamic> json) => MessageModel(
       senderName: json['senderName'] as String?,
       senderAvatar: json['senderAvatar'] as String?,
       message: json['message'] as String?,
+      metadata: json['metadata'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$MessageModelToJson(MessageModel instance) =>
@@ -37,4 +38,5 @@ Map<String, dynamic> _$MessageModelToJson(MessageModel instance) =>
       'senderName': instance.senderName,
       'senderAvatar': instance.senderAvatar,
       'message': instance.message,
+      'metadata': instance.metadata,
     };

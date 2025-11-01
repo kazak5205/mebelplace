@@ -1,6 +1,6 @@
 /// Модель участника чата
 class ChatParticipant {
-  final int userId;
+  final String userId; // ✅ UUID (строка), не int
   final String? username;
   final String? firstName;
   final String? lastName;
@@ -24,7 +24,7 @@ class ChatParticipant {
 
   factory ChatParticipant.fromJson(Map<String, dynamic> json) {
     return ChatParticipant(
-      userId: int.parse((json['user_id'] ?? json['userId']).toString()),
+      userId: (json['user_id'] ?? json['userId']).toString(), // ✅ UUID как строка
       username: json['username']?.toString(),
       firstName: json['first_name'] ?? json['firstName'],
       lastName: json['last_name'] ?? json['lastName'],
@@ -72,7 +72,7 @@ class ChatModel {
   final List<ChatParticipant> participants;
   
   // Текущий пользователь (передаётся извне для определения otherUser)
-  final int? currentUserId;
+  final String? currentUserId; // ✅ UUID (строка), не int
 
   const ChatModel({
     required this.id,
@@ -88,7 +88,7 @@ class ChatModel {
     this.currentUserId,
   });
 
-  factory ChatModel.fromJson(Map<String, dynamic> json, {int? currentUserId}) {
+  factory ChatModel.fromJson(Map<String, dynamic> json, {String? currentUserId}) {
     // Парсим participants
     final List<ChatParticipant> participantsList = [];
     if (json['participants'] != null && json['participants'] is List) {

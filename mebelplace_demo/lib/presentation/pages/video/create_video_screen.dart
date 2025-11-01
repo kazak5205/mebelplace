@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 import 'dart:io';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/app_providers.dart';
@@ -24,11 +25,13 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
   final _pageController = PageController();
   
   File? _selectedVideo;
-  File? _selectedThumbnail;
+  VideoPlayerController? _videoPlayerController;
+  // Cover selection removed: rely on auto-generated thumbnail
   bool _isUploading = false;
   int _currentStep = 0;
   String _selectedCategory = 'Мебель';
   final _priceController = TextEditingController();
+  bool _showInfoBlock = true; // ✅ Информация показывается всегда на первом шаге
   
   final List<String> _categories = [
     'Мебель',
@@ -64,6 +67,7 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
     _priceController.dispose();
     _pageController.dispose();
     _fabAnimationController.dispose();
+    _videoPlayerController?.dispose();
     super.dispose();
   }
 
@@ -250,6 +254,65 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Инструкция на первом шаге (как на вебе строка 143-161)
+          if (_showInfoBlock)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8.w),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, AppColors.secondary],
+                          ),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Icon(Icons.video_library, color: Colors.white, size: 20.sp),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Text(
+                          'Как делать видео, которое продаёт мебель',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+                  Container(
+                    padding: EdgeInsets.only(left: 8.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInstructionItem('1', 'Снимайте с чётким звуком и озвучкой, без фона музыки.'),
+                        SizedBox(height: 8.h),
+                        _buildInstructionItem('2', 'Уточняйте в видео и описании: размеры, материал и стоимость.'),
+                        SizedBox(height: 8.h),
+                        _buildInstructionItem('3', 'Демонстрируйте особенности и преимущества конструкции.'),
+                        SizedBox(height: 8.h),
+                        _buildInstructionItem('4', 'Завершайте призывом к действию: «Нажмите кнопку "Заказать" под видео и укажите ваши размеры и пожелания — мы свяжемся с вами!»'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (_showInfoBlock) SizedBox(height: 24.h),
+          
           Text(
             'Выберите видео',
             style: TextStyle(
@@ -339,17 +402,23 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          // Video preview (placeholder)
-                          Container(
-                            color: Colors.black,
-                            child: Center(
-                              child: Icon(
-                                Icons.play_circle_outline_rounded,
-                                size: 64.sp,
-                                color: Colors.white.withOpacity(0.7),
+                          // Video preview with first frame as thumbnail
+                          if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized)
+                            AspectRatio(
+                              aspectRatio: _videoPlayerController!.value.aspectRatio,
+                              child: VideoPlayer(_videoPlayerController!),
+                            )
+                          else
+                            Container(
+                              color: Colors.black,
+                              child: Center(
+                                child: Icon(
+                                  Icons.play_circle_outline_rounded,
+                                  size: 64.sp,
+                                  color: Colors.white.withOpacity(0.7),
+                                ),
                               ),
                             ),
-                          ),
                           
                           // Gradient overlay
                           Container(
@@ -399,8 +468,10 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
                             top: 12.h,
                             right: 12.w,
                             child: GestureDetector(
-                              onTap: () {
+                              onTap: () async {
                                 HapticHelper.lightImpact();
+                                await _videoPlayerController?.dispose();
+                                _videoPlayerController = null;
                                 setState(() {
                                   _selectedVideo = null;
                                 });
@@ -427,91 +498,8 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
           
           SizedBox(height: 24.h),
           
-          // Optional thumbnail
-          Text(
-            'Обложка (опционально)',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          
-          GestureDetector(
-            onTap: () {
-              HapticHelper.lightImpact();
-              _pickThumbnail();
-            },
-            child: Container(
-              height: 120.h,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(
-                  color: _selectedThumbnail != null
-                      ? AppColors.primary
-                      : Colors.white.withOpacity(0.2),
-                  width: 2,
-                ),
-              ),
-              child: _selectedThumbnail == null
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image_outlined,
-                          color: AppColors.primary,
-                          size: 24.sp,
-                        ),
-                        SizedBox(width: 12.w),
-                        Text(
-                          'Выбрать обложку',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.white.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(14.r),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.file(
-                            _selectedThumbnail!,
-                            fit: BoxFit.cover,
-                          ),
-                          Positioned(
-                            top: 8.h,
-                            right: 8.w,
-                            child: GestureDetector(
-                              onTap: () {
-                                HapticHelper.lightImpact();
-                                setState(() {
-                                  _selectedThumbnail = null;
-                                });
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(6.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.9),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  color: Colors.white,
-                                  size: 16.sp,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-            ),
-          ),
+          // Cover selection removed: auto-thumbnail is used
+          SizedBox.shrink(),
         ],
       ),
     );
@@ -831,27 +819,7 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
                   ],
                 ),
                 
-                if (_selectedThumbnail != null) ...[
-                  SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.image_rounded,
-                        color: AppColors.primary,
-                        size: 20.sp,
-                      ),
-                      SizedBox(width: 8.w),
-                      Text(
-                        'Обложка выбрана ✓',
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                // Cover selection removed
               ],
             ),
           ),
@@ -892,6 +860,45 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInstructionItem(String number, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 24.w,
+          height: 24.w,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, AppColors.secondary],
+            ),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13.sp,
+              height: 1.35,
+              color: Colors.white.withOpacity(0.85),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -994,27 +1001,32 @@ class _CreateVideoScreenState extends ConsumerState<CreateVideoScreen>
     
     if (pickedFile != null) {
       HapticHelper.success();
+      
+      // Dispose old controller
+      await _videoPlayerController?.dispose();
+      
+      // Create new video player controller for preview
+      _videoPlayerController = VideoPlayerController.file(File(pickedFile.path));
+      await _videoPlayerController!.initialize();
+      // Выключаем звук в предпросмотре
+      await _videoPlayerController!.setVolume(0);
+      
+      // Seek to first frame to show as thumbnail (исправлено - показываем первый кадр)
+      await _videoPlayerController!.seekTo(Duration.zero);
+      // Останавливаем воспроизведение чтобы показать первый кадр как обложку
+      await _videoPlayerController!.pause();
+      
+      // Убеждаемся что первый кадр отобразится
+      if (mounted) {
       setState(() {
         _selectedVideo = File(pickedFile.path);
       });
+      }
     }
   }
 
-  Future<void> _pickThumbnail() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1920,
-      maxHeight: 1080,
-    );
-    
-    if (pickedFile != null) {
-      HapticHelper.success();
-      setState(() {
-        _selectedThumbnail = File(pickedFile.path);
-      });
-    }
-  }
+  // Thumbnail picking removed: rely on server-generated thumbnail
+  Future<void> _pickThumbnail() async {}
 
   Future<void> _uploadVideo() async {
     if (!_formKey.currentState!.validate() || _selectedVideo == null) {

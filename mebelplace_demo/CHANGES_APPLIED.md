@@ -214,3 +214,5 @@ async generateThumbnail(videoPath, videoId) {
 **Готово к тестированию**: ✅ Да  
 **Готово к сборке APK**: ✅ Да
 
+
+

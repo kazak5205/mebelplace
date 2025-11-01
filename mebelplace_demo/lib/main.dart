@@ -121,6 +121,13 @@ class MebelPlaceApp extends ConsumerWidget {
                 builder: (context) => VideoDetailPage(videoId: videoId),
               );
             }
+            if (settings.name == '/messages') {
+              final args = settings.arguments as Map<String, dynamic>?;
+              final userId = args?['userId'] as String?;
+              return MaterialPageRoute(
+                builder: (context) => MessagesScreen(userId: userId),
+              );
+            }
             return null;
           },
         );
@@ -129,11 +136,30 @@ class MebelPlaceApp extends ConsumerWidget {
   }
 }
 
-class AppNavigator extends ConsumerWidget {
+class AppNavigator extends ConsumerStatefulWidget {
   const AppNavigator({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppNavigator> createState() => _AppNavigatorState();
+}
+
+class _AppNavigatorState extends ConsumerState<AppNavigator> {
+  bool _hasCheckedAuth = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasCheckedAuth) {
+      _hasCheckedAuth = true;
+      // Проверяем сохраненную авторизацию при запуске
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(authProvider.notifier).checkAuth();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
 
     // Всегда показываем главный экран
@@ -202,10 +228,14 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     }
 
     // Для остальных - обычная навигация
+    final previousIndex = _currentIndex;
     setState(() {
       _previousIndex = _currentIndex;
       _currentIndex = index;
     });
+    
+    // Обновляем Provider для отслеживания индекса
+    ref.read(currentNavigationIndexProvider.notifier).setIndex(index);
   }
 
   @override

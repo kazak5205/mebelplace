@@ -30,11 +30,10 @@ class VideoRepository {
         'limit': limit,
       };
       
-      // Если мастер - исключаем его видео, если клиент - включаем рекомендации
+      // ❌ УБРАЛИ exclude_author - на вебе мастера видят все видео, включая свои
+      // Если клиент - включаем рекомендации
       if (user != null) {
-        if (user.role == 'master') {
-          params['exclude_author'] = user.id;
-        } else {
+        if (user.role == 'user') {
           params['recommendations'] = true;
         }
       } else {
@@ -53,6 +52,26 @@ class VideoRepository {
     }
   }
 
+  // ✅ Получить видео по author_id (для навигации из чата на конкретное видео автора)
+  Future<List<VideoModel>> getVideosByAuthor(String authorId, {int page = 1, int limit = 50}) async {
+    try {
+      final Map<String, dynamic> params = {
+        'page': page,
+        'limit': limit,
+        'author_id': authorId, // ✅ Параметр как на вебе
+      };
+      
+      final response = await _apiService.getVideoFeed(params);
+      
+      if (response.success && response.data != null) {
+        return response.data!.videos;
+      }
+      throw Exception(response.message ?? 'Failed to load author videos');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Future<VideoModel> getVideo(String videoId) async {
     try {
       final response = await _apiService.getVideo(videoId);
@@ -66,12 +85,17 @@ class VideoRepository {
     }
   }
 
-  Future<void> likeVideo(String videoId) async {
+  // ✅ Toggle like возвращает данные (как на вебе)
+  Future<LikeData> likeVideo(String videoId) async {
     try {
       final token = await _localStorage.getToken();
       if (token == null) throw Exception('Not authenticated');
       
-      await _apiService.likeVideo(videoId);
+      final response = await _apiService.likeVideo(videoId);
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to like video');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -96,6 +120,55 @@ class VideoRepository {
       ));
     } on DioException {
       // Silent fail for view recording
+    }
+  }
+  
+  // ✅ Bookmark methods (как на вебе videoService.addBookmark/removeBookmark)
+  Future<void> addBookmark(String videoId) async {
+    try {
+      final token = await _localStorage.getToken();
+      if (token == null) throw Exception('Not authenticated');
+      
+      await _apiService.addBookmark(videoId);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<void> removeBookmark(String videoId) async {
+    try {
+      final token = await _localStorage.getToken();
+      if (token == null) throw Exception('Not authenticated');
+      
+      await _apiService.removeBookmark(videoId);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<List<VideoModel>> getBookmarkedVideos() async {
+    try {
+      final response = await _apiService.getBookmarkedVideos();
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to load bookmarked videos');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<List<VideoModel>> getLikedVideos() async {
+    try {
+      final response = await _apiService.getLikedVideos();
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to load liked videos');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     }
   }
 
@@ -153,14 +226,14 @@ class VideoRepository {
     }
   }
 
-  Future<List<VideoModel>> searchVideos(String query) async {
+  Future<Map<String, dynamic>> searchVideos(String query) async {
     try {
       final response = await _apiService.searchVideos(query);
       
       if (response.success && response.data != null) {
-        return response.data!;
+        return response.data!; // ✅ Возвращаем {'videos': [], 'masters': []}
       }
-      throw Exception(response.message ?? 'Failed to search videos');
+      throw Exception(response.message ?? 'Failed to search');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -242,22 +315,51 @@ class AuthRepository {
 
   Future<UserModel?> getCurrentUser() async {
     try {
+      // Сначала проверяем, есть ли сохраненный пользователь локально
+      final localUser = await _localStorage.getUser();
       final token = await _localStorage.getToken();
-      if (token == null) return null;
       
-      final response = await _apiService.getCurrentUser();
+      // Если нет ни пользователя ни токена - возвращаем null
+      if (localUser == null && token == null) {
+        return null;
+      }
       
-      if (response.success && response.data != null) {
-        await _localStorage.saveUser(response.data!);
-        return response.data!;
+      // Если есть локальный пользователь, но нет токена - возвращаем локального
+      if (localUser != null && token == null) {
+        return localUser;
       }
-      return null;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        // Token expired, try to refresh
-        return await _refreshToken();
+      
+      // Если есть токен, пытаемся получить актуальные данные с сервера
+      if (token != null) {
+        try {
+          final response = await _apiService.getCurrentUser();
+          
+          if (response.success && response.data != null) {
+            await _localStorage.saveUser(response.data!);
+            return response.data!;
+          }
+        } on DioException catch (e) {
+          if (e.response?.statusCode == 401) {
+            // Token expired, try to refresh
+            final refreshedUser = await _refreshToken();
+            if (refreshedUser != null) {
+              return refreshedUser;
+            }
+          }
+        } catch (e) {
+          // Любая другая ошибка - игнорируем
+        }
       }
+      
+      // Если сервер недоступен или ошибка сети, возвращаем локального пользователя
+      if (localUser != null) {
+        return localUser;
+      }
+      
       return null;
+    } catch (e) {
+      // В случае любой ошибки пробуем вернуть локального пользователя
+      return await _localStorage.getUser();
     }
   }
 
@@ -535,13 +637,41 @@ class ChatRepository {
     // Socket отключается через SocketService
   }
 
+  // ✅ Создать чат (как на вебе)
+  Future<ChatModel> createChat({
+    required List<String> participants,
+    String type = 'private',
+    String? name,
+    String? orderId,
+  }) async {
+    try {
+      final token = await _localStorage.getToken();
+      if (token == null) throw Exception('Not authenticated');
+      
+      final response = await _apiService.createChat(
+        participants: participants,
+        type: type,
+        name: name,
+        orderId: orderId,
+      );
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to create chat');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Future<List<ChatModel>> getChats() async {
     try {
       final token = await _localStorage.getToken();
       if (token == null) throw Exception('Not authenticated');
       
       final user = await _localStorage.getUser();
-      final currentUserId = user?.id != null ? int.tryParse(user!.id) : null;
+      // ✅ UUID уже строка, не нужно конвертировать
+      final currentUserId = user?.id;
       
       final response = await _apiService.getChats(currentUserId: currentUserId);
       
@@ -559,23 +689,83 @@ class ChatRepository {
       final token = await _localStorage.getToken();
       if (token == null) throw Exception('Not authenticated');
       
-      final response = await _apiService.getMessages(chatId);
+      // Пробуем загрузить сообщения, если 403 - ждем немного и повторяем (чат может только создаться)
+      var response = await _apiService.getMessages(chatId);
+      
+      // Если 403, ждем 500мс и пробуем еще раз (чат может еще добавлять participants)
+      if (!response.success && response.message?.contains('403') == true) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        response = await _apiService.getMessages(chatId);
+      }
       
       if (response.success && response.data != null) {
         return response.data!;
       }
-      throw Exception(response.message ?? 'Failed to load messages');
+      return []; // Возвращаем пустой список вместо ошибки
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      // Если 403 - возвращаем пустой список (чат может быть еще не готов)
+      if (e.response?.statusCode == 403) {
+        return [];
+      }
+      return []; // В любом случае возвращаем пустой список
     }
   }
 
-  Future<void> sendMessage(String chatId, String content) async {
+  Future<void> sendMessage(
+    String chatId, 
+    String content, {
+    String? type,
+    String? replyTo,
+    Map<String, dynamic>? metadata,
+    File? file,
+  }) async {
     try {
       final token = await _localStorage.getToken();
       if (token == null) throw Exception('Not authenticated');
       
-      await _apiService.sendMessage(chatId, SendMessageRequest(content: content));
+      await _apiService.sendMessage(
+        chatId, 
+        SendMessageRequest(content: content),
+        type: type,
+        replyTo: replyTo,
+        metadata: metadata,
+        file: file,
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+  
+  Future<void> sendFileMessage(
+    String chatId,
+    File file, {
+    String? content,
+  }) async {
+    try {
+      final token = await _localStorage.getToken();
+      if (token == null) throw Exception('Not authenticated');
+      
+      // Определяем тип по расширению файла
+      String? type;
+      if (file.path.toLowerCase().endsWith('.jpg') || 
+          file.path.toLowerCase().endsWith('.jpeg') || 
+          file.path.toLowerCase().endsWith('.png') || 
+          file.path.toLowerCase().endsWith('.gif')) {
+        type = 'image';
+      } else if (file.path.toLowerCase().endsWith('.mp4') || 
+                 file.path.toLowerCase().endsWith('.mov') || 
+                 file.path.toLowerCase().endsWith('.avi')) {
+        type = 'video';
+      } else {
+        type = 'file';
+      }
+      
+      await _apiService.sendMessage(
+        chatId, 
+        SendMessageRequest(content: content ?? ''),
+        type: type,
+        file: file,
+      );
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -627,6 +817,19 @@ class UserRepository {
         return response.data!;
       }
       throw Exception(response.message ?? 'Failed to load user');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<List<UserModel>> getSubscriptions(String userId) async {
+    try {
+      final response = await _apiService.getSubscriptions(userId);
+      
+      if (response.success && response.data != null) {
+        return response.data!;
+      }
+      throw Exception(response.message ?? 'Failed to load subscriptions');
     } on DioException catch (e) {
       throw _handleDioError(e);
     }

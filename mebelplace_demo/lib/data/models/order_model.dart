@@ -64,7 +64,7 @@ class OrderModel {
       category: json['category'].toString(),
       region: json['region']?.toString(),
       status: json['status'].toString(),
-      price: double.tryParse((json['price'] ?? 0).toString()),
+      price: _parseDoubleNullable(json['price']),
       deadline: json['deadline'] != null ? DateTime.tryParse(json['deadline'].toString()) : null,
       location: json['location']?.toString() ?? json['city']?.toString(), // ✅ Бэкенд использует 'city'
       images: (json['images'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
@@ -85,7 +85,7 @@ class OrderModel {
                   'role': 'user',
                 })
               : null,
-      responseCount: int.tryParse((json['responseCount'] ?? json['response_count'] ?? 0).toString()) ?? 0,
+      responseCount: _parseInt(json['responseCount'] ?? json['response_count'] ?? 0),
       hasMyResponse: json['hasMyResponse'] ?? json['has_my_response'] ?? false,
       responses: (json['responses'] as List<dynamic>?)
           ?.map((e) => e as Map<String, dynamic>)
@@ -215,5 +215,27 @@ class OrderModel {
       default:
         return category;
     }
+  }
+
+  // Helper для безопасного парсинга int
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
+  }
+
+  // Helper для безопасного парсинга nullable double
+  static double? _parseDoubleNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
   }
 }

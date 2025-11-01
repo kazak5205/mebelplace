@@ -39,22 +39,8 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
     {'id': 'design', 'name': 'Дизайн'},
   ];
 
-  final List<String> _regions = [
-    'Алматы',
-    'Астана',
-    'Шымкент',
-    'Караганда',
-    'Актобе',
-    'Тараз',
-    'Павлодар',
-    'Усть-Каменогорск',
-    'Семей',
-    'Атырау',
-    'Костанай',
-    'Кызылорда',
-    'Уральск',
-    'Петропавловск',
-  ];
+  // Регионы загружаемые с API (как в вебе)
+  List<String> _regions = [];
 
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
@@ -72,8 +58,9 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
     );
     _fadeAnimationController.forward();
     
-    // ✅ Загружаем категории из API (как в вебе)
+    // ✅ Загружаем категории и регионы из API (как в вебе)
     _loadCategories();
+    _loadRegions();
   }
   
   Future<void> _loadCategories() async {
@@ -89,6 +76,25 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage>
     } catch (e) {
       print('Failed to load categories: $e');
       // Используем дефолтные категории
+    }
+  }
+  
+  Future<void> _loadRegions() async {
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.getRegions();
+      
+      if (response.success && response.data != null && response.data!.isNotEmpty) {
+        setState(() {
+          _regions = response.data!;
+        });
+      }
+    } catch (e) {
+      print('Failed to load regions: $e');
+      // Fallback к дефолтным регионам
+      setState(() {
+        _regions = ['Алматы', 'Астана', 'Шымкент', 'Караганда', 'Актобе'];
+      });
     }
   }
 

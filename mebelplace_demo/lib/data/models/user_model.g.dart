@@ -16,6 +16,10 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       avatar: json['avatar'] as String?,
       role: json['role'] as String,
       isActive: json['isActive'] as bool?,
+      isOnline: json['isOnline'] as bool?,
+      lastSeen: json['lastSeen'] == null
+          ? null
+          : DateTime.parse(json['lastSeen'] as String),
       isVerified: json['isVerified'] as bool?,
       createdAt: json['createdAt'] == null
           ? null
@@ -32,6 +36,7 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       companyName: json['companyName'] as String?,
       companyAddress: json['companyAddress'] as String?,
       companyDescription: json['companyDescription'] as String?,
+      companyType: json['companyType'] as String?,
     );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -44,6 +49,8 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
       'avatar': instance.avatar,
       'role': instance.role,
       'isActive': instance.isActive,
+      'isOnline': instance.isOnline,
+      'lastSeen': instance.lastSeen?.toIso8601String(),
       'isVerified': instance.isVerified,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
@@ -56,4 +63,5 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
       'companyName': instance.companyName,
       'companyAddress': instance.companyAddress,
       'companyDescription': instance.companyDescription,
+      'companyType': instance.companyType,
     };

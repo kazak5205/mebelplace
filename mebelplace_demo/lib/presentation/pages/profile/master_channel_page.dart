@@ -29,6 +29,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
   String? _masterName;
   String? _masterAvatar;
   String? _masterBio;
+  String? _masterCompanyType;
   int _videosCount = 0;
   int _followersCount = 0;
   bool _isFollowing = false;
@@ -68,6 +69,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
           _masterName = user.displayName;
           _masterAvatar = user.avatar;
           _masterBio = user.bio;
+          _masterCompanyType = user.companyType;
           _followersCount = user.followersCount ?? 0;
           _isLoadingUser = false;
         });
@@ -206,10 +208,10 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
                               )
                             : SliverGrid(
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
+                                  crossAxisCount: 3, // ✅ 3 колонки как на вебе
                                   childAspectRatio: 9 / 16,
-                                  crossAxisSpacing: 2,
-                                  mainAxisSpacing: 2,
+                                  crossAxisSpacing: 1,
+                                  mainAxisSpacing: 1,
                                 ),
                                 delegate: SliverChildBuilderDelegate(
                                   (context, index) {
@@ -316,6 +318,29 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
           
           SizedBox(height: 8.h),
           
+          // Company Type Badge
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4.r),
+              border: Border.all(
+                color: _getCompanyTypeBorderColor(_masterCompanyType),
+                width: 1,
+              ),
+              color: _getCompanyTypeBgColor(_masterCompanyType),
+            ),
+            child: Text(
+              _getCompanyTypeLabel(_masterCompanyType),
+              style: TextStyle(
+                color: _getCompanyTypeTextColor(_masterCompanyType),
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          
+          SizedBox(height: 8.h),
+          
           // Bio
           if (_masterBio != null && _masterBio!.isNotEmpty)
             Text(
@@ -341,32 +366,52 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
           
           SizedBox(height: 20.h),
           
-          // Follow button
-          SizedBox(
-            width: double.infinity,
-            height: 44.h,
-            child: ElevatedButton(
-              onPressed: _toggleSubscribe,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isFollowing 
-                    ? Colors.white.withOpacity(0.2)
-                    : AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4.r),
-                  side: _isFollowing
-                      ? BorderSide(color: Colors.white.withOpacity(0.3))
-                      : BorderSide.none,
+          // Action buttons (Follow + Write like on web строка 403-450)
+          Row(
+            children: [
+              // Follow/Subscribe button
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _toggleSubscribe,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isFollowing 
+                        ? Colors.white.withOpacity(0.2)
+                        : AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4.r),
+                      side: _isFollowing
+                          ? BorderSide(color: Colors.white.withOpacity(0.3))
+                          : BorderSide.none,
+                    ),
+                  ),
+                  child: Text(
+                    _isFollowing ? 'Подписан' : 'Подписаться',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
-              child: Text(
-                _isFollowing ? 'Подписан' : 'Подписаться',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
+              SizedBox(width: 12.w),
+              // Write message button
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/messages', arguments: {'userId': widget.masterId});
+                },
+                icon: Icon(Icons.message, size: 18.sp),
+                label: Text('Написать'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4.r),
+                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -555,6 +600,59 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
       return '${(views / 1000).toStringAsFixed(1)}K';
     }
     return views.toString();
+  }
+
+  // ✅ Company Type Helper методы (как на вебе companyTypes.ts)
+  String _getCompanyTypeLabel(String? type) {
+    if (type == null) return 'Мастер';
+    switch (type) {
+      case 'company':
+        return 'Мебельная компания';
+      case 'shop':
+        return 'Мебельный магазин';
+      case 'master':
+      default:
+        return 'Мастер';
+    }
+  }
+
+  Color _getCompanyTypeBgColor(String? type) {
+    if (type == null) return Colors.yellow.withValues(alpha: 0.2);
+    switch (type) {
+      case 'company':
+        return Colors.orange.withValues(alpha: 0.2);
+      case 'shop':
+        return Colors.red.withValues(alpha: 0.2);
+      case 'master':
+      default:
+        return Colors.yellow.withValues(alpha: 0.2);
+    }
+  }
+
+  Color _getCompanyTypeTextColor(String? type) {
+    if (type == null) return Colors.yellow[400]!;
+    switch (type) {
+      case 'company':
+        return Colors.orange[400]!;
+      case 'shop':
+        return Colors.red[400]!;
+      case 'master':
+      default:
+        return Colors.yellow[400]!;
+    }
+  }
+
+  Color _getCompanyTypeBorderColor(String? type) {
+    if (type == null) return Colors.yellow.withValues(alpha: 0.3);
+    switch (type) {
+      case 'company':
+        return Colors.orange.withValues(alpha: 0.3);
+      case 'shop':
+        return Colors.red.withValues(alpha: 0.3);
+      case 'master':
+      default:
+        return Colors.yellow.withValues(alpha: 0.3);
+    }
   }
 }
 

@@ -1,27 +1,39 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:video_player/video_player.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/utils/image_helper.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/models/video_model.dart';
-import '../providers/app_providers.dart';
+import '../providers/app_providers.dart' as providers;
 import '../../utils/haptic_helper.dart';
 
+/// Современный TikTok/YouTube Shorts стиль видео лента
+/// 
+/// Особенности:
+/// - Предзагрузка видео (на один вперед и один назад)
+/// - Blurred превью вместо черных экранов
+/// - Fade transition при свайпе
+/// - Звук выключен по дефолту, включается тапом
+/// - Современный UI с градиентами и анимациями
 class TikTokVideoPlayer extends ConsumerStatefulWidget {
   final List<VideoModel> videos;
   final int initialIndex;
-  final Function(VideoModel video)? onVideoChanged;
-  final Function(VideoModel video)? onLike;
-  final Function(VideoModel video)? onShare;
-  final Function(VideoModel video)? onComment;
-  final Function(VideoModel video)? onOrder;
+  final bool mutedByDefault; // ✅ Параметр для управления звуком
+  final Function(VideoModel)? onVideoChanged;
+  final Function(VideoModel)? onLike;
+  final Function(VideoModel)? onShare;
+  final Function(VideoModel)? onComment;
+  final Function(VideoModel)? onOrder;
 
   const TikTokVideoPlayer({
     super.key,
     required this.videos,
     this.initialIndex = 0,
+    this.mutedByDefault = true, // По умолчанию выключен (для ленты)
     this.onVideoChanged,
     this.onLike,
     this.onShare,
@@ -36,298 +48,447 @@ class TikTokVideoPlayer extends ConsumerStatefulWidget {
 class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
-  VideoPlayerController? _videoController;
-  final Map<int, VideoPlayerController> _preloadedControllers = {}; // Предзагрузка нескольких видео
+  
+  // Контроллеры для предзагрузки (текущий, предыдущий, следующий)
+  VideoPlayerController? _currentController;
+  VideoPlayerController? _previousController;
+  VideoPlayerController? _nextController;
+  
   int _currentIndex = 0;
   bool _isPlaying = true;
-  bool _isMuted = false;
-  bool _showControls = false;
+  bool _isMuted = true; // Инициализируется из widget.mutedByDefault
   bool _isBuffering = false;
-  bool _isDescriptionExpanded = false; // Для expandable описания
+  bool _isDescriptionExpanded = false;
+  
+  // Анимации
   late AnimationController _heartAnimationController;
-  late AnimationController _controlsAnimationController;
-  late AnimationController _orderButtonAnimationController;
+  late AnimationController _fadeAnimationController;
+  late AnimationController _scaleAnimationController;
+  
+  // Задержка между свайпами (минимум 300мс)
+  DateTime? _lastSwipeTime;
+  
+  // Map для кеширования контроллеров
+  final Map<int, VideoPlayerController> _controllerCache = {};
+  
+  // Отслеживаем последнее видео, для которого вызвали onVideoChanged (чтобы избежать двойных вызовов)
+  String? _lastNotifiedVideoId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
     
+    // Инициализируем звук из параметра виджета
+    _isMuted = widget.mutedByDefault;
+    
+    // Анимации
     _heartAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _fadeAnimationController = AnimationController(
+      vsync: this,
       duration: const Duration(milliseconds: 400),
-      vsync: this,
+      reverseDuration: const Duration(milliseconds: 400),
     );
-    _controlsAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
+    _scaleAnimationController = AnimationController(
       vsync: this,
+      duration: const Duration(milliseconds: 300),
     );
-    _orderButtonAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
     
-    _initializeVideo();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Пауза видео когда приложение в фоне
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      _videoController?.pause();
-      _videoController?.setVolume(0);
-    } else if (state == AppLifecycleState.resumed && _isPlaying) {
-      // Возобновление при возврате в приложение
-      // Логика активности страницы теперь в HomeScreen
-      _videoController?.play();
-      _videoController?.setVolume(_isMuted ? 0 : 1);
-    }
-  }
-
-  void _initializeVideo() {
-    if (widget.videos.isNotEmpty && widget.videos.length > _currentIndex) {
-      // Проверяем, есть ли уже предзагруженный контроллер
-      if (_preloadedControllers.containsKey(_currentIndex)) {
-        _videoController?.dispose();
-        _videoController = _preloadedControllers[_currentIndex];
-        _preloadedControllers.remove(_currentIndex);
-        
-        if (_videoController!.value.isInitialized) {
-          if (mounted) {
-            setState(() {});
-            if (_isPlaying) {
-              _startPlayingWhenBuffered();
-            }
-            _videoController!.setVolume(_isMuted ? 0 : 1);
-            _videoController!.setLooping(true);
-          }
-        }
-      } else {
-        // Создаем новый контроллер
-        _videoController?.dispose();
-        
-        final videoUrl = ImageHelper.getFullImageUrl(widget.videos[_currentIndex].videoUrl);
-        _videoController = VideoPlayerController.networkUrl(
-          Uri.parse(videoUrl),
-          videoPlayerOptions: VideoPlayerOptions(
-            mixWithOthers: false,
-            allowBackgroundPlayback: false,
-          ),
-        );
-        
-        setState(() {
-          _isBuffering = true;
-        });
-        
-        // Инициализация с буферизацией
-        _videoController!.initialize().then((_) {
-          if (mounted) {
-            setState(() {
-              _isBuffering = false;
-            });
-            if (_isPlaying) {
-              _startPlayingWhenBuffered();
-            }
-            _videoController!.setVolume(_isMuted ? 0 : 1);
-            _videoController!.setLooping(true);
-          }
-        }).catchError((error) {
-          if (mounted) {
-            setState(() {
-              _isBuffering = false;
-            });
-          }
-        });
-      }
-      
-      // Предзагружаем следующие 3 видео
-      _preloadNextVideos();
-    }
-  }
-  
-  // Воспроизводить когда буфер достиг хотя бы 25%
-  void _startPlayingWhenBuffered() {
-    if (_videoController == null || !_videoController!.value.isInitialized) {
-      return;
-    }
-    
-    final duration = _videoController!.value.duration.inMilliseconds;
-    if (duration == 0) {
-      // Если длительность ещё не известна, просто начинаем играть
-      _videoController!.play();
-      return;
-    }
-    
-    // Проверяем буферизацию каждые 100ms
-    void checkBuffering() {
-      if (_videoController == null || !mounted) return;
-      
-      final buffered = _videoController!.value.buffered;
-      if (buffered.isNotEmpty) {
-        final bufferedEnd = buffered.last.end.inMilliseconds;
-        final bufferPercent = bufferedEnd / duration;
-        
-        // Начинаем играть когда буфер >= 25%
-        if (bufferPercent >= 0.25) {
-          _videoController!.play();
-          return;
-        }
-      }
-      
-      // Проверяем снова через 100ms
-      Future.delayed(const Duration(milliseconds: 100), checkBuffering);
-    }
-    
-    checkBuffering();
-  }
-  
-  // Предзагрузка следующих 3 видео
-  void _preloadNextVideos() {
-    for (int i = 1; i <= 3; i++) {
-      final nextIndex = _currentIndex + i;
-      if (nextIndex < widget.videos.length && !_preloadedControllers.containsKey(nextIndex)) {
-        final preloadVideoUrl = ImageHelper.getFullImageUrl(widget.videos[nextIndex].videoUrl);
-        final controller = VideoPlayerController.networkUrl(
-          Uri.parse(preloadVideoUrl),
-          videoPlayerOptions: VideoPlayerOptions(
-            mixWithOthers: false,
-            allowBackgroundPlayback: false,
-          ),
-        );
-        _preloadedControllers[nextIndex] = controller;
-        // Только инициализация, не воспроизведение
-        controller.initialize().catchError((error) {
-          _preloadedControllers.remove(nextIndex);
-        });
-      }
-    }
-    
-    // Очищаем старые предзагруженные контроллеры
-    _cleanupOldPreloadedControllers();
-  }
-  
-  // Очистка старых предзагруженных контроллеров
-  void _cleanupOldPreloadedControllers() {
-    final keysToRemove = <int>[];
-    _preloadedControllers.forEach((index, controller) {
-      // Удаляем контроллеры которые далеко позади или далеко впереди
-      if (index < _currentIndex - 1 || index > _currentIndex + 3) {
-        controller.dispose();
-        keysToRemove.add(index);
-      }
+    // Инициализация видео
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeVideos();
     });
-    for (var key in keysToRemove) {
-      _preloadedControllers.remove(key);
-    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _videoController?.dispose();
-    // Очищаем все предзагруженные контроллеры
-    for (var controller in _preloadedControllers.values) {
-      controller.dispose();
-    }
-    _preloadedControllers.clear();
+    _disposeAllControllers();
     _pageController.dispose();
     _heartAnimationController.dispose();
-    _controlsAnimationController.dispose();
-    _orderButtonAnimationController.dispose();
+    _fadeAnimationController.dispose();
+    _scaleAnimationController.dispose();
     super.dispose();
   }
-  
-  // Метод для жёсткой остановки видео извне (когда уходим со страницы)
-  void pauseVideo() {
-    _videoController?.pause();
-    _videoController?.setVolume(0); // Выключаем звук
-    _isPlaying = false;
-  }
-  
-  // Метод для возобновления видео когда возвращаемся
-  void resumeVideo() {
-    if (_videoController != null && _videoController!.value.isInitialized) {
-      _isPlaying = true;
-      _videoController!.play();
-      _videoController!.setVolume(_isMuted ? 0 : 1);
+
+  void _disposeAllControllers() {
+    _currentController?.removeListener(_videoListener);
+    _currentController?.dispose();
+    _previousController?.removeListener(_videoListener);
+    _previousController?.dispose();
+    _nextController?.removeListener(_videoListener);
+    _nextController?.dispose();
+    for (var controller in _controllerCache.values) {
+      controller.removeListener(_videoListener);
+      controller.dispose();
     }
+    _controllerCache.clear();
   }
 
-  void _onPageChanged(int index) {
-    if (index != _currentIndex && index < widget.videos.length) {
-      final oldController = _videoController;
-      
-      setState(() {
-        _currentIndex = index;
-        _isDescriptionExpanded = false; // Сбрасываем при смене видео
-      });
-      
-      // Инициализируем новое видео (автоматически использует предзагруженное если есть)
-      _initializeVideo();
-      
-      // Удаляем старый контроллер асинхронно
-      Future.delayed(const Duration(milliseconds: 500), () {
-        oldController?.dispose();
-      });
-      
-      widget.onVideoChanged?.call(widget.videos[_currentIndex]);
-    }
-  }
-
-  void _togglePlayPause() {
-    HapticHelper.lightImpact(); // ✨ Вибрация
-    setState(() {
-      _isPlaying = !_isPlaying;
-      if (_isPlaying) {
-        _videoController?.play();
-      } else {
-        _videoController?.pause();
-      }
-    });
-  }
-
-  void _toggleMute() {
-    HapticHelper.lightImpact(); // ✨ Вибрация
-    setState(() {
-      _isMuted = !_isMuted;
-      _videoController?.setVolume(_isMuted ? 0 : 1);
-    });
-  }
-
-  void _onLike() {
-    HapticHelper.like(); // ✨ Вибрация при лайке
-    _heartAnimationController.forward().then((_) {
-      _heartAnimationController.reverse();
-    });
-    widget.onLike?.call(widget.videos[_currentIndex]);
-  }
-
-  void _onDoubleTap() {
-    HapticHelper.mediumImpact(); // ✨ Вибрация при double tap
-    _onLike();
-  }
-
-  void _toggleControls() {
-    setState(() {
-      _showControls = !_showControls;
-    });
-    if (_showControls) {
-      _controlsAnimationController.forward();
-      
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          _controlsAnimationController.reverse().then((_) {
-            if (mounted) {
-              setState(() {
-                _showControls = false;
+  void _videoListener() {
+    if (_currentController != null && _currentController!.value.isInitialized) {
+      final isPlaying = _currentController!.value.isPlaying;
+      if (mounted && _isPlaying != isPlaying) {
+        setState(() {
+          _isPlaying = isPlaying;
+          _isBuffering = _currentController!.value.isBuffering;
+        });
+        
+        // Если видео должно играть, но не играет - запускаем
+        if (!isPlaying && !_currentController!.value.isBuffering && _currentController!.value.isInitialized) {
+          // Пробуем запустить еще раз
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted && _currentController != null && 
+                _currentController!.value.isInitialized && 
+                !_currentController!.value.isPlaying) {
+              _currentController!.play().catchError((_) {
+                // Игнорируем ошибки
               });
             }
           });
         }
+      }
+    }
+  }
+
+  Future<void> _initializeVideos() async {
+    if (widget.videos.isEmpty) return;
+    
+    // НЕ ЖДЕМ инициализацию - начинаем сразу проигрывать
+    _initializeController(_currentIndex, isCurrent: true).catchError((_) {});
+    
+    // Предзагрузка следующего и предыдущего (параллельно, не ждем)
+    if (_currentIndex > 0) {
+      _initializeController(_currentIndex - 1, isCurrent: false).catchError((_) {});
+    }
+    if (_currentIndex < widget.videos.length - 1) {
+      _initializeController(_currentIndex + 1, isCurrent: false).catchError((_) {});
+    }
+  }
+
+  Future<void> _initializeController(int index, {required bool isCurrent}) async {
+    if (index < 0 || index >= widget.videos.length) return;
+    
+    final video = widget.videos[index];
+    final videoUrl = ImageHelper.getFullImageUrl(video.videoUrl);
+    
+    if (videoUrl.isEmpty) return;
+    
+    // Проверяем кеш
+    if (_controllerCache.containsKey(index)) {
+      final cachedController = _controllerCache[index]!;
+      // Убеждаемся, что listener добавлен
+      if (!cachedController.hasListeners) {
+        cachedController.addListener(_videoListener);
+      }
+      if (isCurrent) {
+        if (cachedController.value.isInitialized) {
+          setState(() {
+            _currentController = cachedController;
+            _isBuffering = false;
+          });
+          _playCurrentVideo();
+        } else {
+          // Если не инициализирован, ждем
+          setState(() {
+            _currentController = cachedController;
+            _isBuffering = true;
+          });
+        cachedController.initialize().then((_) {
+          if (mounted && _currentController == cachedController && cachedController.value.isInitialized) {
+            setState(() {
+              _isBuffering = false;
+            });
+            // Запускаем сразу без задержки
+            _playCurrentVideo();
+          }
+        }).catchError((e) {
+          if (mounted) {
+            setState(() {
+              _isBuffering = false;
+            });
+          }
+        });
+        }
+      }
+      return;
+    }
+    
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(videoUrl),
+      videoPlayerOptions: VideoPlayerOptions(
+        mixWithOthers: false,
+        allowBackgroundPlayback: false,
+      ),
+    );
+    
+    // Добавляем listener для отслеживания состояния
+    controller.addListener(_videoListener);
+    
+    _controllerCache[index] = controller;
+    
+    try {
+      await controller.initialize();
+      
+      if (mounted) {
+        if (isCurrent) {
+          // Проверяем, что контроллер действительно инициализирован
+          if (controller.value.isInitialized) {
+            setState(() {
+              _currentController = controller;
+              _isBuffering = false;
+            });
+            
+            // Немедленно запускаем проигрывание - БЕЗ ЗАДЕРЖЕК
+            _playCurrentVideo();
+            
+            // Уведомляем о смене видео (только один раз для этого видео)
+            if (widget.onVideoChanged != null && _lastNotifiedVideoId != video.id) {
+              _lastNotifiedVideoId = video.id;
+              widget.onVideoChanged!(video);
+            }
+          } else {
+            // Если инициализация не завершилась, ждем
+            setState(() {
+              _currentController = controller;
+              _isBuffering = true;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // Ошибка инициализации
+      if (mounted && isCurrent) {
+        setState(() {
+          _isBuffering = false;
+        });
+      }
+      // Удаляем неинициализированный контроллер из кеша
+      if (_controllerCache[index] == controller) {
+        _controllerCache.remove(index);
+        controller.dispose();
+      }
+    }
+  }
+
+  void _playCurrentVideo() {
+    if (_currentController != null && _currentController!.value.isInitialized) {
+      try {
+        // Устанавливаем параметры
+        _currentController!.setLooping(true);
+        _currentController!.setVolume(_isMuted ? 0 : 1);
+        
+        // Проверяем, не играет ли уже
+        if (_currentController!.value.isPlaying) {
+          setState(() {
+            _isPlaying = true;
+            _isBuffering = false;
+          });
+          return;
+        }
+        
+        // Запускаем проигрывание БЕЗ проверок и задержек - как на вебе
+        _currentController!.play().catchError((_) {
+          // Игнорируем ошибки автоплея
+        });
+        
+        setState(() {
+          _isPlaying = true;
+          _isBuffering = false;
+        });
+      } catch (e) {
+        // Ошибка при установке параметров
+        if (mounted) {
+          setState(() {
+            _isBuffering = false;
+          });
+        }
+      }
+    }
+  }
+
+  void _onPageChanged(int index) {
+    final now = DateTime.now();
+    
+    // Проверка задержки между свайпами (минимум 300мс)
+    if (_lastSwipeTime != null && now.difference(_lastSwipeTime!) < const Duration(milliseconds: 300)) {
+      // Игнорируем слишком частые свайпы
+      return;
+    }
+    _lastSwipeTime = now;
+    
+    if (index != _currentIndex && index >= 0 && index < widget.videos.length) {
+      // Останавливаем предыдущее видео
+      _currentController?.pause();
+      
+      // Плавный fade + scale transition
+      _fadeAnimationController.forward(from: 0).then((_) {
+        if (mounted) {
+          setState(() {
+            _currentIndex = index;
+            _isDescriptionExpanded = false;
+            _isBuffering = true;
+          });
+          _updateControllers(index);
+          _fadeAnimationController.reverse();
+        }
       });
+    }
+  }
+
+  void _updateControllers(int newIndex) {
+    // Очищаем старые контроллеры (кроме кешированных)
+    if (_previousController != null && !_controllerCache.containsValue(_previousController)) {
+      _previousController?.dispose();
+    }
+    if (_nextController != null && !_controllerCache.containsValue(_nextController)) {
+      _nextController?.dispose();
+    }
+    
+    // Текущий становится предыдущим или следующим
+    _previousController = null;
+    _nextController = null;
+    
+    // Устанавливаем текущий
+    if (_controllerCache.containsKey(newIndex)) {
+      final cachedController = _controllerCache[newIndex]!;
+      if (cachedController.value.isInitialized) {
+        setState(() {
+          _currentController = cachedController;
+          _isBuffering = false;
+        });
+        _playCurrentVideo();
+        
+        // Уведомляем о смене видео (только один раз для этого видео)
+        if (widget.onVideoChanged != null && newIndex < widget.videos.length) {
+          final video = widget.videos[newIndex];
+          if (_lastNotifiedVideoId != video.id) {
+            _lastNotifiedVideoId = video.id;
+            widget.onVideoChanged!(video);
+          }
+        }
+      } else {
+        // Если контроллер в кеше, но не инициализирован, ждем инициализации
+        setState(() {
+          _currentController = cachedController;
+          _isBuffering = true;
+        });
+        cachedController.initialize().then((_) {
+          if (mounted && _currentController == cachedController && cachedController.value.isInitialized) {
+            setState(() {
+              _isBuffering = false;
+            });
+            // Запускаем сразу без задержки
+            _playCurrentVideo();
+            
+            // Уведомляем о смене видео (только один раз для этого видео)
+            if (widget.onVideoChanged != null && newIndex < widget.videos.length) {
+              final video = widget.videos[newIndex];
+              if (_lastNotifiedVideoId != video.id) {
+                _lastNotifiedVideoId = video.id;
+                widget.onVideoChanged!(video);
+              }
+            }
+          }
+        }).catchError((e) {
+          if (mounted) {
+            setState(() {
+              _isBuffering = false;
+            });
+          }
+        });
+      }
     } else {
-      _controlsAnimationController.reverse();
+      // Инициализируем новый контроллер
+      _initializeController(newIndex, isCurrent: true);
+    }
+    
+    // Предзагрузка соседних
+    if (newIndex > 0) {
+      final prevIndex = newIndex - 1;
+      if (_controllerCache.containsKey(prevIndex)) {
+        _previousController = _controllerCache[prevIndex];
+      } else {
+        _initializeController(prevIndex, isCurrent: false);
+      }
+    }
+    
+    if (newIndex < widget.videos.length - 1) {
+      final nextIndex = newIndex + 1;
+      if (_controllerCache.containsKey(nextIndex)) {
+        _nextController = _controllerCache[nextIndex];
+      } else {
+        _initializeController(nextIndex, isCurrent: false);
+      }
+    }
+  }
+
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+    
+    if (_currentController != null && _currentController!.value.isInitialized) {
+      _currentController!.setVolume(_isMuted ? 0 : 1);
+    }
+    
+    HapticHelper.lightImpact();
+  }
+
+  void _handleLike() {
+    if (widget.onLike != null) {
+      widget.onLike!(widget.videos[_currentIndex]);
+    }
+    _heartAnimationController.forward(from: 0).then((_) {
+      _heartAnimationController.reverse();
+    });
+    HapticHelper.mediumImpact();
+  }
+
+  void _handleComment() {
+    if (widget.onComment != null) {
+      widget.onComment!(widget.videos[_currentIndex]);
+    }
+    HapticHelper.lightImpact();
+  }
+
+  void _handleShare() {
+    if (widget.onShare != null) {
+      widget.onShare!(widget.videos[_currentIndex]);
+    }
+    HapticHelper.lightImpact();
+  }
+
+  void _handleOrder() {
+    if (widget.onOrder != null) {
+      widget.onOrder!(widget.videos[_currentIndex]);
+    }
+    HapticHelper.lightImpact();
+  }
+
+  // Методы для внешнего управления (из HomeScreen)
+  void pauseVideo() {
+    _currentController?.pause();
+    _currentController?.setVolume(0); // Убираем звук при паузе
+    setState(() {
+      _isPlaying = false;
+    });
+  }
+  
+  void resumeVideo() {
+    if (_currentController != null && _currentController!.value.isInitialized) {
+      _currentController!.play();
+      // Восстанавливаем состояние звука (остается выключенным по умолчанию)
+      _currentController!.setVolume(_isMuted ? 0 : 1);
+      setState(() {
+        _isPlaying = true;
+      });
     }
   }
 
@@ -336,580 +497,471 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     if (widget.videos.isEmpty) {
       return const Center(
         child: Text(
-          'Нет видео для воспроизведения',
+          'Нет видео',
           style: TextStyle(color: Colors.white),
         ),
       );
     }
 
-    final videoState = ref.watch(videoProvider);
-    
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // ✅ Pull-to-refresh обертка
-          RefreshIndicator(
-            onRefresh: () => ref.read(videoProvider.notifier).refreshVideos(),
-            backgroundColor: Colors.white.withOpacity(0.9),
-            color: AppColors.primary,
-            child: PageView.builder(
-              controller: _pageController,
-              scrollDirection: Axis.vertical,
-              onPageChanged: (index) {
-                _currentIndex = index;
-                _videoController?.pause();
-                _initializeVideo();
-                widget.onVideoChanged?.call(widget.videos[index]);
-                
-                // ✅ Проверяем необходимость загрузки следующей страницы
-                final totalVideos = widget.videos.length;
-                if (index >= (totalVideos * 0.8).floor() && totalVideos > 0) {
-                  ref.read(videoProvider.notifier).loadMoreVideos();
-                }
-              },
-              itemCount: widget.videos.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: _toggleControls,
-                  onDoubleTap: _onDoubleTap,
-                  child: _buildVideoItem(widget.videos[index]),
-                );
-              },
-            ),
-          ),
-          
-          // Overlay elements
-          if (_showControls) _buildControls(),
-          _buildRightActions(),
-          _buildBottomInfo(),
-          _buildOrderButton(), // Новая кнопка заказа
-          
-          // ✅ Индикатор загрузки новых видео (пагинация)
-          if (videoState.isLoadingMore)
-            Positioned(
-              bottom: 100.h,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 16.w,
-                        height: 16.w,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Text(
-                        'Загружаем ещё видео...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVideoItem(VideoModel video) {
-    return SizedBox(
-      width: double.infinity,
-      height: double.infinity,
+    return GestureDetector(
+      onTap: _toggleMute, // Тап по экрану включает/выключает звук
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Всегда показываем thumbnail на заднем фоне
-          if (ImageHelper.hasValidImagePath(video.thumbnailUrl))
-            Positioned.fill(
-              child: CachedNetworkImage(
-                imageUrl: ImageHelper.getFullImageUrl(video.thumbnailUrl),
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.black87,
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.black87,
-                  child: Icon(
-                    Icons.video_library_outlined,
-                    size: 60.sp,
-                    color: Colors.white.withOpacity(0.3),
-                  ),
-                ),
-              ),
-            ),
-          
-          // Видео плеер (поверх thumbnail)
-          if (_videoController?.value.isInitialized == true && !_isBuffering && !(_videoController?.value.hasError ?? false))
-            Positioned.fill(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _videoController!.value.size.width,
-                  height: _videoController!.value.size.height,
-                  child: VideoPlayer(_videoController!),
-                ),
-              ),
-            ),
-          
-          // Loading indicator (поверх thumbnail при загрузке)
-          if (_isBuffering || (_videoController?.value.isInitialized == false))
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.3),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(
-                        color: AppColors.primary,
-                        strokeWidth: 3,
-                      ),
-                      SizedBox(height: 12.h),
-                      Text(
-                        'Загрузка видео...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13.sp,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black,
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          
-          // Ошибка загрузки видео (показываем поверх thumbnail)
-          if (_videoController?.value.hasError == true)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.wifi_off_rounded,
-                        size: 60.sp,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                      SizedBox(height: 16.h),
-                      Text(
-                        'Проблема с подключением',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black,
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        'Проверьте интернет',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14.sp,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black,
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // Видео лента с PageView
+          PageView.builder(
+            controller: _pageController,
+            scrollDirection: Axis.vertical,
+            physics: const ClampingScrollPhysics(),
+            itemCount: widget.videos.length,
+            onPageChanged: _onPageChanged,
+            itemBuilder: (context, index) {
+              return _buildVideoPage(widget.videos[index], index);
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildControls() {
+  Widget _buildVideoPage(VideoModel video, int index) {
+    final isCurrent = index == _currentIndex;
+    final controller = isCurrent ? _currentController : null;
+    final thumbnailUrl = ImageHelper.getFullImageUrl(video.thumbnailUrl ?? '');
+    
     return AnimatedBuilder(
-      animation: _controlsAnimationController,
+      animation: _fadeAnimationController,
       builder: (context, child) {
+        final fadeOpacity = isCurrent 
+            ? (1.0 - _fadeAnimationController.value * 0.5).clamp(0.0, 1.0)
+            : 1.0;
+        
         return Opacity(
-          opacity: _controlsAnimationController.value,
-          child: Center(
-            child: GestureDetector(
-              onTap: _togglePlayPause,
-              child: Container(
-                width: 80.w,
-                height: 80.w,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  shape: BoxShape.circle,
+          opacity: fadeOpacity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Blurred превью (показывается пока видео не загружено) - ВСЕГДА если есть thumbnail
+              if (thumbnailUrl.isNotEmpty)
+                Positioned.fill(
+                  child: Opacity(
+                    // Показываем превью если видео не загружено, скрываем когда видео готово
+                    opacity: (controller == null || !controller.value.isInitialized) ? 1.0 : 0.0,
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: CachedNetworkImage(
+                        imageUrl: thumbnailUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.darkBackground,
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.darkBackground,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 48.sp,
+              
+              // Видео с fade transition
+              if (controller != null && controller.value.isInitialized)
+                Positioned.fill(
+                  child: FadeTransition(
+                    opacity: AlwaysStoppedAnimation(
+                      (1.0 - _fadeAnimationController.value).clamp(0.0, 1.0),
+                    ),
+                    child: ScaleTransition(
+                      scale: Tween(begin: 0.95, end: 1.0).animate(
+                        CurvedAnimation(
+                          parent: _fadeAnimationController,
+                          curve: const Cubic(0.25, 0.1, 0.25, 1.0),
+                        ),
+                      ),
+                      child: SizedBox.expand(
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          child: SizedBox(
+                            width: controller.value.size.width,
+                            height: controller.value.size.height,
+                            child: VideoPlayer(controller),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              
+              // Черный фон только если нет ни видео, ни превью
+              if ((controller == null || !controller.value.isInitialized) && thumbnailUrl.isEmpty)
+                Container(
+                  color: AppColors.darkBackground,
+                ),
+              
+              // Индикатор загрузки
+              if (_isBuffering && isCurrent)
+                const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                ),
+              
+              // UI элементы поверх видео
+              if (isCurrent)
+                Positioned.fill(
+                  child: FadeTransition(
+                    opacity: AlwaysStoppedAnimation(
+                      (1.0 - _fadeAnimationController.value * 0.3).clamp(0.0, 1.0),
+                    ),
+                    child: _buildVideoOverlay(video),
+                  ),
+                ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildRightActions() {
-    final video = widget.videos[_currentIndex];
+  Widget _buildVideoOverlay(VideoModel video) {
+    final authState = ref.watch(providers.authProvider);
+    final currentUser = authState.user;
+    final isClient = currentUser?.role == 'user';
+    final videoAuthorId = video.authorId;
+    final isOwnVideo = currentUser != null && videoAuthorId == currentUser.id;
+    final shouldShowOrderButton = isClient && !isOwnVideo && widget.onOrder != null;
+    final formattedPrice = video.furniturePrice != null
+        ? '${video.furniturePrice!.toStringAsFixed(0)} ₸'
+        : null;
     
-    return Positioned(
-      right: 12.w,
-      bottom: 140.h,
-      child: Column(
-        children: [
-          // Avatar (круглый, как в TikTok)
-          _buildActionButton(
-            onTap: () {
-              HapticHelper.lightImpact(); // ✨ Вибрация
-              Navigator.pushNamed(
-                context,
-                '/master-profile',
-                arguments: video.authorId,
-              );
-            },
-            child: Hero(
-              tag: 'master_avatar_${video.authorId}', // ✨ Hero animation
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 52.w,
-                    height: 52.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primary, AppColors.secondary],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 48.w,
-                    height: 48.w,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.black,
-                    ),
-                    child: ClipOval(
-                      child: ImageHelper.hasValidImagePath(video.avatar)
-                          ? CachedNetworkImage(
-                              imageUrl: ImageHelper.getFullImageUrl(video.avatar),
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Icon(
-                                Icons.person_rounded,
-                                color: Colors.white,
-                                size: 24.sp,
-                              ),
-                              errorWidget: (context, url, error) => Icon(
-                                Icons.person_rounded,
-                                color: Colors.white,
-                                size: 24.sp,
-                              ),
-                            )
-                          : Icon(
-                              Icons.person_rounded,
-                              color: Colors.white,
-                              size: 24.sp,
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return Stack(
+      children: [
+        // Верхняя панель
+        _buildTopBar(video),
+        
+        // Левая зона - информация (повыше от кнопки заказа)
+        Positioned(
+          left: 16.w,
+          bottom: shouldShowOrderButton ? 180.h : 120.h, // Выше если есть кнопка заказа
+          right: 80.w,
+          child: _buildLeftInfo(video),
+        ),
+        
+        // Правая зона - иконки действий
+        Positioned(
+          right: 16.w,
+          bottom: 120.h,
+          top: 80.h,
+          child: _buildRightActions(video),
+        ),
+        
+        // Нижняя панель - кнопка заказа (повыше чтобы не перекрывалась навигацией)
+        if (shouldShowOrderButton)
+          Positioned(
+            bottom: 90.h, // Повыше от низа
+            left: 16.w,
+            right: 16.w,
+            child: _buildOrderButton(formattedPrice),
           ),
-          
-          SizedBox(height: 20.h),
-          
-          // Like button
-          _buildActionButton(
-            onTap: _onLike,
-            child: Column(
-              children: [
-                AnimatedBuilder(
-                  animation: _heartAnimationController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: 1.0 + (_heartAnimationController.value * 0.4),
-                      child: Icon(
-                        video.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: video.isLiked ? Colors.red : Colors.white,
-                        size: 32.sp,
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black,
-                            offset: Offset(0, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  video.formattedLikes,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    shadows: const [
-                      Shadow(
-                        color: Colors.black,
-                        offset: Offset(0, 1),
-                        blurRadius: 3,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          SizedBox(height: 20.h),
-          
-          // Comment button
-          _buildActionButton(
-            onTap: () => widget.onComment?.call(video),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: Colors.white,
-                  size: 30.sp,
-                  shadows: const [
-                    Shadow(
-                      color: Colors.black,
-                      offset: Offset(0, 2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  video.formattedComments,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    shadows: const [
-                      Shadow(
-                        color: Colors.black,
-                        offset: Offset(0, 1),
-                        blurRadius: 3,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          SizedBox(height: 20.h),
-          
-          // Share button
-          _buildActionButton(
-            onTap: () => widget.onShare?.call(video),
-            child: Icon(
-              Icons.share_outlined,
-              color: Colors.white,
-              size: 28.sp,
-              shadows: const [
-                Shadow(
-                  color: Colors.black,
-                  offset: Offset(0, 2),
-                  blurRadius: 4,
-                ),
-              ],
-            ),
-          ),
-          
-          SizedBox(height: 20.h),
-          
-          // Mute button
-          _buildActionButton(
-            onTap: _toggleMute,
-            child: Icon(
-              _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-              color: Colors.white,
-              size: 28.sp,
-              shadows: const [
-                Shadow(
-                  color: Colors.black,
-                  offset: Offset(0, 2),
-                  blurRadius: 4,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        
+        // Иконка mute/unmute (правый верхний угол)
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 8.h,
+          right: 16.w,
+          child: _buildMuteButton(),
+        ),
+      ],
     );
   }
 
-  Widget _buildActionButton({
-    required Widget child,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
+  Widget _buildTopBar(VideoModel video) {
+    return Positioned(
+      top: 0,
+      left: 0,
       child: Container(
-        padding: EdgeInsets.all(8.w),
-        child: child,
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 8.h,
+          left: 16.w,
+          bottom: 12.h,
+        ),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withValues(alpha: 0.6),
+              Colors.transparent,
+            ],
+          ),
+        ),
+        child: GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/search', arguments: '');
+          },
+          child: Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: Icon(
+              Icons.search,
+              color: Colors.white,
+              size: 20.sp,
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildBottomInfo() {
-    final video = widget.videos[_currentIndex];
-    
-    return Positioned(
-      left: 12.w,
-      right: 80.w,
-      bottom: 24.h,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Author info
-          Row(
+  Widget _buildLeftInfo(VideoModel video) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Автор и бейдж
+        GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/master-profile', arguments: video.authorId);
+          },
+          child: Row(
             children: [
               Text(
-                '@${video.authorDisplayName}',
+                video.authorDisplayName,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
-                  shadows: const [
+                  shadows: [
                     Shadow(
-                      color: Colors.black,
-                      offset: Offset(0, 2),
-                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 8,
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8.w),
-              Text(
-                video.timeAgo,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 13.sp,
-                  shadows: const [
-                    Shadow(
-                      color: Colors.black,
-                      offset: Offset(0, 1),
-                      blurRadius: 3,
-                    ),
-                  ],
-                ),
-              ),
+              if (video.role == 'master' && video.companyType != null) ...[
+                SizedBox(width: 8.w),
+                _buildAccountTypeBadge(video.companyType!),
+              ],
             ],
           ),
-          
-          SizedBox(height: 8.h),
-          
-          // Title
-          Text(
-            video.title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w600,
-              shadows: const [
-                Shadow(
-                  color: Colors.black,
-                  offset: Offset(0, 2),
-                  blurRadius: 4,
+        ),
+        
+        SizedBox(height: 12.h),
+        
+        // Описание
+        if (video.description != null && video.description!.isNotEmpty)
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isDescriptionExpanded = !_isDescriptionExpanded;
+              });
+            },
+            child: Text(
+              video.description!,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.sp,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              maxLines: _isDescriptionExpanded ? null : 3,
+              overflow: _isDescriptionExpanded ? null : TextOverflow.ellipsis,
+            ),
+          ),
+        
+        SizedBox(height: 12.h),
+        
+        // Теги (горизонтальный скролл)
+        if (video.tags.isNotEmpty)
+          SizedBox(
+            height: 28.h,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: video.tags.length,
+              separatorBuilder: (context, index) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '#${video.tags[index]}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRightActions(VideoModel video) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // Аватар канала (внизу блока)
+        GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/master-profile', arguments: video.authorId);
+          },
+          child: Container(
+            width: 48.w,
+            height: 48.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white,
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          
-          // Description (expandable как в TikTok)
-          if (video.description != null && video.description!.isNotEmpty) ...[
-            SizedBox(height: 6.h),
-            GestureDetector(
-              onTap: () {
-                HapticHelper.lightImpact();
-                setState(() {
-                  _isDescriptionExpanded = !_isDescriptionExpanded;
-                });
-              },
-              child: Text(
-                video.description!,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 14.sp,
-                  shadows: const [
-                    Shadow(
-                      color: Colors.black,
-                      offset: Offset(0, 1),
-                      blurRadius: 3,
-                    ),
-                  ],
-                ),
-                maxLines: _isDescriptionExpanded ? null : 2,
-                overflow: _isDescriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-          
-          // Tags
-          if (video.tags.isNotEmpty) ...[
-            SizedBox(height: 8.h),
-            Wrap(
-              spacing: 6.w,
-              runSpacing: 4.h,
-              children: video.tags.take(3).map((tag) {
-                return Text(
-                  '#$tag',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    shadows: const [
-                      Shadow(
-                        color: Colors.black,
-                        offset: Offset(0, 1),
-                        blurRadius: 3,
+            child: ClipOval(
+              child: ImageHelper.hasValidImagePath(video.avatar)
+                  ? CachedNetworkImage(
+                      imageUrl: ImageHelper.getFullImageUrl(video.avatar ?? ''),
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: AppColors.primary,
+                        child: Icon(Icons.person, color: Colors.white, size: 24.sp),
                       ),
-                    ],
+                      errorWidget: (context, url, error) => Container(
+                        color: AppColors.primary,
+                        child: Icon(Icons.person, color: Colors.white, size: 24.sp),
+                      ),
+                    )
+                  : Container(
+                      color: AppColors.primary,
+                      child: Icon(Icons.person, color: Colors.white, size: 24.sp),
+                    ),
+            ),
+          ),
+        ),
+        
+        SizedBox(height: 24.h),
+        
+        // Лайк
+        _buildActionButton(
+          icon: video.isLiked ? Icons.favorite : Icons.favorite_border,
+          color: video.isLiked ? Colors.red : Colors.white,
+          count: video.likesCount,
+          onTap: _handleLike,
+          animation: _heartAnimationController,
+        ),
+        
+        SizedBox(height: 20.h),
+        
+        // Комментарии
+        _buildActionButton(
+          icon: Icons.comment_outlined,
+          color: Colors.white,
+          count: video.commentsCount,
+          onTap: _handleComment,
+        ),
+        
+        SizedBox(height: 20.h),
+        
+        // Избранное
+        _buildActionButton(
+          icon: video.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+          color: video.isBookmarked ? Colors.amber : Colors.white,
+          onTap: () {
+            // TODO: Добавить функционал избранного
+            HapticHelper.lightImpact();
+          },
+        ),
+        
+        SizedBox(height: 20.h),
+        
+        // Поделиться
+        _buildActionButton(
+          icon: Icons.share,
+          color: Colors.white,
+          onTap: _handleShare,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    int? count,
+    required VoidCallback onTap,
+    AnimationController? animation,
+  }) {
+    Widget iconWidget = Icon(
+      icon,
+      color: color,
+      size: 32.sp,
+      shadows: [
+        Shadow(
+          color: Colors.black.withValues(alpha: 0.5),
+          blurRadius: 8,
+        ),
+      ],
+    );
+    
+    if (animation != null) {
+      iconWidget = ScaleTransition(
+        scale: Tween(begin: 1.0, end: 1.3).animate(
+          CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        ),
+        child: iconWidget,
+      );
+    }
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: iconWidget,
+          ),
+          if (count != null) ...[
+            SizedBox(height: 4.h),
+            Text(
+              _formatNumber(count),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 8,
                   ),
-                );
-              }).toList(),
+                ],
+              ),
             ),
           ],
         ],
@@ -917,72 +969,127 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     );
   }
 
-  Widget _buildOrderButton() {
-    final authState = ref.watch(authProvider);
-    final user = authState.user;
-    
-    // Показываем кнопку только авторизованным клиентам
-    if (user == null || user.role != 'user') {
-      return const SizedBox.shrink();
-    }
-    
-    return Positioned(
-      left: 12.w,
-      right: 12.w,
-      top: 60.h,
-      child: AnimatedBuilder(
-        animation: _orderButtonAnimationController,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: 1.0 + (_orderButtonAnimationController.value * 0.05),
-            child: GestureDetector(
-              onTap: () {
-                final video = widget.videos[_currentIndex];
-                widget.onOrder?.call(video);
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 20.w,
-                  vertical: 12.h,
+  Widget _buildOrderButton(String? price) {
+    return GestureDetector(
+      onTap: _handleOrder,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary,
+              AppColors.secondary,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 18.sp),
+            SizedBox(width: 8.w),
+            if (price != null)
+              Text(
+                'Заказать $price',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
                 ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.secondary],
-                  ),
-                  borderRadius: BorderRadius.circular(30.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.shopping_bag_outlined,
-                      color: Colors.white,
-                      size: 20.sp,
-                    ),
-                    SizedBox(width: 8.w),
-                    Text(
-                      'Заказать мебель',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+              )
+            else
+              Text(
+                'Заказать',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          );
-        },
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildMuteButton() {
+    return GestureDetector(
+      onTap: _toggleMute,
+      child: Container(
+        padding: EdgeInsets.all(8.w),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.5),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          _isMuted ? Icons.volume_off : Icons.volume_up,
+          color: Colors.white,
+          size: 24.sp,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountTypeBadge(String type) {
+    Color bgColor;
+    Color textColor;
+    String label;
+    
+    switch (type) {
+      case 'company':
+        bgColor = Colors.orange.withValues(alpha: 0.2);
+        textColor = Colors.orange.shade300;
+        label = 'Мебельная компания';
+        break;
+      case 'shop':
+        bgColor = Colors.red.withValues(alpha: 0.2);
+        textColor = Colors.red.shade300;
+        label = 'Мебельный магазин';
+        break;
+      case 'master':
+      default:
+        bgColor = Colors.amber.withValues(alpha: 0.2);
+        textColor = Colors.amber.shade300;
+        label = 'Мастер';
+    }
+    
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: textColor.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  String _formatNumber(int number) {
+    if (number >= 1000000) {
+      return '${(number / 1000000).toStringAsFixed(1)}M';
+    } else if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}K';
+    }
+    return number.toString();
   }
 }

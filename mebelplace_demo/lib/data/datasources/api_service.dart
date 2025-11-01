@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -65,10 +66,31 @@ class ApiService {
         }
         return handler.next(response);
       },
-      onError: (error, handler) {
+      onError: (error, handler) async {
         _debugLog('❌ API Error: ${error.response?.statusCode} ${error.requestOptions.path}');
         if (error.response?.data != null) {
           _debugLog('   Error data: ${error.response?.data}');
+        }
+        // Try refresh once on 401/403
+        final status = error.response?.statusCode ?? 0;
+        if ((status == 401 || status == 403) && error.requestOptions.path != '/auth/refresh') {
+          try {
+            final rt = await LocalStorage().getRefreshToken();
+            if (rt != null && rt.isNotEmpty) {
+              final resp = await refreshToken(RefreshRequest(refreshToken: rt));
+              if (resp.success && resp.data != null) {
+                final newAccess = resp.data!.accessToken ?? '';
+                await LocalStorage().saveToken(newAccess);
+                if (resp.data!.refreshToken != null && resp.data!.refreshToken!.isNotEmpty) {
+                  await LocalStorage().saveRefreshToken(resp.data!.refreshToken!);
+                }
+                final req = error.requestOptions;
+                req.headers['Authorization'] = 'Bearer $newAccess';
+                final retryResponse = await _dio.fetch(req);
+                return handler.resolve(retryResponse);
+              }
+            }
+          } catch (_) {}
         }
         _debugLog('   Message: ${error.message}');
         handler.next(error);
@@ -602,23 +624,27 @@ class ApiService {
     }
   }
 
+  // ✅ Toggle like (как на вебе - один метод для лайка/анлайка)
   Future<ApiResponse<LikeData>> likeVideo(String videoId) async {
     try {
+      _debugLog('❤️ API: POST /videos/$videoId/like (toggle)');
       final response = await _dio.post('/videos/$videoId/like');
     
       if (response.statusCode == 200) {
         final data = response.data['data'];
+        
+        _debugLog('✅ API: Like toggled - is_liked: ${data['is_liked']}, likes: ${data['likes']}');
     
-    return ApiResponse<LikeData>(
-      success: true,
-      data: LikeData(
-        videoId: videoId,
+        return ApiResponse<LikeData>(
+          success: true,
+          data: LikeData(
+            videoId: videoId,
             likes: data['likes'] ?? 0,
-        isLiked: true,
-      ),
-      message: null,
-      timestamp: DateTime.now().toIso8601String(),
-    );
+            isLiked: data['is_liked'] ?? false, // ✅ API возвращает реальное состояние
+          ),
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
       } else {
         return ApiResponse<LikeData>(
           success: false,
@@ -627,6 +653,7 @@ class ApiService {
         );
       }
     } catch (e) {
+      _debugLog('❌ API: Like error: $e');
       return ApiResponse<LikeData>(
         success: false,
         message: 'Ошибка лайка: ${e.toString()}',
@@ -677,6 +704,138 @@ class ApiService {
       message: null,
       timestamp: DateTime.now().toIso8601String(),
     );
+  }
+  
+  // ✅ Bookmark endpoints (как на вебе videoService.addBookmark/removeBookmark)
+  Future<ApiResponse<void>> addBookmark(String videoId) async {
+    try {
+      _debugLog('📌 API: POST /videos/$videoId/bookmark');
+      final response = await _dio.post('/videos/$videoId/bookmark');
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _debugLog('✅ API: Bookmark added');
+        return ApiResponse<void>(
+          success: true,
+          data: null,
+          message: response.data['message'] as String?,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+      
+      return ApiResponse<void>(
+        success: false,
+        data: null,
+        message: 'Ошибка добавления закладки',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    } catch (e) {
+      _debugLog('❌ API: Add bookmark error: $e');
+      throw Exception('Ошибка добавления закладки: $e');
+    }
+  }
+  
+  Future<ApiResponse<void>> removeBookmark(String videoId) async {
+    try {
+      _debugLog('📌 API: DELETE /videos/$videoId/bookmark');
+      final response = await _dio.delete('/videos/$videoId/bookmark');
+      
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _debugLog('✅ API: Bookmark removed');
+        return ApiResponse<void>(
+          success: true,
+          data: null,
+          message: response.data['message'] as String?,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+      
+      return ApiResponse<void>(
+        success: false,
+        data: null,
+        message: 'Ошибка удаления закладки',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    } catch (e) {
+      _debugLog('❌ API: Remove bookmark error: $e');
+      throw Exception('Ошибка удаления закладки: $e');
+    }
+  }
+
+  // Получить избранные видео пользователя
+  Future<ApiResponse<List<VideoModel>>> getBookmarkedVideos() async {
+    try {
+      _debugLog('📡 API: GET /videos/bookmarked');
+      final response = await _dio.get('/videos/bookmarked');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List<dynamic> videosJson = data['data'] ?? [];
+        final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
+        
+        _debugLog('✅ API: Loaded ${videos.length} bookmarked videos');
+        
+        return ApiResponse<List<VideoModel>>(
+          success: true,
+          data: videos,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<VideoModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки избранного',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Get bookmarked videos error: $e');
+      return ApiResponse<List<VideoModel>>(
+        success: false,
+        data: [],
+        message: 'Ошибка загрузки избранного: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  // Получить лайкнутые видео пользователя
+  Future<ApiResponse<List<VideoModel>>> getLikedVideos() async {
+    try {
+      _debugLog('📡 API: GET /videos/liked');
+      final response = await _dio.get('/videos/liked');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // Бэкенд возвращает { data: { videos: [...], pagination: {...} } }
+        final List<dynamic> videosJson = data['data']?['videos'] ?? data['data'] ?? [];
+        final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
+        
+        _debugLog('✅ API: Loaded ${videos.length} liked videos');
+        
+        return ApiResponse<List<VideoModel>>(
+          success: true,
+          data: videos,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<VideoModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки лайкнутых видео',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Get liked videos error: $e');
+      return ApiResponse<List<VideoModel>>(
+        success: false,
+        data: [],
+        message: 'Ошибка загрузки лайкнутых видео: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
   }
 
   Future<ApiResponse<VideoModel>> uploadVideo(
@@ -891,6 +1050,7 @@ class ApiService {
       final response = await _dio.post('/orders/$orderId/response', data: {
         'message': request.message,
         'price': request.price,
+        'deadline': request.deadline?.toIso8601String(),
       });
       
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -930,9 +1090,11 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = response.data['data'] ?? response.data;
         final order = OrderModel.fromJson(data['order'] ?? data);
-        final chatId = data['chatId'] ?? data['chat_id'] ?? '';
+        // Сервер возвращает chat: { id: chatId }
+        final chatId = data['chatId'] ?? data['chat_id'] ?? 
+                       (data['chat'] is Map ? data['chat']['id']?.toString() : '');
         
-        _debugLog('✅ API: Response accepted');
+        _debugLog('✅ API: Response accepted, chatId: $chatId');
         
         return ApiResponse<AcceptResponse>(
           success: true,
@@ -998,8 +1160,8 @@ class ApiService {
 
   Future<ApiResponse<List<String>>> getRegions() async {
     try {
-      _debugLog('📡 API: GET /regions');
-      final response = await _dio.get('/regions');
+      _debugLog('📡 API: GET /orders/regions');
+      final response = await _dio.get('/orders/regions');
       
       if (response.statusCode == 200) {
         final data = response.data['data'] ?? response.data['regions'] ?? [];
@@ -1032,13 +1194,78 @@ class ApiService {
   }
 
   // Chat endpoints
-  Future<ApiResponse<List<ChatModel>>> getChats({int? currentUserId}) async {
+  
+  // ✅ Создать чат (как на вебе)
+  Future<ApiResponse<ChatModel>> createChat({
+    required List<String> participants,
+    String type = 'private',
+    String? name,
+    String? orderId,
+  }) async {
     try {
-      final response = await _dio.get('/chats/list');
+      _debugLog('📡 API: POST /chat/create');
+      final response = await _dio.post('/chat/create', data: {
+        'participants': participants,
+        'type': type,
+        if (name != null) 'name': name,
+        if (orderId != null) 'orderId': orderId,
+      });
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data['data'] ?? response.data;
+        // ✅ Получаем currentUserId из LocalStorage
+        final token = await LocalStorage().getToken();
+        String? currentUserId;
+        if (token != null) {
+          // Парсим JWT токен для получения user ID
+          try {
+            final parts = token.split('.');
+            if (parts.length == 3) {
+              final payload = parts[1];
+              final normalized = base64.normalize(payload);
+              final decoded = utf8.decode(base64.decode(normalized));
+              final json = jsonDecode(decoded);
+              currentUserId = json['userId']?.toString() ?? json['user_id']?.toString();
+            }
+          } catch (e) {
+            _debugLog('⚠️ Failed to parse token: $e');
+          }
+        }
+        final chat = ChatModel.fromJson(data, currentUserId: currentUserId);
+        
+        _debugLog('✅ API: Chat created: ${chat.id}');
+        
+        return ApiResponse<ChatModel>(
+          success: true,
+          data: chat,
+          message: response.data['message'],
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<ChatModel>(
+          success: false,
+          message: 'Ошибка создания чата',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Create chat error: $e');
+      return ApiResponse<ChatModel>(
+        success: false,
+        message: 'Ошибка создания чата: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+  
+  Future<ApiResponse<List<ChatModel>>> getChats({String? currentUserId}) async {
+    try {
+      final response = await _dio.get('/chat/list');
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> chatsJson = data['data']?['chats'] ?? data['data'] ?? [];
+        // ✅ Backend возвращает { data: { chats: [], pagination: {} } } (строка 240-252)
+        final List<dynamic> chatsJson = data['data']?['chats'] ?? [];
         
         _debugLog('📋 API: Parsing ${chatsJson.length} chats with currentUserId: $currentUserId');
         
@@ -1071,8 +1298,8 @@ class ApiService {
 
   Future<ApiResponse<List<MessageModel>>> getMessages(String chatId) async {
     try {
-      // ИСПРАВЛЕНО: реальный endpoint /chats/{id}/messages (не /chat/{id}/messages)
-      final response = await _dio.get('/chats/$chatId/messages');
+      // GET /chat/:id/messages - получить сообщения чата
+      final response = await _dio.get('/chat/$chatId/messages');
       
       if (response.statusCode == 200) {
         final data = response.data;
@@ -1089,16 +1316,17 @@ class ApiService {
         return ApiResponse<List<MessageModel>>(
           success: false,
           data: [],
-          message: 'Ошибка загрузки сообщений',
+          message: response.statusCode == 403 ? '403' : 'Ошибка загрузки сообщений',
           timestamp: DateTime.now().toIso8601String(),
         );
       }
     } catch (e) {
+      final is403 = e is DioException && e.response?.statusCode == 403;
       _debugLog('❌ API: Get messages error: $e');
       return ApiResponse<List<MessageModel>>(
         success: false,
         data: [],
-        message: 'Ошибка загрузки сообщений: ${e.toString()}',
+        message: is403 ? '403' : 'Ошибка загрузки сообщений: ${e.toString()}',
         timestamp: DateTime.now().toIso8601String(),
       );
     }
@@ -1106,72 +1334,153 @@ class ApiService {
 
   Future<ApiResponse<MessageModel>> sendMessage(
     String chatId,
-    SendMessageRequest request,
-  ) async {
+    SendMessageRequest request, {
+    String? type,
+    String? replyTo,
+    Map<String, dynamic>? metadata,
+    File? file,
+  }) async {
     try {
-      // ИСПРАВЛЕНО: реальный endpoint /chats/{id}/message (не /chat/{id}/message)
-      final response = await _dio.post('/chats/$chatId/message', data: {
-        'content': request.content,
-      });
+      _debugLog('📤 API: Sending message to chat $chatId');
       
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = response.data;
-        final data = responseData['data'] ?? responseData;
-        final message = MessageModel.fromJson(data);
+      // Если есть файл, отправляем через FormData
+      if (file != null) {
+        final formData = FormData.fromMap({
+          if (request.content.isNotEmpty) 'content': request.content,
+          if (type != null) 'type': type,
+          if (replyTo != null) 'replyTo': replyTo,
+          if (metadata != null) 'metadata': jsonEncode(metadata),
+          'file': await MultipartFile.fromFile(file.path),
+        });
         
-        return ApiResponse<MessageModel>(
-          success: true,
-          data: message,
-          message: responseData['message'] ?? 'Сообщение отправлено',
-          timestamp: DateTime.now().toIso8601String(),
-        );
+        final response = await _dio.post('/chat/$chatId/message', data: formData);
+        
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final responseData = response.data;
+          final data = responseData['data'] ?? responseData;
+          final message = MessageModel.fromJson(data);
+          
+          return ApiResponse<MessageModel>(
+            success: true,
+            data: message,
+            message: responseData['message'] ?? 'Сообщение отправлено',
+            timestamp: DateTime.now().toIso8601String(),
+          );
+        } else {
+          return ApiResponse<MessageModel>(
+            success: false,
+            message: 'Ошибка отправки сообщения',
+            timestamp: DateTime.now().toIso8601String(),
+          );
+        }
       } else {
-        return ApiResponse<MessageModel>(
-          success: false,
-          message: 'Ошибка отправки сообщения',
-          timestamp: DateTime.now().toIso8601String(),
-        );
+        // Обычное текстовое сообщение
+        final data = <String, dynamic>{
+          'content': request.content,
+        };
+        if (type != null) data['type'] = type;
+        if (replyTo != null) data['replyTo'] = replyTo;
+        if (metadata != null) data['metadata'] = metadata;
+        
+        final response = await _dio.post('/chat/$chatId/message', data: data);
+        
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final responseData = response.data;
+          final data = responseData['data'] ?? responseData;
+          final message = MessageModel.fromJson(data);
+          
+          return ApiResponse<MessageModel>(
+            success: true,
+            data: message,
+            message: responseData['message'] ?? 'Сообщение отправлено',
+            timestamp: DateTime.now().toIso8601String(),
+          );
+        } else {
+          return ApiResponse<MessageModel>(
+            success: false,
+            message: 'Ошибка отправки сообщения',
+            timestamp: DateTime.now().toIso8601String(),
+          );
+        }
       }
     } catch (e) {
       throw Exception('Ошибка отправки сообщения: $e');
     }
   }
 
-  Future<ApiResponse<List<VideoModel>>> searchVideos(String query) async {
+  Future<ApiResponse<Map<String, dynamic>>> searchVideos(String query) async {
     try {
-      // ✅ ИСПОЛЬЗУЕМ РЕАЛЬНЫЙ ENDPOINT /search (как веб-фронтенд!)
+      // ✅ ИСПОЛЬЗУЕМ РЕАЛЬНЫЙ ENDPOINT /search (как веб-фронтенд!) - теперь возвращает videos + masters
       final response = await _dio.get('/search', queryParameters: {
         'q': query,
-        'type': 'video',
+        'type': 'all', // ✅ Как на вебе: ищем всё (видео + мастеров)
       });
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> videosJson = data['data']?['videos'] ?? data['videos'] ?? [];
-        final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
+        final videosJson = data['data']?['videos'] ?? [];
+        final mastersJson = data['data']?['masters'] ?? [];
         
-        _debugLog('🔍 API: Found ${videos.length} videos for query "$query"');
+        // ✅ Fix relative URLs by adding base URL (как в getVideoFeed строки 527-545)
+        final fixedVideosJson = videosJson.map((json) {
+          final videoUrl = json['videoUrl'] as String?;
+          final thumbnailUrl = json['thumbnailUrl'] as String?;
+          final avatar = json['avatar'] as String?;
+          
+          final Map<String, dynamic> fixedJson = Map<String, dynamic>.from(json);
+          fixedJson['videoUrl'] = videoUrl?.startsWith('http') == true 
+              ? videoUrl 
+              : 'https://mebelplace.com.kz$videoUrl';
+          fixedJson['thumbnailUrl'] = thumbnailUrl?.startsWith('http') == true 
+              ? thumbnailUrl 
+              : (thumbnailUrl != null ? 'https://mebelplace.com.kz$thumbnailUrl' : null);
+          fixedJson['avatar'] = avatar?.startsWith('http') == true 
+              ? avatar 
+              : (avatar != null && avatar.isNotEmpty ? 'https://mebelplace.com.kz$avatar' : null);
+          
+          return fixedJson;
+        }).toList();
         
-        return ApiResponse<List<VideoModel>>(
+        // ✅ Fix relative URLs for masters
+        final fixedMastersJson = mastersJson.map((json) {
+          final avatar = json['avatar'] as String?;
+          
+          final Map<String, dynamic> fixedJson = Map<String, dynamic>.from(json);
+          fixedJson['avatar'] = avatar?.startsWith('http') == true 
+              ? avatar 
+              : (avatar != null && avatar.isNotEmpty ? 'https://mebelplace.com.kz$avatar' : null);
+          
+          return fixedJson;
+        }).toList();
+        
+        final videos = fixedVideosJson.map((json) => VideoModel.fromJson(json)).toList();
+        final masters = fixedMastersJson.map((json) => UserModel.fromJson(json)).toList();
+        
+        _debugLog('🔍 API: Found ${videos.length} videos and ${masters.length} masters for query "$query"');
+        
+        return ApiResponse<Map<String, dynamic>>(
           success: true,
-          data: videos,
+          data: {
+            'videos': videos,
+            'masters': masters,
+          },
           message: null,
           timestamp: DateTime.now().toIso8601String(),
         );
       } else {
-        return ApiResponse<List<VideoModel>>(
+        return ApiResponse<Map<String, dynamic>>(
           success: false,
-          data: [],
-          message: 'Ошибка поиска видео',
+          data: {'videos': [], 'masters': []},
+          message: 'Ошибка поиска',
           timestamp: DateTime.now().toIso8601String(),
         );
       }
     } catch (e) {
-      _debugLog('❌ API: Search videos error: $e');
-      return ApiResponse<List<VideoModel>>(
+      _debugLog('❌ API: Search error: $e');
+      return ApiResponse<Map<String, dynamic>>(
         success: false,
-        data: [],
-        message: 'Ошибка поиска видео: ${e.toString()}',
+        data: {'videos': [], 'masters': []},
+        message: 'Ошибка поиска: ${e.toString()}',
         timestamp: DateTime.now().toIso8601String(),
       );
     }
@@ -1332,6 +1641,44 @@ class ApiService {
     }
   }
 
+  // Получить подписки пользователя (список мастеров)
+  Future<ApiResponse<List<UserModel>>> getSubscriptions(String userId) async {
+    try {
+      _debugLog('📡 API: GET /users/$userId/subscriptions');
+      final response = await _dio.get('/users/$userId/subscriptions');
+      
+      if (response.statusCode == 200) {
+        final data = response.data['data'] ?? response.data;
+        final List<dynamic> subscriptionsJson = data['subscriptions'] ?? [];
+        final masters = subscriptionsJson.map((json) => UserModel.fromJson(json)).toList();
+        
+        _debugLog('✅ API: Loaded ${masters.length} subscriptions');
+        
+        return ApiResponse<List<UserModel>>(
+          success: true,
+          data: masters,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<UserModel>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки подписок',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Get subscriptions error: $e');
+      return ApiResponse<List<UserModel>>(
+        success: false,
+        data: [],
+        message: 'Ошибка загрузки подписок: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
   // Получение профиля пользователя (мастера)
   Future<ApiResponse<UserModel>> getUser(String userId) async {
     try {
@@ -1418,8 +1765,8 @@ class ApiService {
 
   Future<ApiResponse<CommentModel>> addComment(String videoId, String content) async {
     try {
-      _debugLog('📡 API: POST /videos/$videoId/comments');
-      final response = await _dio.post('/videos/$videoId/comments', data: {
+      _debugLog('📡 API: POST /videos/$videoId/comment');
+      final response = await _dio.post('/videos/$videoId/comment', data: {
         'content': content,
       });
       
@@ -1451,13 +1798,37 @@ class ApiService {
 
   Future<ApiResponse<List<VideoModel>>> getMasterVideos(String masterId) async {
     try {
-      // ИСПРАВЛЕНО: используем реальный endpoint /videos/master/:masterId
-      final response = await _dio.get('/videos/master/$masterId');
+      // ✅ Используем /videos/feed с author_id как на вебе
+      final response = await _dio.get('/videos/feed', queryParameters: {
+        'author_id': masterId,
+        'limit': 50,
+      });
       
       if (response.statusCode == 200) {
         final data = response.data;
         final List<dynamic> videosJson = data['data']['videos'] ?? [];
-        final videos = videosJson.map((json) => VideoModel.fromJson(json)).toList();
+        
+        // ✅ Фиксим относительные URL как в getVideoFeed
+        final fixedVideosJson = videosJson.map((json) {
+          final videoUrl = json['videoUrl'] as String?;
+          final thumbnailUrl = json['thumbnailUrl'] as String?;
+          final avatar = json['avatar'] as String?;
+          
+          final Map<String, dynamic> fixedJson = Map<String, dynamic>.from(json);
+          fixedJson['videoUrl'] = videoUrl?.startsWith('http') == true 
+              ? videoUrl 
+              : 'https://mebelplace.com.kz$videoUrl';
+          fixedJson['thumbnailUrl'] = thumbnailUrl?.startsWith('http') == true 
+              ? thumbnailUrl 
+              : (thumbnailUrl != null ? 'https://mebelplace.com.kz$thumbnailUrl' : null);
+          fixedJson['avatar'] = avatar?.startsWith('http') == true 
+              ? avatar 
+              : (avatar != null && avatar.isNotEmpty ? 'https://mebelplace.com.kz$avatar' : null);
+          
+          return fixedJson;
+        }).toList();
+        
+        final videos = fixedVideosJson.map((json) => VideoModel.fromJson(json)).toList();
         
         return ApiResponse<List<VideoModel>>(
           success: true,
@@ -1633,10 +2004,15 @@ class ApiService {
     try {
       // Используем реальный endpoint для получения откликов на заказ
       final response = await _dio.get('/orders/$orderId/responses');
+      print('📡 [API] GET /orders/$orderId/responses');
+      print('📡 [API] Response status: ${response.statusCode}');
+      print('📡 [API] Response data: ${response.data}');
       
       if (response.statusCode == 200) {
         final data = response.data;
-        final List<dynamic> responsesJson = data['data']?['responses'] ?? data['responses'] ?? [];
+        // Сервер возвращает data: responses (массив), а не data: { responses: [] }
+        final List<dynamic> responsesJson = data['data'] ?? [];
+        print('📡 [API] Parsed responses count: ${responsesJson.length}');
         final responses = responsesJson.map((json) => OrderResponse.fromJson(json)).toList();
         
         return ApiResponse<List<OrderResponse>>(
@@ -1663,6 +2039,7 @@ class ApiService {
     required String subject,
     required String message,
     String? category,
+    String? priority,
   }) async {
     try {
       _debugLog('📡 API: POST /support/contact');
@@ -1670,6 +2047,7 @@ class ApiService {
         'subject': subject,
         'message': message,
         if (category != null) 'category': category,
+        if (priority != null) 'priority': priority,
       });
       
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -1695,6 +2073,106 @@ class ApiService {
 
   DioException _handleDioError(DioException e) {
     return e;
+  }
+
+  // Support API Methods
+  Future<ApiResponse<SupportInfo>> getSupportInfo() async {
+    try {
+      _debugLog('📡 API: GET /support/info');
+      final response = await _dio.get('/support/info');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final supportInfo = SupportInfo.fromJson(data['data'] ?? data);
+        
+        _debugLog('✅ API: Loaded support info');
+        
+        return ApiResponse<SupportInfo>(
+          success: true,
+          data: supportInfo,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<SupportInfo>(
+          success: false,
+          data: SupportInfo(
+            supportPhone: {},
+            supportEmail: {},
+            supportHours: {},
+            supportContacts: {},
+          ),
+          message: 'Ошибка загрузки информации о поддержке',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      // Если endpoint не существует (404), возвращаем пустые данные (будет использован fallback)
+      if (e is DioException && e.response?.statusCode == 404) {
+        _debugLog('⚠️ API: /support/info endpoint not found, using fallback');
+        return ApiResponse<SupportInfo>(
+          success: false,
+          data: SupportInfo(
+            supportPhone: {},
+            supportEmail: {},
+            supportHours: {},
+            supportContacts: {},
+          ),
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+      _debugLog('❌ API: Get support info error: $e');
+      return ApiResponse<SupportInfo>(
+        success: false,
+        data: SupportInfo(
+          supportPhone: {},
+          supportEmail: {},
+          supportHours: {},
+          supportContacts: {},
+        ),
+        message: null,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
+  }
+
+  Future<ApiResponse<List<SupportTicket>>> getSupportTickets() async {
+    try {
+      _debugLog('📡 API: GET /support/tickets');
+      final response = await _dio.get('/support/tickets');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // Бэкенд возвращает { data: { tickets: [...], pagination: {...} } }
+        final List<dynamic> ticketsJson = data['data']?['tickets'] ?? data['data'] ?? [];
+        final tickets = ticketsJson.map((json) => SupportTicket.fromJson(json)).toList();
+        
+        _debugLog('✅ API: Loaded ${tickets.length} support tickets');
+        
+        return ApiResponse<List<SupportTicket>>(
+          success: true,
+          data: tickets,
+          message: null,
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      } else {
+        return ApiResponse<List<SupportTicket>>(
+          success: false,
+          data: [],
+          message: 'Ошибка загрузки тикетов',
+          timestamp: DateTime.now().toIso8601String(),
+        );
+      }
+    } catch (e) {
+      _debugLog('❌ API: Get support tickets error: $e');
+      return ApiResponse<List<SupportTicket>>(
+        success: false,
+        data: [],
+        message: 'Ошибка загрузки тикетов: ${e.toString()}',
+        timestamp: DateTime.now().toIso8601String(),
+      );
+    }
   }
 }
 
@@ -1888,4 +2366,64 @@ class SendMessageRequest {
 
 class EmptyResponse {
   EmptyResponse();
+}
+
+// Support Info Model
+class SupportInfo {
+  final Map<String, dynamic> supportPhone;
+  final Map<String, dynamic> supportEmail;
+  final Map<String, dynamic> supportHours;
+  final Map<String, dynamic> supportContacts;
+
+  SupportInfo({
+    required this.supportPhone,
+    required this.supportEmail,
+    required this.supportHours,
+    required this.supportContacts,
+  });
+
+  factory SupportInfo.fromJson(Map<String, dynamic> json) {
+    return SupportInfo(
+      supportPhone: json['support_phone'] ?? {},
+      supportEmail: json['support_email'] ?? {},
+      supportHours: json['support_hours'] ?? {},
+      supportContacts: json['support_contacts'] ?? {},
+    );
+  }
+}
+
+// Support Ticket Model
+class SupportTicket {
+  final String id;
+  final String subject;
+  final String status;
+  final String priority;
+  final String category;
+  final String createdAt;
+  final String updatedAt;
+  final String? resolvedAt;
+
+  SupportTicket({
+    required this.id,
+    required this.subject,
+    required this.status,
+    required this.priority,
+    required this.category,
+    required this.createdAt,
+    required this.updatedAt,
+    this.resolvedAt,
+  });
+
+  factory SupportTicket.fromJson(Map<String, dynamic> json) {
+    return SupportTicket(
+      id: json['id'] as String? ?? json['_id'] as String? ?? '',
+      subject: json['subject'] as String? ?? '',
+      status: json['status'] as String? ?? 'open',
+      priority: json['priority'] as String? ?? 'medium',
+      category: json['category'] as String? ?? 'general',
+      createdAt: json['created_at'] as String? ?? json['createdAt'] as String? ?? '',
+      updatedAt: json['updated_at'] as String? ?? json['updatedAt'] as String? ?? '',
+      resolvedAt: json['resolved_at'] as String? ?? json['resolvedAt'] as String?,
+    );
+  }
 }

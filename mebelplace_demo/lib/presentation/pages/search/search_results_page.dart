@@ -428,12 +428,6 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage>
           
           Row(
             children: [
-              Icon(
-                Icons.attach_money,
-                color: AppColors.primary,
-                size: 16.sp,
-              ),
-              SizedBox(width: 4.w),
               Text(
                 '${order.price} ₸',
                 style: TextStyle(

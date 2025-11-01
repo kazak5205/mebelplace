@@ -9,6 +9,7 @@ import '../../core/utils/image_helper.dart';
 import '../../data/models/video_model.dart';
 import '../../data/models/comment_model.dart';
 import '../providers/app_providers.dart' as providers;
+import '../providers/repository_providers.dart';
 import '../widgets/tiktok_video_player.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/comments_bottom_sheet.dart'; // ✅ Добавлен импорт
@@ -24,6 +25,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver, RouteAware {
   final GlobalKey<TikTokVideoPlayerState> _videoPlayerKey = GlobalKey<TikTokVideoPlayerState>();
   bool _isVisible = true;
+  int _lastNavIndex = 0;
 
   @override
   bool get wantKeepAlive => true; // Сохраняем состояние при переключении табов
@@ -37,7 +39,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
       ref.read(providers.videoProvider.notifier).loadVideos();
     });
   }
-
+  
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -108,25 +110,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
   }
 
   void _pauseVideo() {
-    _videoPlayerKey.currentState?.pauseVideo();
+    if (_videoPlayerKey.currentState != null) {
+      _videoPlayerKey.currentState!.pauseVideo();
+    }
   }
 
   void _resumeIfNeeded() {
     // Возобновляем только если экран действительно виден
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _isVisible) {
-        final route = ModalRoute.of(context);
-        if (route?.isCurrent == true) {
-          _videoPlayerKey.currentState?.resumeVideo();
-        }
-      }
-    });
+    if (_isVisible && _videoPlayerKey.currentState != null) {
+      _videoPlayerKey.currentState!.resumeVideo();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context); // Обязательно для AutomaticKeepAliveClientMixin
     final videoState = ref.watch(providers.videoProvider);
+    final currentNavIndex = ref.watch(providers.currentNavigationIndexProvider);
+    
+    // Отслеживаем изменения индекса навигации в build
+    if (_lastNavIndex != currentNavIndex) {
+      // Если индекс изменился И мы уходим с главной (0) на другой экран
+      if (_lastNavIndex == 0 && currentNavIndex != 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _pauseVideo();
+        });
+      }
+      // Если возвращаемся на главную
+      if (currentNavIndex == 0 && _lastNavIndex != 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _resumeIfNeeded();
+        });
+      }
+      _lastNavIndex = currentNavIndex;
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -381,164 +398,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with AutomaticKeepAlive
     );
   }
 
-  void _showOrderDialog(VideoModel video) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.darkSurface,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
-            SizedBox(height: 24.h),
-            
-            // Аватар мастера
-            Container(
-              width: 80.w,
-              height: 80.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.secondary],
-                ),
-              ),
-              padding: EdgeInsets.all(3.w),
-              child: ClipOval(
-                child: ImageHelper.hasValidImagePath(video.avatar)
-                    ? CachedNetworkImage(
-                        imageUrl: ImageHelper.getFullImageUrl(video.avatar),
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        color: AppColors.darkSurface,
-                        child: Icon(
-                          Icons.person,
-                          size: 40.sp,
-                          color: Colors.white,
-                        ),
-                      ),
-              ),
-            ),
-            
-            SizedBox(height: 16.h),
-            
-            Text(
-              'Заказать у @${video.authorDisplayName}',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            SizedBox(height: 8.h),
-            
-            Text(
-              video.title,
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.white.withOpacity(0.7),
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            
-            SizedBox(height: 32.h),
-            
-            // Кнопка создать заказ
-            SizedBox(
-              width: double.infinity,
-              height: 56.h,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/create-order');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primary, AppColors.secondary],
-                    ),
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Создать заказ',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            
-            SizedBox(height: 12.h),
-            
-            // Кнопка профиль мастера
-            SizedBox(
-              width: double.infinity,
-              height: 56.h,
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(
-                    context,
-                    '/master-profile',
-                    arguments: video.authorId,
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 1.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                ),
-                child: Text(
-                  'Перейти в профиль',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            
-            SizedBox(height: 24.h),
-          ],
-        ),
-      ),
-    );
+  void _showOrderDialog(VideoModel video) async {
+    final chatRepository = ref.read(chatRepositoryProvider);
+    
+    try {
+      final chat = await chatRepository.createChat(
+        participants: [video.authorId],
+        type: 'private',
+      );
+      
+      await chatRepository.sendMessage(
+        chat.id,
+        'Здравствуйте! Интересует мебель из видео: ${video.title}',
+        type: 'video',
+        metadata: {
+          'videoId': video.id,
+          'videoTitle': video.title,
+          'videoThumbnail': video.thumbnailUrl ?? '',
+          'videoUrl': video.videoUrl,
+          'masterName': video.username ?? 'Мастер',
+        },
+      );
+      
+      if (mounted) {
+        Navigator.pushNamed(context, '/chat', arguments: chat.id);
+      }
+    } catch (e) {
+      // Молча игнорируем ошибки
+    }
   }
 }
 
@@ -723,6 +610,8 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
 
     try {
       await ref.read(providers.commentProvider(widget.video.id).notifier).addComment(content);
+      // Обновляем счетчик комментариев в видео
+      ref.read(providers.videoProvider.notifier).incrementCommentCount(widget.video.id);
       _commentController.clear();
       FocusScope.of(context).unfocus();
     } catch (e) {

@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/image_helper.dart';
 import '../../../data/models/message_model.dart';
+import '../../../data/models/video_model.dart';
 import '../../../data/datasources/socket_service.dart';
 import '../../providers/app_providers.dart';
+import '../../providers/repository_providers.dart';
 import '../../providers/socket_provider.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/tiktok_video_player.dart';
+import '../../../utils/haptic_helper.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   final String chatId;
@@ -25,6 +33,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late SocketService _socketService;
+  bool _isUploadingFile = false;
   
   @override
   void initState() {
@@ -100,6 +109,135 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         );
       }
     });
+  }
+  
+  Future<void> _pickAndSendMedia() async {
+    HapticHelper.lightImpact();
+    
+    // Show source selection dialog
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.dark,
+        title: Text(
+          'Выбрать источник',
+          style: TextStyle(color: Colors.white, fontSize: 18.sp),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              title: const Text('Галерея', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Камера', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+    
+    if (source == null) return;
+    
+    try {
+      setState(() {
+        _isUploadingFile = true;
+      });
+      
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: source);
+      
+      if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        final chatRepository = ref.read(chatRepositoryProvider);
+        
+        // Отправляем файл через API
+        await chatRepository.sendFileMessage(widget.chatId, file);
+        
+        HapticHelper.success();
+        
+        // Перезагружаем сообщения
+        ref.read(chatProvider.notifier).loadMessages(widget.chatId);
+        
+        // Прокручиваем вниз
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+    } catch (e) {
+      HapticHelper.error();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка загрузки файла: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingFile = false;
+        });
+      }
+    }
+  }
+
+  // ✅ Навигация на видео из чата (как на вебе строка 427-432 HomePage.tsx)
+  Future<void> _navigateToVideo(Map<String, dynamic> metadata) async {
+    final videoId = metadata['videoId'];
+    if (videoId == null) return;
+    
+    try {
+      // Загружаем конкретное видео чтобы получить authorId
+      final videoRepository = ref.read(videoRepositoryProvider);
+      final video = await videoRepository.getVideo(videoId);
+      
+      // Загружаем все видео автора
+      final authorVideos = await videoRepository.getVideosByAuthor(video.authorId, limit: 50);
+      
+      // Находим индекс нужного видео
+      final index = authorVideos.indexWhere((v) => v.id == videoId);
+      if (index == -1) return;
+      
+      // Открываем плеер
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TikTokVideoPlayer(
+              videos: authorVideos,
+              initialIndex: index,
+              onLike: (video) {
+                ref.read(videoProvider.notifier).likeVideo(video.id);
+              },
+              onVideoChanged: (video) {
+                ref.read(videoProvider.notifier).recordView(video.id);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка загрузки видео: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -255,8 +393,94 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     SizedBox(height: 4.h),
                   ],
                   
+                  // Превью видео, если есть metadata (как на вебе строка 422-454)
+                  if (message.type == 'video' && message.metadata != null) ...[
+                    GestureDetector(
+                      onTap: () => _navigateToVideo(message.metadata!),
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 8.h),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.r),
+                          color: Colors.black,
+                        ),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12.r),
+                              child: ImageHelper.hasValidImagePath(message.metadata?['videoThumbnail'])
+                                  ? CachedNetworkImage(
+                                      imageUrl: ImageHelper.getFullImageUrl(message.metadata?['videoThumbnail']),
+                                      width: double.infinity,
+                                      height: 150.h,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Container(
+                                        width: double.infinity,
+                                        height: 150.h,
+                                        color: Colors.black54,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(color: Colors.white54),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) => Container(
+                                        width: double.infinity,
+                                        height: 150.h,
+                                        color: Colors.black54,
+                                        child: Icon(Icons.video_library, size: 48.sp, color: Colors.white54),
+                                      ),
+                                    )
+                                  : Container(
+                                      width: double.infinity,
+                                      height: 150.h,
+                                      color: Colors.black54,
+                                      child: Icon(Icons.video_library, size: 48.sp, color: Colors.white54),
+                                    ),
+                            ),
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    width: 40.w,
+                                    height: 40.w,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(Icons.play_arrow, color: Colors.white, size: 24.sp),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Text(
+                      message.metadata?['videoTitle'] ?? '',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      'от ${message.metadata?['masterName'] ?? 'Мастер'}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                  ],
+                  
                   Text(
-                    message.message ?? '',
+                    message.content ?? '',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14.sp,
@@ -306,71 +530,126 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(25.r),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: TextField(
-                controller: _messageController,
-                style: TextStyle(color: Colors.white, fontSize: 14.sp),
-                decoration: InputDecoration(
-                  hintText: 'Напишите сообщение...',
-                  hintStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 14.sp,
+          if (_isUploadingFile)
+            Padding(
+              padding: EdgeInsets.only(bottom: 8.h),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 14.w,
+                    height: 14.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 12.h,
-                  ),
-                ),
-                maxLines: null,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _sendMessage(),
-              ),
-            ),
-          ),
-          
-          SizedBox(width: 12.w),
-          
-          GestureDetector(
-            onTap: _sendMessage,
-            child: Container(
-              width: 48.w,
-              height: 48.w,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.secondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Загрузка файла...',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 12.sp,
+                    ),
                   ),
                 ],
               ),
-              child: Icon(
-                Icons.send,
-                color: Colors.white,
-                size: 20.sp,
-              ),
             ),
-          ).animate().scale(
-            duration: 200.ms,
-            curve: Curves.easeOut,
+          Row(
+            children: [
+              // Media button
+              GestureDetector(
+                onTap: _pickAndSendMedia,
+                child: Container(
+                  width: 48.w,
+                  height: 48.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(24.r),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.image,
+                    color: Colors.white.withValues(alpha: 0.8),
+                    size: 24.sp,
+                  ),
+                ),
+              ).animate().scale(
+                duration: 200.ms,
+                curve: Curves.easeOut,
+              ),
+              
+              SizedBox(width: 12.w),
+              
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(25.r),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _messageController,
+                    style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                    decoration: InputDecoration(
+                      hintText: 'Напишите сообщение...',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 14.sp,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 12.h,
+                      ),
+                    ),
+                    maxLines: null,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+              ),
+              
+              SizedBox(width: 12.w),
+              
+              GestureDetector(
+                onTap: _sendMessage,
+                child: Container(
+                  width: 48.w,
+                  height: 48.w,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, AppColors.secondary],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.send,
+                    color: Colors.white,
+                    size: 20.sp,
+                  ),
+                ),
+              ).animate().scale(
+                duration: 200.ms,
+                curve: Curves.easeOut,
+              ),
+            ],
           ),
         ],
       ),

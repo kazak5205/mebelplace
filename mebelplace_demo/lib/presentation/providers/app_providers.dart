@@ -14,19 +14,23 @@ import 'repository_providers.dart';
 // Video Provider
 final videoProvider = StateNotifierProvider<VideoNotifier, VideoState>((ref) {
   final videoRepository = ref.watch(videoRepositoryProvider);
-  return VideoNotifier(videoRepository);
+  return VideoNotifier(videoRepository, ref);
 });
 
 class VideoNotifier extends StateNotifier<VideoState> {
   final VideoRepository _videoRepository;
+  final Ref _ref;
 
-  VideoNotifier(this._videoRepository) : super(VideoState.initial());
+  VideoNotifier(this._videoRepository, this._ref) : super(VideoState.initial());
 
   // ✅ Загрузка первой страницы (сброс)
   Future<void> loadVideos() async {
     state = state.copyWith(isLoading: true, currentPage: 1);
     try {
-      final videos = await _videoRepository.getVideoFeed(page: 1, limit: 20);
+      var videos = await _videoRepository.getVideoFeed(page: 1, limit: 20);
+      
+      // ❌ УБРАЛИ фильтрацию - на вебе мастера видят все видео, включая свои
+      
       state = state.copyWith(
         videos: videos,
         isLoading: false,
@@ -55,7 +59,9 @@ class VideoNotifier extends StateNotifier<VideoState> {
     state = state.copyWith(isLoadingMore: true);
     try {
       final nextPage = state.currentPage + 1;
-      final newVideos = await _videoRepository.getVideoFeed(page: nextPage, limit: 20);
+      var newVideos = await _videoRepository.getVideoFeed(page: nextPage, limit: 20);
+      
+      // ❌ УБРАЛИ фильтрацию - на вебе мастера видят все видео, включая свои
       
       // Объединяем старые и новые видео
       final allVideos = [...state.videos, ...newVideos];
@@ -74,15 +80,33 @@ class VideoNotifier extends StateNotifier<VideoState> {
     }
   }
 
+  // ✅ Toggle like использует данные от API (как на вебе)
   Future<void> likeVideo(String videoId) async {
     try {
-      await _videoRepository.likeVideo(videoId);
-      // Update local state
+      final likeData = await _videoRepository.likeVideo(videoId);
+      // Update local state с данными от API
       final updatedVideos = state.videos.map((video) {
         if (video.id == videoId) {
           return video.copyWith(
-            isLiked: !video.isLiked,
-            likesCount: video.isLiked ? video.likesCount - 1 : video.likesCount + 1,
+            isLiked: likeData.isLiked,
+            likesCount: likeData.likes,
+          );
+        }
+        return video;
+      }).toList();
+      
+      state = state.copyWith(videos: updatedVideos);
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  Future<void> incrementCommentCount(String videoId) async {
+    try {
+      final updatedVideos = state.videos.map((video) {
+        if (video.id == videoId) {
+          return video.copyWith(
+            commentsCount: video.commentsCount + 1,
           );
         }
         return video;
@@ -91,6 +115,36 @@ class VideoNotifier extends StateNotifier<VideoState> {
       state = state.copyWith(videos: updatedVideos);
     } catch (e) {
       // Handle error
+    }
+  }
+
+  // ✅ Toggle bookmark (как на вебе videoService.addBookmark/removeBookmark)
+  Future<void> toggleBookmark(String videoId) async {
+    try {
+      // Находим текущее состояние
+      final video = state.videos.firstWhere((v) => v.id == videoId);
+      final isCurrentlyBookmarked = video.isBookmarked;
+      
+      // Переключаем через API
+      if (isCurrentlyBookmarked) {
+        await _videoRepository.removeBookmark(videoId);
+      } else {
+        await _videoRepository.addBookmark(videoId);
+      }
+      
+      // Обновляем локальное состояние
+      final updatedVideos = state.videos.map((video) {
+        if (video.id == videoId) {
+          return video.copyWith(
+            isBookmarked: !video.isBookmarked,
+          );
+        }
+        return video;
+      }).toList();
+      
+      state = state.copyWith(videos: updatedVideos);
+    } catch (e) {
+      // Handle error silently
     }
   }
 
@@ -105,7 +159,9 @@ class VideoNotifier extends StateNotifier<VideoState> {
   Future<void> searchVideos(String query) async {
     state = state.copyWith(isLoading: true);
     try {
-      final videos = await _videoRepository.searchVideos(query);
+      final results = await _videoRepository.searchVideos(query);
+      // ✅ API уже возвращает List<VideoModel>, не нужно парсить Map
+      final videos = results['videos'] as List<VideoModel>;
       state = state.copyWith(
         videos: videos,
         isLoading: false,
@@ -123,6 +179,40 @@ class VideoNotifier extends StateNotifier<VideoState> {
     state = state.copyWith(isLoading: true);
     try {
       final videos = await _videoRepository.getMasterVideos(masterId);
+      state = state.copyWith(
+        videos: videos,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadBookmarkedVideos() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final videos = await _videoRepository.getBookmarkedVideos();
+      state = state.copyWith(
+        videos: videos,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadLikedVideos() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final videos = await _videoRepository.getLikedVideos();
       state = state.copyWith(
         videos: videos,
         isLoading: false,
@@ -192,8 +282,26 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
+  bool _hasCheckedAuth = false;
 
   AuthNotifier(this._authRepository) : super(AuthState.initial());
+
+  // Проверка сохраненной авторизации при старте
+  Future<void> checkAuth() async {
+    if (_hasCheckedAuth) return;
+    _hasCheckedAuth = true;
+    
+    try {
+      final user = await _authRepository.getCurrentUser();
+      if (user != null) {
+        state = state.copyWith(user: user, isLoading: false);
+        // Подключаем WebSocket если пользователь найден
+        await SocketService().connect();
+      }
+    } catch (e) {
+      // Silent fail - просто оставляем пользователя неавторизованным
+    }
+  }
 
   Future<void> login(String phone, String password) async {
     state = state.copyWith(isLoading: true);
@@ -519,6 +627,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
       state = state.copyWith(error: e.toString());
     }
   }
+
+  Future<ChatModel?> createChatWithUser(String userId) async {
+    try {
+      final chat = await _chatRepository.createChat(
+        participants: [userId],
+        type: 'private',
+      );
+      return chat;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return null;
+    }
+  }
 }
 
 class ChatState {
@@ -602,6 +723,23 @@ class MasterNotifier extends StateNotifier<MasterState> {
       );
     }
   }
+
+  Future<void> loadSubscriptions(String userId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final subscriptions = await _userRepository.getSubscriptions(userId);
+      state = state.copyWith(
+        masters: subscriptions,
+        isLoading: false,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
 }
 
 class MasterState {
@@ -638,6 +776,19 @@ class MasterState {
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
     );
+  }
+}
+
+// Navigation Index Provider - отслеживает текущую вкладку
+final currentNavigationIndexProvider = StateNotifierProvider<NavigationIndexNotifier, int>((ref) {
+  return NavigationIndexNotifier();
+});
+
+class NavigationIndexNotifier extends StateNotifier<int> {
+  NavigationIndexNotifier() : super(0);
+  
+  void setIndex(int index) {
+    state = index;
   }
 }
 
@@ -685,6 +836,7 @@ class CommentNotifier extends StateNotifier<CommentState> {
       if (response.success) {
         // Reload comments after adding
         await loadComments();
+        // TODO: Update video comments count in VideoProvider
       }
     } catch (e) {
       state = state.copyWith(

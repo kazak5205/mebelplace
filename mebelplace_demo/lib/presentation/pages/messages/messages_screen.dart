@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,11 +9,14 @@ import '../../widgets/skeleton_loading.dart';
 import '../../../utils/haptic_helper.dart';
 import '../../../core/utils/image_helper.dart';
 import '../../../data/datasources/socket_service.dart';
+import '../../../data/models/chat_model.dart';
 import '../../providers/app_providers.dart';
 import '../../providers/socket_provider.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
-  const MessagesScreen({super.key});
+  final String? userId; // ✅ Для создания чата с конкретным пользователем
+  
+  const MessagesScreen({super.key, this.userId});
 
   @override
   ConsumerState<MessagesScreen> createState() => _MessagesScreenState();
@@ -28,7 +32,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     super.initState();
     
     // Инициализация WebSocket для обновления списка чатов
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _socketService = ref.read(socketServiceProvider);
       
       // Слушаем новые сообщения для обновления списка чатов
@@ -38,8 +42,47 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
         ref.read(chatProvider.notifier).loadChats();
       };
       
-      // Загружаем чаты
-      ref.read(chatProvider.notifier).loadChats();
+      // ✅ Если передан userId - создаём или ищем чат с этим пользователем
+      if (widget.userId != null) {
+        try {
+          // Загружаем чаты
+          await ref.read(chatProvider.notifier).loadChats();
+          
+          // Ищем существующий чат с этим пользователем
+          final chatState = ref.read(chatProvider);
+          ChatModel? existingChat;
+          try {
+            existingChat = chatState.chats.firstWhere(
+              (chat) => chat.participants.any((p) => p.userId == widget.userId),
+            );
+          } catch (e) {
+            // Чат не найден
+            existingChat = null;
+          }
+          
+          if (existingChat != null && mounted) {
+            // Если чат уже существует - открываем его
+            Navigator.pushNamed(context, '/chat', arguments: existingChat.id);
+          } else {
+            // Если чата нет - создаём новый
+            final newChat = await ref.read(chatProvider.notifier).createChatWithUser(widget.userId!);
+            if (newChat != null && mounted) {
+              // Перезагружаем чаты и открываем новый чат
+              await ref.read(chatProvider.notifier).loadChats();
+              Navigator.pushNamed(context, '/chat', arguments: newChat.id);
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Ошибка: ${e.toString()}')),
+            );
+          }
+        }
+      } else {
+        // Загружаем чаты
+        ref.read(chatProvider.notifier).loadChats();
+      }
     });
   }
 
@@ -226,183 +269,193 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
           ),
         );
       },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 8.h),
-        decoration: BoxDecoration(
-          color: hasUnread
-              ? AppColors.primary.withOpacity(0.05)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        child: Material(
-          color: Colors.transparent,
-            child: InkWell(
-            onTap: () {
-              HapticHelper.lightImpact(); // ✨ Вибрация
-              Navigator.pushNamed(context, '/chat', arguments: chatId);
-            },
-            borderRadius: BorderRadius.circular(16.r),
-            child: Padding(
-              padding: EdgeInsets.all(12.w),
-              child: Row(
-                children: [
-                  // Avatar
-                  Stack(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+          child: Container(
+            margin: EdgeInsets.only(bottom: 8.h),
+            decoration: BoxDecoration(
+              color: hasUnread
+                  ? AppColors.primary.withOpacity(0.05)
+                  : Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticHelper.lightImpact(); // ✨ Вибрация
+                  Navigator.pushNamed(context, '/chat', arguments: chatId);
+                },
+                borderRadius: BorderRadius.circular(16.r),
+                child: Padding(
+                  padding: EdgeInsets.all(12.w),
+                  child: Row(
                     children: [
-                      Hero(
-                        tag: 'chat_avatar_$chatId', // ✨ Hero animation
-                        child: Container(
-                          width: 56.w,
-                          height: 56.w,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [AppColors.primary, AppColors.secondary],
-                            ),
-                          ),
-                          padding: EdgeInsets.all(2.w),
-                          child: ClipOval(
-                            child: otherUserAvatar != null
-                                ? CachedNetworkImage(
-                                    imageUrl: ImageHelper.getFullImageUrl(otherUserAvatar),
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      color: AppColors.darkSurface,
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      // Avatar
+                      Stack(
+                        children: [
+                          Hero(
+                            tag: 'chat_avatar_$chatId', // ✨ Hero animation
+                            child: Container(
+                              width: 56.w,
+                              height: 56.w,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  colors: [AppColors.primary, AppColors.secondary],
+                                ),
+                              ),
+                              padding: EdgeInsets.all(2.w),
+                              child: ClipOval(
+                                child: otherUserAvatar != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: ImageHelper.getFullImageUrl(otherUserAvatar),
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Container(
+                                          color: AppColors.darkSurface,
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    errorWidget: (context, url, error) {
-                                      return Container(
+                                        errorWidget: (context, url, error) {
+                                          return Container(
+                                            color: AppColors.darkSurface,
+                                            child: Icon(
+                                              Icons.person,
+                                              size: 28.sp,
+                                              color: Colors.white,
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : Container(
                                         color: AppColors.darkSurface,
                                         child: Icon(
                                           Icons.person,
                                           size: 28.sp,
                                           color: Colors.white,
                                         ),
-                                      );
-                                    },
-                                  )
-                                : Container(
-                                    color: AppColors.darkSurface,
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 28.sp,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                      ),
+                              ),
+                            ),
                           ),
+                          
+                          // Online indicator
+                          if (isOnline)
+                            Positioned(
+                              right: 2,
+                              bottom: 2,
+                              child: Container(
+                                width: 14.w,
+                                height: 14.w,
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.dark,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      
+                      SizedBox(width: 12.w),
+                      
+                      // Chat info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  otherUserName,
+                                  style: TextStyle(
+                                    fontSize: 16.sp,
+                                    fontWeight: hasUnread
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 4.h),
+                            isTyping
+                                ? const TypingIndicatorSmall() // ✨ Typing indicator
+                                : Text(
+                                    lastMessage,
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      color: Colors.white.withOpacity(hasUnread ? 0.8 : 0.5),
+                                      fontWeight: hasUnread
+                                          ? FontWeight.w500
+                                          : FontWeight.normal,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                          ],
                         ),
                       ),
                       
-                      // Online indicator
-                      if (isOnline)
-                        Positioned(
-                          right: 2,
-                          bottom: 2,
-                          child: Container(
-                            width: 14.w,
-                            height: 14.w,
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.dark,
-                                width: 2,
-                              ),
+                      SizedBox(width: 12.w),
+                      
+                      // Time and badge
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _formatMessageTime(lastMessageTime),
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: hasUnread
+                                  ? AppColors.primary
+                                  : Colors.white.withOpacity(0.5),
+                              fontWeight: hasUnread
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                  
-                  SizedBox(width: 12.w),
-                  
-                  // Chat info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              otherUserName,
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: hasUnread
-                                    ? FontWeight.bold
-                                    : FontWeight.w600,
-                                color: Colors.white,
+                          if (hasUnread) ...[
+                            SizedBox(height: 6.h),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6.w,
+                                vertical: 2.h,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [AppColors.primary, AppColors.secondary],
+                                ),
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                              child: Text(
+                                '$unreadCount',
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ],
-                        ),
-                        SizedBox(height: 4.h),
-                        isTyping
-                            ? const TypingIndicatorSmall() // ✨ Typing indicator
-                            : Text(
-                                lastMessage,
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  color: Colors.white.withOpacity(hasUnread ? 0.8 : 0.5),
-                                  fontWeight: hasUnread
-                                      ? FontWeight.w500
-                                      : FontWeight.normal,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                      ],
-                    ),
-                  ),
-                  
-                  SizedBox(width: 12.w),
-                  
-                  // Time and badge
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        _formatMessageTime(lastMessageTime),
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: hasUnread
-                              ? AppColors.primary
-                              : Colors.white.withOpacity(0.5),
-                          fontWeight: hasUnread
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
+                        ],
                       ),
-                      if (hasUnread) ...[
-                        SizedBox(height: 6.h),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6.w,
-                            vertical: 2.h,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.primary, AppColors.secondary],
-                            ),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Text(
-                            '$unreadCount',
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

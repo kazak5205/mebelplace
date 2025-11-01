@@ -16,6 +16,8 @@ class VideoModel {
   final String? firstName;
   final String? lastName;
   final String? avatar;
+  final String? role; // Роль автора (user/master/admin)
+  final String? companyType; // Тип компании (master/company/shop)
   final String category;
   final List<String> tags;
   final double? furniturePrice; // Цена мебели (для магазина)
@@ -24,6 +26,7 @@ class VideoModel {
   final int likesCount;
   final int commentsCount;
   final bool isLiked;
+  final bool isBookmarked; // ✅ Для закладок
   final bool isFeatured;
   final int? priorityOrder;
   final bool isPublic;
@@ -44,6 +47,8 @@ class VideoModel {
     this.firstName,
     this.lastName,
     this.avatar,
+    this.role,
+    this.companyType,
     required this.category,
     required this.tags,
     this.furniturePrice,
@@ -52,6 +57,7 @@ class VideoModel {
     required this.likesCount,
     required this.commentsCount,
     required this.isLiked,
+    required this.isBookmarked,
     required this.isFeatured,
     this.priorityOrder,
     required this.isPublic,
@@ -87,18 +93,21 @@ class VideoModel {
       firstName: (json['firstName'] ?? json['first_name'])?.toString(),
       lastName: (json['lastName'] ?? json['last_name'])?.toString(),
       avatar: json['avatar']?.toString(),
+      role: (json['role'] ?? 'user').toString(),
+      companyType: (json['companyType'] ?? json['company_type'])?.toString(),
       category: json['category'].toString(),
       tags: parsedTags,
       furniturePrice: json['furniturePrice'] != null || json['furniture_price'] != null
           ? double.tryParse((json['furniturePrice'] ?? json['furniture_price']).toString())
           : null,
-      views: (json['views'] as num?)?.toInt() ?? 0,
-      likes: (json['likes'] as num?)?.toInt() ?? 0,
-      likesCount: ((json['likesCount'] ?? json['likeCount'] ?? json['likes_count']) as num?)?.toInt() ?? 0,
-      commentsCount: ((json['commentsCount'] ?? json['commentCount'] ?? json['comments_count']) as num?)?.toInt() ?? 0,
+      views: _parseInt(json['views']),
+      likes: _parseInt(json['likes']),
+      likesCount: _parseInt(json['likesCount'] ?? json['likeCount'] ?? json['likes_count']),
+      commentsCount: _parseInt(json['commentsCount'] ?? json['commentCount'] ?? json['comments_count'] ?? json['comments']), // ✅ Поддержка денормализованного поля comments
       isLiked: (json['isLiked'] ?? json['is_liked'] ?? false) as bool,
+      isBookmarked: (json['isBookmarked'] ?? json['is_bookmarked'] ?? false) as bool,
       isFeatured: (json['isFeatured'] ?? json['is_featured'] ?? false) as bool,
-      priorityOrder: (json['priorityOrder'] ?? json['priority_order']) as int?,
+      priorityOrder: _parseIntNullable(json['priorityOrder'] ?? json['priority_order']),
       isPublic: (json['isPublic'] ?? json['is_public'] ?? true) as bool,
       isActive: (json['isActive'] ?? json['is_active'] ?? true) as bool,
       createdAt: DateTime.tryParse((json['createdAt'] ?? json['created_at'] ?? '').toString()) ?? DateTime.now(),
@@ -123,6 +132,8 @@ class VideoModel {
     String? firstName,
     String? lastName,
     String? avatar,
+    String? role,
+    String? companyType,
     String? category,
     List<String>? tags,
     double? furniturePrice,
@@ -131,6 +142,7 @@ class VideoModel {
     int? likesCount,
     int? commentsCount,
     bool? isLiked,
+    bool? isBookmarked,
     bool? isFeatured,
     int? priorityOrder,
     bool? isPublic,
@@ -151,6 +163,8 @@ class VideoModel {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       avatar: avatar ?? this.avatar,
+      role: role ?? this.role,
+      companyType: companyType ?? this.companyType,
       category: category ?? this.category,
       tags: tags ?? this.tags,
       furniturePrice: furniturePrice ?? this.furniturePrice,
@@ -159,6 +173,7 @@ class VideoModel {
       likesCount: likesCount ?? this.likesCount,
       commentsCount: commentsCount ?? this.commentsCount,
       isLiked: isLiked ?? this.isLiked,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
       isFeatured: isFeatured ?? this.isFeatured,
       priorityOrder: priorityOrder ?? this.priorityOrder,
       isPublic: isPublic ?? this.isPublic,
@@ -240,5 +255,27 @@ class VideoModel {
       'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'
     ];
     return months[month - 1];
+  }
+
+  // Helper для безопасного парсинга int (обрабатывает String и num)
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
+  }
+
+  // Helper для безопасного парсинга nullable int
+  static int? _parseIntNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
   }
 }

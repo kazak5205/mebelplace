@@ -160,12 +160,6 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
           
           Row(
             children: [
-              Icon(
-                Icons.attach_money,
-                color: AppColors.primary,
-                size: 16.sp,
-              ),
-              SizedBox(width: 4.w),
               Text(
                 'Бюджет: ${_order!.price} ₸',
                 style: TextStyle(
@@ -246,7 +240,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
                   controller: _priceController,
                   label: 'Ваша цена',
                   hint: '0',
-                  icon: Icons.attach_money,
+                  icon: null,
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -332,7 +326,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
     required TextEditingController controller,
     required String label,
     required String hint,
-    required IconData icon,
+    IconData? icon,
     TextInputType? keyboardType,
     int maxLines = 1,
     String? Function(String?)? validator,
@@ -361,7 +355,7 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
               color: Colors.white.withValues(alpha: 0.5),
               fontSize: 14.sp,
             ),
-            prefixIcon: Icon(icon, color: AppColors.primary, size: 20.sp),
+            prefixIcon: icon != null ? Icon(icon, color: AppColors.primary, size: 20.sp) : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
               borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
@@ -472,9 +466,17 @@ class _OrderRespondPageState extends ConsumerState<OrderRespondPage> {
     try {
       // Отправляем отклик через API
       final apiService = ref.read(apiServiceProvider);
+      // Парсим deadline из дней
+      DateTime? deadline;
+      if (_timelineController.text.isNotEmpty) {
+        final days = int.parse(_timelineController.text);
+        deadline = DateTime.now().add(Duration(days: days));
+      }
+      
       final request = OrderResponseRequest(
         message: _proposalController.text,
         price: double.parse(_priceController.text),
+        deadline: deadline,
       );
       final response = await apiService.respondToOrder(widget.orderId, request);
       

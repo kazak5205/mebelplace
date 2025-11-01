@@ -81,6 +81,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
   }
 
   Widget _buildOrderDetail(OrderModel order) {
+    final authState = ref.watch(authProvider);
+    final currentUser = authState.user;
+    final isOwner = currentUser?.id == order.clientId;
+    
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Column(
@@ -96,10 +100,11 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           
           SizedBox(height: 24.h),
           
-          // Цена (убрано - не показывается на веб-версии)
-          // _buildPrice(order),
-          
-          // SizedBox(height: 24.h),
+          // Цена и детали заказа
+          if (order.price != null && order.price! > 0) ...[
+            _buildOrderDetails(order),
+            SizedBox(height: 24.h),
+          ],
           
           // Изображения
           if (order.images.isNotEmpty) ...[
@@ -107,18 +112,18 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             SizedBox(height: 24.h),
           ],
           
-          // Информация о заказчике
-          _buildCustomerInfo(order),
-          
-          SizedBox(height: 24.h),
+          // Информация о заказчике - НЕ показываем владельцу (как на вебе)
+          // Заказчику показываем кнопку "Написать мастеру" вместо информации о себе
+          if (!isOwner && order.client != null) ...[
+            _buildCustomerInfo(order),
+            SizedBox(height: 24.h),
+          ],
           
           // Действия
           _buildActions(order),
           
-          SizedBox(height: 24.h),
-          
-          // Отклики
-          _buildResponsesSection(order),
+          // Отклики - только для владельца
+          // (кнопка уже в _buildActions для владельца)
         ],
       ),
     );
@@ -252,49 +257,142 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
   }
 
-  Widget _buildPrice(OrderModel order) {
+  Widget _buildOrderDetails(OrderModel order) {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withValues(alpha: 0.2),
-            AppColors.secondary.withValues(alpha: 0.2),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
+          color: Colors.white.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(
-            Icons.attach_money,
-            color: AppColors.primary,
-            size: 24.sp,
-          ),
-          SizedBox(width: 12.w),
-          Text(
-            'Бюджет',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
+          if (order.price != null && order.price! > 0) ...[
+            Row(
+              children: [
+                Text('₸', style: TextStyle(color: Colors.green, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Бюджет',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                      Text(
+                        '${(order.price ?? 0).toStringAsFixed(0)} ₸',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-          const Spacer(),
-          Text(
-            '${(order.price ?? 0).toStringAsFixed(0)} ₸',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
+            if (order.deadline != null) SizedBox(height: 16.h),
+          ],
+          if (order.deadline != null) ...[
+            Row(
+              children: [
+                Icon(Icons.schedule, color: Colors.blue, size: 20.sp),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Срок',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                      Text(
+                        _formatDate(order.deadline!),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
+            if (order.region != null || order.location != null) SizedBox(height: 16.h),
+          ],
+          if (order.region != null) ...[
+            Row(
+              children: [
+                Icon(Icons.location_on, color: Colors.orange, size: 20.sp),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Регион',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                      Text(
+                        order.region!,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (order.location != null) SizedBox(height: 16.h),
+          ],
+          if (order.location != null) ...[
+            Row(
+              children: [
+                Icon(Icons.place, color: Colors.purple, size: 20.sp),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Город',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                      Text(
+                        order.location!,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     ).animate().fadeIn(duration: 300.ms, delay: 200.ms).slideY(
@@ -384,7 +482,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Информация о заказчике',
+            'Написать мастеру',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16.sp,
@@ -437,23 +535,33 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
   }
 
   Widget _buildActions(OrderModel order) {
-    // ✅ Проверяем: не показывать кнопку "Откликнуться" владельцу заказа
     final authState = ref.watch(authProvider);
     final currentUser = authState.user;
     final isOwner = currentUser?.id == order.clientId;
     final isMaster = currentUser?.role == 'master';
+    
+    // ✅ Вычисляем hasMyResponse если не пришло с бэкенда (fallback на клиенте)
+    final hasMyResponse = order.hasMyResponse || 
+        (order.responses != null && order.responses!.isNotEmpty && 
+         order.responses!.any((resp) => resp['master_id'] == currentUser?.id));
+    
+    // ✅ Логика как на вебе: canRespond = isMaster && status pending && !hasMyResponse
+    final canRespond = isMaster && order.status == 'pending' && !hasMyResponse;
 
     return Row(
       children: [
-        // Кнопка "Откликнуться" только для мастеров и не для владельца
-        if (isMaster && !isOwner)
+        // Кнопка "Просмотреть отклики" для владельца
+        // Веб показывает по order.responses.length, на мобиле fallback к responseCount, если responses не загружены
+        if (isOwner && ((order.responses != null && order.responses!.isNotEmpty) || order.responseCount > 0))
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () {
-                Navigator.pushNamed(context, '/order-respond', arguments: order.id);
+                Navigator.pushNamed(context, '/order-responses', arguments: order.id);
               },
-              icon: Icon(Icons.reply, size: 18.sp),
-              label: const Text('Откликнуться'),
+              icon: Icon(Icons.visibility, size: 18.sp),
+              label: Text('Отклики (' +
+                  ((order.responses != null) ? order.responses!.length.toString() : order.responseCount.toString()) +
+                  ')'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -465,25 +573,54 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             ),
           ),
         
-        if (isMaster && !isOwner) SizedBox(width: 12.w),
-        
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {
-              Navigator.pushNamed(context, '/chat', arguments: order.clientId);
-            },
-            icon: Icon(Icons.message, size: 18.sp),
-            label: const Text('Написать'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
-              padding: EdgeInsets.symmetric(vertical: 16.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
+        // Кнопка "Откликнуться" только если может
+        if (canRespond)
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, '/order-respond', arguments: order.id);
+              },
+              icon: Icon(Icons.reply, size: 18.sp),
+              label: const Text('Откликнуться'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
               ),
             ),
           ),
-        ),
+        
+        // Статус "Вы уже откликнулись" - как на вебе, только текст без действий
+        if (isMaster && hasMyResponse) ...[
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: 16.h),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green[300], size: 18.sp),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Вы уже откликнулись',
+                    style: TextStyle(
+                      color: Colors.green[300],
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     ).animate().fadeIn(duration: 300.ms, delay: 500.ms).slideY(
       begin: 0.2,
@@ -492,66 +629,6 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
   }
 
-  Widget _buildResponsesSection(OrderModel order) {
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Отклики мастеров',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${order.responseCount}',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          
-          SizedBox(height: 16.h),
-          
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/order-responses', arguments: order.id);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-            ),
-            child: const Text('Посмотреть отклики'),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 300.ms, delay: 600.ms).slideY(
-      begin: 0.2,
-      end: 0,
-      curve: Curves.easeOut,
-    );
-  }
 
   Widget _buildErrorWidget(String error) {
     return Center(

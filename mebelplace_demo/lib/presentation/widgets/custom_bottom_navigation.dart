@@ -38,7 +38,7 @@ class CustomBottomNavigation extends StatelessWidget {
           CustomPaint(
             painter: _BottomNavBarPainter(),
             child: SizedBox(
-              height: 70.h,
+              height: 65.h,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -76,13 +76,13 @@ class CustomBottomNavigation extends StatelessWidget {
         
         // Центральная большая кнопка
         Positioned(
-          bottom: 18.h, // Улучшена позиция для попадания в вырез
+          bottom: 20.h, // Улучшена позиция для попадания в вырез
           child: GestureDetector(
             onTap: () => onTap(2),
             behavior: HitTestBehavior.opaque,
             child: Container(
-              width: 90.w, // Увеличена зона нажатия
-              height: 90.h, // Увеличена зона нажатия
+              width: 80.w, // Уменьшена зона нажатия
+              height: 80.h, // Уменьшена зона нажатия
               alignment: Alignment.center,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -94,8 +94,8 @@ class CustomBottomNavigation extends StatelessWidget {
                       return Transform.scale(
                         scale: scale,
                         child: Container(
-                          width: 70.w,
-                          height: 70.w,
+                          width: 62.w,
+                          height: 62.w,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
@@ -117,19 +117,19 @@ class CustomBottomNavigation extends StatelessWidget {
                           child: Icon(
                             Icons.add_rounded,
                             color: Colors.white,
-                            size: 36.sp,
+                            size: 32.sp,
                           ),
                         ),
                       );
                     },
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: 4.h),
                   Text(
                     isMaster ? 'создать\nвидеорекламу' : 'заявка\nвсем', // ✅ Синхронизировано с вебом
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     style: TextStyle(
-                      fontSize: 10.sp, // Уменьшен для 2х строк
+                      fontSize: 9.sp, // Еще уменьшен
                       fontWeight: FontWeight.w600,
                       height: 1.1,
                       color: currentIndex == 2 ? AppColors.primary : Colors.white.withOpacity(0.6),
@@ -187,7 +187,7 @@ class CustomBottomNavigation extends StatelessWidget {
       onTap: () => onTap(index),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -195,13 +195,13 @@ class CustomBottomNavigation extends StatelessWidget {
             Icon(
               icon,
               color: isActive ? AppColors.primary : Colors.white.withOpacity(0.6),
-              size: 24.sp,
+              size: 22.sp,
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: 3.h),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: 10.sp,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                 color: isActive ? AppColors.primary : Colors.white.withOpacity(0.6),
               ),
@@ -229,23 +229,22 @@ class _BottomNavBarPainter extends CustomPainter {
     // Линия до начала выреза
     path.lineTo(size.width * 0.35, 0);
     
-    // Создаем вырез для центральной кнопки
+    // Создаем вырез для центральной кнопки - максимально плавная кривая
     const curveEndX = 0.65;
-    const curveHeight = 20.0; // Высота выреза
+    const curveHeight = 25.0;
     
-    // Плавный вырез (Bezier curve)
-    path.quadraticBezierTo(
-      size.width * 0.40, // control point X
-      -curveHeight, // control point Y (вверх)
-      size.width * 0.5, // end point X (центр)
-      -curveHeight, // end point Y
+    // Первая половина дуги - более плавный переход
+    path.cubicTo(
+      size.width * 0.38, -5, // control point 1 - начинаем погружение
+      size.width * 0.44, -curveHeight * 0.4, // control point 2
+      size.width * 0.5, -curveHeight, // end point (центр выреза)
     );
     
-    path.quadraticBezierTo(
-      size.width * 0.60, // control point X
-      -curveHeight, // control point Y
-      curveEndX, // end point X
-      0, // end point Y
+    // Вторая половина дуги - симметричный подъем
+    path.cubicTo(
+      size.width * 0.56, -curveHeight * 0.4, // control point 1
+      size.width * 0.62, -5, // control point 2 - завершаем подъем
+      size.width * curveEndX, 0, // end point
     );
     
     // Линия до конца
@@ -257,36 +256,10 @@ class _BottomNavBarPainter extends CustomPainter {
     
     path.close();
     
-    // Тень
-    canvas.drawShadow(path, Colors.black.withOpacity(0.3), 8, false);
-    
     // Основной фон
     canvas.drawPath(path, paint);
     
-    // Верхняя граница
-    final borderPaint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    
-    final borderPath = Path();
-    borderPath.moveTo(0, 0);
-    borderPath.lineTo(size.width * 0.35, 0);
-    borderPath.quadraticBezierTo(
-      size.width * 0.40,
-      -curveHeight,
-      size.width * 0.5,
-      -curveHeight,
-    );
-    borderPath.quadraticBezierTo(
-      size.width * 0.60,
-      -curveHeight,
-      size.width * 0.65,
-      0,
-    );
-    borderPath.lineTo(size.width, 0);
-    
-    canvas.drawPath(borderPath, borderPaint);
+    // Убираем тень чтобы не было линии
   }
 
   @override

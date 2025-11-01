@@ -37,6 +37,12 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final commentState = ref.watch(providers.commentProvider(widget.video.id));
+    final authState = ref.watch(providers.authProvider);
+    final currentUser = authState.user;
+    
+    // ✅ Проверка: может ли пользователь комментировать это видео (как на вебе строка 67-71)
+    final canComment = currentUser == null || currentUser.role != 'master' ||
+        currentUser.id == widget.video.authorId;
 
     return Container(
       constraints: BoxConstraints(
@@ -137,7 +143,7 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
                           ),
           ),
 
-          // Input field
+          // Input field (как на вебе строка 1100-1124)
           Container(
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
@@ -151,63 +157,76 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
             ),
             child: SafeArea(
               top: false,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(24.r),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
+              child: canComment
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(24.r),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                              ),
+                            ),
+                            child: TextField(
+                              controller: _commentController,
+                              focusNode: _focusNode,
+                              style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                              maxLines: null,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                hintText: 'Добавить комментарий...',
+                                hintStyle: TextStyle(
+                                  color: Colors.white.withOpacity(0.4),
+                                  fontSize: 14.sp,
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(vertical: 8.h),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      child: TextField(
-                        controller: _commentController,
-                        focusNode: _focusNode,
-                        style: TextStyle(color: Colors.white, fontSize: 14.sp),
-                        maxLines: null,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          hintText: 'Добавить комментарий...',
-                          hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.4),
+                        SizedBox(width: 8.w),
+                        GestureDetector(
+                          onTap: _isSending ? null : _sendComment,
+                          child: Container(
+                            width: 40.w,
+                            height: 40.w,
+                            decoration: BoxDecoration(
+                              gradient: _commentController.text.trim().isEmpty
+                                  ? null
+                                  : const LinearGradient(
+                                      colors: [AppColors.primary, AppColors.secondary],
+                                    ),
+                              color: _commentController.text.trim().isEmpty
+                                  ? Colors.white.withOpacity(0.1)
+                                  : null,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 20.sp,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      child: Center(
+                        child: Text(
+                          'Только автор видео может оставлять комментарии',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
                             fontSize: 14.sp,
                           ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 8.h),
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 8.w),
-                  GestureDetector(
-                    onTap: _isSending ? null : _sendComment,
-                    child: Container(
-                      width: 40.w,
-                      height: 40.w,
-                      decoration: BoxDecoration(
-                        gradient: _commentController.text.trim().isEmpty
-                            ? null
-                            : const LinearGradient(
-                                colors: [AppColors.primary, AppColors.secondary],
-                              ),
-                        color: _commentController.text.trim().isEmpty
-                            ? Colors.white.withOpacity(0.1)
-                            : null,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20.sp,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -299,6 +318,8 @@ class _CommentsBottomSheetState extends ConsumerState<CommentsBottomSheet> {
 
     try {
       await ref.read(providers.commentProvider(widget.video.id).notifier).addComment(content);
+      // Обновляем счетчик комментариев в видео
+      ref.read(providers.videoProvider.notifier).incrementCommentCount(widget.video.id);
       _commentController.clear();
       _focusNode.unfocus();
     } catch (e) {
