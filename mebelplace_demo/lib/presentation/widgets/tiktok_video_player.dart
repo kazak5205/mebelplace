@@ -70,8 +70,6 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
   
   // Map для кеширования контроллеров
   final Map<int, VideoPlayerController> _controllerCache = {};
-  // Map для отслеживания попыток retry
-  final Map<int, int> _retryCounts = {};
   
   // Отслеживаем последнее видео, для которого вызвали onVideoChanged (чтобы избежать двойных вызовов)
   String? _lastNotifiedVideoId;
@@ -185,38 +183,19 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     // Проверяем кеш
     if (_controllerCache.containsKey(index)) {
       final cachedController = _controllerCache[index]!;
-      // Убеждаемся, что listener добавлен
       if (!cachedController.hasListeners) {
         cachedController.addListener(_videoListener);
       }
       if (isCurrent) {
+        _currentController = cachedController;
         if (cachedController.value.isInitialized) {
-          setState(() {
-            _currentController = cachedController;
-            _isBuffering = false;
-          });
           _playCurrentVideo();
         } else {
-          // Если не инициализирован, ждем
-          setState(() {
-            _currentController = cachedController;
-            _isBuffering = true;
-          });
-        cachedController.initialize().then((_) {
-          if (mounted && _currentController == cachedController && cachedController.value.isInitialized) {
-            setState(() {
-              _isBuffering = false;
-            });
-            // Запускаем сразу без задержки
-            _playCurrentVideo();
-          }
-        }).catchError((e) {
-          if (mounted) {
-            setState(() {
-              _isBuffering = false;
-            });
-          }
-        });
+          cachedController.initialize().then((_) {
+            if (mounted && _currentController == cachedController) {
+              _playCurrentVideo();
+            }
+          }).catchError((_) {});
         }
       }
       return;
@@ -225,7 +204,7 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(videoUrl),
       videoPlayerOptions: VideoPlayerOptions(
-        mixWithOthers: false,
+        mixWithOthers: true, // ✅ Разрешаем микширование звука с другими приложениями
         allowBackgroundPlayback: false,
       ),
     );
@@ -238,99 +217,32 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     try {
       await controller.initialize();
       
-      if (mounted) {
-        if (isCurrent) {
-          // Проверяем, что контроллер действительно инициализирован
-          if (controller.value.isInitialized) {
-            setState(() {
-              _currentController = controller;
-              _isBuffering = false;
-            });
-            
-            // Немедленно запускаем проигрывание - БЕЗ ЗАДЕРЖЕК
-            _playCurrentVideo();
-            
-            // Уведомляем о смене видео (только один раз для этого видео)
-            if (widget.onVideoChanged != null && _lastNotifiedVideoId != video.id) {
-              _lastNotifiedVideoId = video.id;
-              widget.onVideoChanged!(video);
-            }
-          } else {
-            // Если инициализация не завершилась, ждем
-            setState(() {
-              _currentController = controller;
-              _isBuffering = true;
-            });
-          }
+      if (mounted && isCurrent && controller.value.isInitialized) {
+        _currentController = controller;
+        _playCurrentVideo();
+        // Уведомляем о смене видео (только один раз для этого видео)
+        if (widget.onVideoChanged != null && _lastNotifiedVideoId != video.id) {
+          _lastNotifiedVideoId = video.id;
+          widget.onVideoChanged!(video);
         }
       }
     } catch (e) {
-      // Ошибка инициализации - пробуем еще раз через 1 секунду (максимум 3 попытки)
-      if (mounted && isCurrent) {
-        setState(() {
-          _isBuffering = false;
-        });
-        
-        // ✅ Retry логика для текущего видео
-        final retryCount = _retryCounts[index] ?? 0;
-        if (retryCount < 3) {
-          _retryCounts[index] = retryCount + 1;
-          Future.delayed(const Duration(seconds: 1), () {
-            if (mounted && index == _currentIndex) {
-              _initializeController(index, isCurrent: true).catchError((_) {});
-            }
-          });
-        } else {
-          // После 3 попыток удаляем из кеша
-          _retryCounts.remove(index);
-          if (_controllerCache[index] == controller) {
-            _controllerCache.remove(index);
-            controller.dispose();
-          }
-        }
-      } else {
-        // Для не текущих видео просто удаляем при ошибке
-        if (_controllerCache[index] == controller) {
-          _controllerCache.remove(index);
-          controller.dispose();
-        }
+      // Ошибка инициализации - просто удаляем контроллер
+      if (_controllerCache[index] == controller) {
+        _controllerCache.remove(index);
+        controller.dispose();
       }
     }
   }
 
   void _playCurrentVideo() {
     if (_currentController != null && _currentController!.value.isInitialized) {
-      try {
-        // Устанавливаем параметры
-        _currentController!.setLooping(true);
-        _currentController!.setVolume(_isMuted ? 0 : 1);
-        
-        // Проверяем, не играет ли уже
-        if (_currentController!.value.isPlaying) {
-          setState(() {
-            _isPlaying = true;
-            _isBuffering = false;
-          });
-          return;
-        }
-        
-        // Запускаем проигрывание БЕЗ проверок и задержек - как на вебе
-        _currentController!.play().catchError((_) {
-          // Игнорируем ошибки автоплея
-        });
-        
-        setState(() {
-          _isPlaying = true;
-          _isBuffering = false;
-        });
-      } catch (e) {
-        // Ошибка при установке параметров
-        if (mounted) {
-          setState(() {
-            _isBuffering = false;
-          });
-        }
-      }
+      // Устанавливаем параметры
+      _currentController!.setLooping(true);
+      _currentController!.setVolume(_isMuted ? 0 : 1);
+      
+      // Запускаем проигрывание сразу - как на вебе (autoPlay)
+      _currentController!.play().catchError((_) {});
     }
   }
 
@@ -378,51 +290,27 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     
     // Устанавливаем текущий
     if (_controllerCache.containsKey(newIndex)) {
-      final cachedController = _controllerCache[newIndex]!;
-      if (cachedController.value.isInitialized) {
-        setState(() {
-          _currentController = cachedController;
-          _isBuffering = false;
-        });
+      _currentController = _controllerCache[newIndex]!;
+      if (_currentController!.value.isInitialized) {
         _playCurrentVideo();
-        
-        // Уведомляем о смене видео (только один раз для этого видео)
-        if (widget.onVideoChanged != null && newIndex < widget.videos.length) {
-          final video = widget.videos[newIndex];
-          if (_lastNotifiedVideoId != video.id) {
-            _lastNotifiedVideoId = video.id;
-            widget.onVideoChanged!(video);
-          }
-        }
       } else {
-        // Если контроллер в кеше, но не инициализирован, ждем инициализации
-        setState(() {
-          _currentController = cachedController;
-          _isBuffering = true;
-        });
-        cachedController.initialize().then((_) {
-          if (mounted && _currentController == cachedController && cachedController.value.isInitialized) {
-            setState(() {
-              _isBuffering = false;
-            });
-            // Запускаем сразу без задержки
+        _currentController!.initialize().then((_) {
+          if (mounted && _currentController == _controllerCache[newIndex]) {
             _playCurrentVideo();
-            
-            // Уведомляем о смене видео (только один раз для этого видео)
-            if (widget.onVideoChanged != null && newIndex < widget.videos.length) {
-              final video = widget.videos[newIndex];
-              if (_lastNotifiedVideoId != video.id) {
-                _lastNotifiedVideoId = video.id;
-                widget.onVideoChanged!(video);
-              }
-            }
           }
-        }).catchError((e) {
-          if (mounted) {
-            setState(() {
-              _isBuffering = false;
-            });
-          }
+        }).catchError((_) {});
+      }
+      // Уведомляем о смене видео
+      if (widget.onVideoChanged != null && newIndex < widget.videos.length) {
+        final video = widget.videos[newIndex];
+        if (_lastNotifiedVideoId != video.id) {
+          _lastNotifiedVideoId = video.id;
+          widget.onVideoChanged!(video);
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _isBuffering = false;
         });
       }
     } else {

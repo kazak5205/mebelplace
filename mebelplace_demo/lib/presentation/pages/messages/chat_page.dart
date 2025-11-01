@@ -191,6 +191,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             builder: (context) => TikTokVideoPlayer(
               videos: authorVideos,
               initialIndex: index,
+              mutedByDefault: true, // ✅ Звук по умолчанию выключен
               onLike: (video) {
                 ref.read(videoProvider.notifier).likeVideo(video.id);
               },

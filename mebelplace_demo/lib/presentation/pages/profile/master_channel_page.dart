@@ -451,6 +451,7 @@ class _MasterChannelPageState extends ConsumerState<MasterChannelPage>
             builder: (context) => TikTokVideoPlayer(
               videos: ref.read(videoProvider).videos.where((v) => v.authorId == widget.masterId).toList(),
               initialIndex: index,
+              mutedByDefault: true, // ✅ Звук по умолчанию выключен
               onLike: (video) {
                 ref.read(videoProvider.notifier).likeVideo(video.id);
               },

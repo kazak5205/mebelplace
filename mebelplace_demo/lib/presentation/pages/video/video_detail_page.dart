@@ -69,6 +69,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
       body: TikTokVideoPlayer(
         videos: videos,
         initialIndex: videoIndex,
+        mutedByDefault: true, // ✅ Звук по умолчанию выключен
       ),
     );
   }
