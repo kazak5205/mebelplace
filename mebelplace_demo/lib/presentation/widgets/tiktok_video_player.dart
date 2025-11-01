@@ -100,7 +100,7 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       duration: const Duration(milliseconds: 300),
     );
     
-    // Инициализация видео
+    // Инициализация видео - минимальная задержка для mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeVideos();
     });
@@ -187,7 +187,9 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
         cachedController.addListener(_videoListener);
       }
       if (isCurrent) {
-        _currentController = cachedController;
+        setState(() {
+          _currentController = cachedController;
+        });
         if (cachedController.value.isInitialized) {
           _playCurrentVideo();
         } else {
@@ -218,7 +220,9 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
       await controller.initialize();
       
       if (mounted && isCurrent && controller.value.isInitialized) {
-        _currentController = controller;
+        setState(() {
+          _currentController = controller;
+        });
         _playCurrentVideo();
         // Уведомляем о смене видео (только один раз для этого видео)
         if (widget.onVideoChanged != null && _lastNotifiedVideoId != video.id) {
@@ -290,7 +294,9 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
     
     // Устанавливаем текущий
     if (_controllerCache.containsKey(newIndex)) {
-      _currentController = _controllerCache[newIndex]!;
+      setState(() {
+        _currentController = _controllerCache[newIndex]!;
+      });
       if (_currentController!.value.isInitialized) {
         _playCurrentVideo();
       } else {
@@ -308,11 +314,9 @@ class TikTokVideoPlayerState extends ConsumerState<TikTokVideoPlayer>
           widget.onVideoChanged!(video);
         }
       }
-      if (mounted) {
-        setState(() {
-          _isBuffering = false;
-        });
-      }
+      setState(() {
+        _isBuffering = false;
+      });
     } else {
       // Инициализируем новый контроллер
       _initializeController(newIndex, isCurrent: true);
